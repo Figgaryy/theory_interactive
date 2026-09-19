@@ -151,7 +151,7 @@ RXM.build = () => {
     RXM.step.setCount(r.stages.length, r.stages.length - 1);
   } catch (e) { $('rx-ast').innerHTML = `<span class="bad-t">${esc(e.message)}</span>`; }
 };
-RXM.show = (i) => { const sg = RXM.res.stages[i]; RXM.view.setAutomaton(sg.automaton); RXM.view.fit(); document.querySelectorAll('#rx-stages .item').forEach(d => d.style.background = +d.dataset.k === i ? 'var(--mark-soft)' : ''); $('rx-explain').innerHTML = `<b>Stage ${i + 1}/${RXM.res.stages.length} · ${esc(sg.regex)}</b><br>${esc(sg.desc)}<span class="f">state: ${sg.automaton.states.length} · transitions: ${sg.automaton.transitions.length} (มี e ${sg.automaton.transitions.filter(t => t.symbol === FA.E).length})</span>`; };
+RXM.show = (i) => { const sg = RXM.res.stages[i]; const m = sg.automaton.meta || {}; RXM.view.setAutomaton(sg.automaton); RXM.view.fit(); RXM.view.highlight({ transitions: m.added || [], states: m.addedStates || [] }); document.querySelectorAll('#rx-stages .item').forEach(d => { const on = +d.dataset.k === i; d.style.background = on ? 'var(--mark-soft)' : ''; if (on && d.scrollIntoView) d.scrollIntoView({ block: 'nearest' }); }); $('rx-explain').innerHTML = `<b>Stage ${i + 1}/${RXM.res.stages.length} · ${esc(sg.regex)}</b><br>${esc(sg.desc)}${(m.added || []).length ? ' — <b style="color:var(--blue-ink)">เส้นสีน้ำเงิน</b> = ที่เพิ่งเพิ่มใน stage นี้' : ''}<span class="f">state: ${sg.automaton.states.length} · transitions: ${sg.automaton.transitions.length} (มี e ${sg.automaton.transitions.filter(t => t.symbol === FA.E).length})</span>`; };
 $('rx-build').onclick = RXM.build; $('rx-in').addEventListener('keydown', e => { if (e.key === 'Enter') RXM.build(); });
 $('rx-to-editor').onclick = () => { if (RXM.res) App.goto('editor', RXM.res.nfa.clone()); };
 $('rx-to-ps').onclick = () => { if (RXM.res) App.goto('powerset', RXM.res.nfa.clone()); };
@@ -178,7 +178,7 @@ SE.eliminate = (id) => {
   SE.render({ transitions: step.pairs.map(p => ({ from: p.i, to: p.j })) });
   $('se-explain').innerHTML = `<b>ลบ ${esc(g.labels[id])}:</b> ทุกคู่ (qᵢ → ${esc(g.labels[id])} → qⱼ) ได้เส้นใหม่ฉลาก <span class="mono">δ ∪ αγ*β</span> (α = เข้า, γ = loop, β = ออก, δ = เส้น qᵢ→qⱼ เดิม)${g.done() ? `<br><b>เสร็จ!</b> เหลือ s → f เส้นเดียว: <span class="mono">${esc(RX.print(g.result()))}</span>` : ` — เหลืออีก ${g.alive().length - 2} state`}`;
 };
-$('se-auto').onclick = () => { if (!SE.g) return; for (const q of [...SE.g.alive()]) if (q !== SE.g.S && q !== SE.g.Fn) SE.eliminate(q); };
+$('se-auto').onclick = () => { if (!SE.g) return; for (const q of SE.A.ids()) if (q !== SE.g.S && q !== SE.g.Fn && !SE.g.eliminated.includes(q)) SE.eliminate(q); };
 $('se-reset').onclick = () => { if (SE.A) SE.load(SE.A); };
 $('se-from-editor').onclick = () => SE.load(App.current.clone());
 $('se-lib').onclick = () => UI.library(['M4', 'DFA', 'NFA'], (A) => SE.load(A));

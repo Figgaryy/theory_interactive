@@ -133,4 +133,16 @@ FA.layoutLayers = (A, x0 = 80, y0 = 200, dx = 130, dy = 90) => {
   const keys = Object.keys(cols).map(Number).sort((a, b) => a - b);
   keys.forEach((d, ci) => { const col = cols[d]; col.forEach((id, ri) => { const st = A.state(id); st.x = x0 + ci * dx; st.y = y0 + (ri - (col.length - 1) / 2) * dy; }); });
 };
+FA.layoutSnake = (A, perRow = 6, x0 = 80, y0 = 110, dx = 110, dy = 120) => {
+  // BFS order from the start state, then place states row by row; even rows go left→right, odd rows right→left
+  const s = A.start; if (!s) return FA.layoutCircle(A);
+  const order = []; const seen = new Set([s]); const q = [s];
+  while (q.length) { const u = q.shift(); order.push(u); for (const t of A.transitions) if (t.from === u && !seen.has(t.to)) { seen.add(t.to); q.push(t.to); } }
+  for (const id of A.ids()) if (!seen.has(id)) order.push(id);
+  order.forEach((id, i) => {
+    const row = Math.floor(i / perRow), col = i % perRow;
+    const c = row % 2 === 0 ? col : (perRow - 1 - col);
+    const st = A.state(id); st.x = x0 + c * dx; st.y = y0 + row * dy;
+  });
+};
 </script>

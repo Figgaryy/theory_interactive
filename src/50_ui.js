@@ -17,7 +17,7 @@ UI.stepper = (container, onStep) => {
   const c = typeof container === 'string' ? $(container) : container;
   c.innerHTML = `<button class="btn sm" data-a="first" title="ไปต้น">⏮</button><button class="btn sm" data-a="prev" title="ย้อน 1 step">◀</button><button class="btn sm primary" data-a="next" title="ถัดไป 1 step">▶ Step</button><button class="btn sm" data-a="last" title="ไปจบ">⏭</button><button class="btn sm" data-a="auto" title="เล่นอัตโนมัติ">▶▶ Auto</button><span class="cnt">0 / 0</span>`;
   const st = { i: 0, n: 0, timer: null };
-  const paint = () => { c.querySelector('.cnt').textContent = `${st.i} / ${Math.max(st.n - 1, 0)}`; c.querySelector('[data-a=prev]').disabled = st.i <= 0; c.querySelector('[data-a=next]').disabled = st.i >= st.n - 1; };
+  const paint = () => { c.querySelector('.cnt').textContent = `${st.n ? st.i + 1 : 0} / ${st.n}`; c.querySelector('[data-a=prev]').disabled = st.i <= 0; c.querySelector('[data-a=next]').disabled = st.i >= st.n - 1; };
   const go = (i) => { if (!st.n) return; st.i = Math.max(0, Math.min(st.n - 1, i)); paint(); onStep(st.i); };
   const stopAuto = () => { if (st.timer) { clearInterval(st.timer); st.timer = null; c.querySelector('[data-a=auto]').classList.remove('on'); } };
   c.addEventListener('click', (ev) => {

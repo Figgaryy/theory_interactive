@@ -46,7 +46,7 @@ add('fig29', 'Figure 2-9  —  ตัวอย่างหลักที่อ�
   { sample: 'ab' });
 
 add('fig215', '3k+1 b\'s  —  ตัวอย่าง state elimination', 'Example 2.3.2 / Figure 2-15 หน้า 80–83 · annotated หน้า 26–27', ['DFA', 'M4', 'star'],
-  () => T({ name: 'M (Fig 2-15)', alphabet: ['a', 'b'], start: 'q1', finals: ['q3'], rows: { q1: { a: 'q1', b: 'q3' }, q3: { a: 'q3', b: 'q2' }, q2: { a: 'q2', b: 'q1' } }, pos: { q1: [140, 300], q3: [320, 110], q2: [500, 300] } }),
+  () => T({ name: 'M (Fig 2-15)', alphabet: ['a', 'b'], start: 'q1', finals: ['q3'], rows: { q1: { a: 'q1', b: 'q3' }, q2: { a: 'q2', b: 'q1' }, q3: { a: 'q3', b: 'q2' } }, pos: { q1: [140, 300], q3: [320, 110], q2: [500, 300] } }),
   { sample: 'abab', regex: 'a*b(a ∪ ba*ba*b)*' });
 
 add('fig219', '(ab ∪ ba)*  —  7 state มี q7 ไปไม่ถึง', 'Figure 2-19/2-20 หน้า 93–100 · Example 2.5.3 ย่อเหลือ 4 state', ['DFA', 'M3', 'star'],

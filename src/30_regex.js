@@ -51,25 +51,36 @@ RX.print = (n) => {
 RX.eq = (a, b) => RX.print(a) === RX.print(b);
 RX.simplify = (n) => {
   if (!n) return EMPTY;
+  const isEpsOr = (x) => x.t === 'or' && RX.alts(x).some(a => a.t === 'eps');
+  const dropEps = (x) => { const as = RX.alts(x).filter(a => a.t !== 'eps'); return as.length ? as.reduce((p, q) => OR(p, q)) : EPS; };
   switch (n.t) {
     case 'cat': {
       const l = RX.simplify(n.l), r = RX.simplify(n.r);
       if (l.t === 'empty' || r.t === 'empty') return EMPTY;
       if (l.t === 'eps') return r; if (r.t === 'eps') return l;
+      // X* X* = X*
+      if (l.t === 'star' && r.t === 'star' && RX.eq(l.x, r.x)) return l;
+      // X* (e ∪ X) = X*   and   (e ∪ X) X* = X*
+      if (l.t === 'star' && isEpsOr(r) && RX.eq(dropEps(r), l.x)) return l;
+      if (r.t === 'star' && isEpsOr(l) && RX.eq(dropEps(l), r.x)) return r;
       return CAT(l, r);
     }
     case 'or': {
       const l = RX.simplify(n.l), r = RX.simplify(n.r);
-      if (l.t === 'empty') return r; if (r.t === 'empty') return l;
-      if (RX.eq(l, r)) return l;
-      const alts = new Set(RX.alts(l).map(RX.print));
-      if (RX.alts(r).every(x => alts.has(RX.print(x)))) return l;
-      return OR(l, r);
+      const seen = new Set(); let alts = [];
+      for (const a of [...RX.alts(l), ...RX.alts(r)]) { if (a.t === 'empty') continue; const k = RX.print(a); if (!seen.has(k)) { seen.add(k); alts.push(a); } }
+      // if X* is an alternative, drop alternatives e and X (they are already inside X*)
+      const stars = alts.filter(a => a.t === 'star');
+      if (stars.length) alts = alts.filter(a => !(a.t === 'eps' || stars.some(s => RX.eq(s.x, a))));
+      if (!alts.length) return EMPTY;
+      return alts.reduce((p, q) => OR(p, q));
     }
     case 'star': {
-      const x = RX.simplify(n.x);
+      let x = RX.simplify(n.x);
       if (x.t === 'empty' || x.t === 'eps') return EPS;
       if (x.t === 'star') return x;
+      // (e ∪ X)* = X*
+      if (isEpsOr(x)) { x = dropEps(x); if (x.t === 'star') return x; }
       return STAR(x);
     }
     default: return n;
@@ -96,7 +107,9 @@ const tidy = (A) => {
   const B = new FA.Automaton({ alphabet: A.alphabet, name: A.name });
   B.states = order.map(id => { const s = A.state(id); return { ...s, id: map[id], label: map[id] }; });
   B.transitions = A.transitions.map(t => ({ from: map[t.from], symbol: t.symbol, to: map[t.to] }));
-  FA.layoutLayers(B, 70, 200, 120, 80);
+  const m = A.meta || {};
+  B.meta = { added: (m.added || []).map(t => ({ from: map[t.from], to: map[t.to] })), addedStates: (m.addedStates || []).map(id => map[id]) };
+  FA.layoutSnake(B);
   return B;
 };
 RX.toNFA = (ast, alphabet) => {
@@ -106,7 +119,7 @@ RX.toNFA = (ast, alphabet) => {
   const build = (n) => {
     let A, desc;
     switch (n.t) {
-      case 'sym': { A = single(false); A.states.push({ id: 'q1', label: 'q1', x: 180, y: 200, isStart: false, isFinal: true }); A.addTransition('q0', n.c, 'q1'); desc = `สัญลักษณ์เดี่ยว "${n.c}": 2 state ต่อด้วยเส้น ${n.c}`; break; }
+      case 'sym': { A = single(false); A.states.push({ id: 'q1', label: 'q1', x: 180, y: 200, isStart: false, isFinal: true }); A.addTransition('q0', n.c, 'q1'); A.meta = { added: [{ from: 'q0', to: 'q1' }], addedStates: ['q0', 'q1'] }; desc = `สัญลักษณ์เดี่ยว "${n.c}": 2 state ต่อด้วยเส้น ${n.c}`; break; }
       case 'eps': { A = single(true); desc = 'e: state เดียวที่เป็นทั้ง start และ final (รับเฉพาะ string ว่าง)'; break; }
       case 'empty': { A = single(false); desc = '∅: state เดียวที่ไม่ final (ไม่รับอะไรเลย)'; break; }
       case 'cat': { const L = build(n.l), R = build(n.r); A = tidy(FA.concat(L, R).M); desc = `concat: e จากทุก final ของ [${RX.print(n.l)}] → start ของ [${RX.print(n.r)}]`; break; }

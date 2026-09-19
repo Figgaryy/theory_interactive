@@ -224,6 +224,7 @@ FA.union = (A1, A2) => {
   M.states = [{ id: 's', label: 's', x: 40, y: 200, isStart: true, isFinal: false }, ...a.B.states.map(s => ({ ...s, isStart: false })), ...b.B.states.map(s => ({ ...s, isStart: false }))];
   M.transitions = [...a.B.transitions, ...b.B.transitions];
   M.addTransition('s', E, a.map[A1.start]); M.addTransition('s', E, b.map[A2.start]);
+  M.meta = { added: [{ from: 's', to: a.map[A1.start] }, { from: 's', to: b.map[A2.start] }], addedStates: ['s'] };
   return { M, added: ['s'], note: 's ใหม่ + (s, e, s₁), (s, e, s₂); F = F₁ ∪ F₂' };
 };
 FA.concat = (A1, A2) => {
@@ -234,6 +235,7 @@ FA.concat = (A1, A2) => {
   M.states = [...a.B.states.map(s => ({ ...s, isFinal: false })), ...b.B.states.map(s => ({ ...s, isStart: false }))];
   M.transitions = [...a.B.transitions, ...b.B.transitions];
   for (const f of A1.finals()) M.addTransition(a.map[f], E, b.map[A2.start]);
+  M.meta = { added: [...A1.finals()].map(f => ({ from: a.map[f], to: b.map[A2.start] })), addedStates: [] };
   return { M, note: 'e จากทุก f ∈ F₁ → s₂; F = F₂ (state ของ M₁ เลิกเป็น final)' };
 };
 FA.star = (A1) => {
@@ -244,6 +246,7 @@ FA.star = (A1) => {
   M.transitions = [...a.B.transitions];
   M.addTransition('s', E, a.map[A1.start]);
   for (const f of A1.finals()) M.addTransition(a.map[f], E, a.map[A1.start]);
+  M.meta = { added: [{ from: 's', to: a.map[A1.start] }, ...[...A1.finals()].map(f => ({ from: a.map[f], to: a.map[A1.start] }))], addedStates: ['s'] };
   return { M, note: 's ใหม่ (เป็น final เพื่อรับ e) + (s, e, s₁) + e จากทุก f ∈ F₁ กลับไป s₁' };
 };
 FA.complement = (A1) => {

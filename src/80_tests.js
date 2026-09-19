@@ -68,6 +68,10 @@ FA.runTests = () => {
     t('regex: | and U accepted', RX.print(RX.parse('a|b')) === 'a ∪ b' && RX.print(RX.parse('aUb')) === 'a ∪ b');
     t('regex: simplify e·a = a', RX.print(RX.simplify(RX.CAT(RX.EPS, RX.SYM('a')))) === 'a');
     t('regex: simplify ∅* = e', RX.print(RX.simplify(RX.STAR(RX.EMPTY))) === 'e');
+    t('regex: (e ∪ a)* → a*', RX.print(RX.simplify(RX.parse('(e ∪ a)*'))) === 'a*', RX.print(RX.simplify(RX.parse('(e ∪ a)*'))));
+    t('regex: (e ∪ a)(e ∪ a)*(e ∪ a) → a*', RX.print(RX.simplify(RX.parse('(e ∪ a)(e ∪ a)*(e ∪ a)'))) === 'a*', RX.print(RX.simplify(RX.parse('(e ∪ a)(e ∪ a)*(e ∪ a)'))));
+    t('regex: e ∪ a ∪ a* → a*', RX.print(RX.simplify(RX.parse('e ∪ a ∪ a*'))) === 'a*', RX.print(RX.simplify(RX.parse('e ∪ a ∪ a*'))));
+    t('regex: a*a* → a*', RX.print(RX.simplify(RX.parse('a*a*'))) === 'a*', RX.print(RX.simplify(RX.parse('a*a*'))));
     // Thompson
     const { nfa, stages } = RX.toNFA(r);
     t('regex→NFA: (ab∪aab)* accepts e, ab, aab, abaab', ['', 'ab', 'aab', 'abaab'].every(w => FA.runNFA(nfa, w).accepted));
