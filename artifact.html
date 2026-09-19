@@ -406,7 +406,7 @@ svg .tl.done{stroke:var(--green)}
   <div class="subpane" id="sub-se">
     <div class="workspace">
       <div class="stage">
-        <div class="bar"><b>Generalized automaton</b> <span class="note">คลิก state เพื่อลบ</span><span class="sp"></span><button class="btn sm" id="se-from-editor">ใช้จาก Editor</button><button class="btn sm" id="se-lib">📚</button><button class="btn sm" id="se-auto">ลบอัตโนมัติทั้งหมด</button><button class="btn sm" id="se-reset">เริ่มใหม่</button></div>
+        <div class="bar"><b>Generalized automaton</b> <span class="note">คลิก state เพื่อลบ</span><span class="sp"></span><button class="btn sm" id="se-from-editor">ใช้จาก Editor</button><button class="btn sm" id="se-lib">📚</button><button class="btn sm" id="se-auto">ลบอัตโนมัติทั้งหมด</button><button class="btn sm" id="se-undo" title="ย้อนการลบล่าสุด (Backspace)">↶ ย้อน</button><button class="btn sm" id="se-reset">เริ่มใหม่</button></div>
         <div class="canvas tall" id="se-canvas"></div>
         <div class="explain" id="se-explain"></div>
       </div>
@@ -2156,6 +2156,16 @@ SE.eliminate = (id) => {
 };
 $('se-auto').onclick = () => { if (!SE.g) return; for (const q of SE.A.ids()) if (q !== SE.g.S && q !== SE.g.Fn && !SE.g.eliminated.includes(q)) SE.eliminate(q); };
 $('se-reset').onclick = () => { if (SE.A) SE.load(SE.A); };
+SE.undo = () => {
+  if (!SE.g || !SE.g.log.length) { UI.toast('ยังไม่มีการลบให้ย้อน'); return; }
+  const order = SE.g.log.map(s => s.q).slice(0, -1);
+  const last = SE.g.log[SE.g.log.length - 1].q;
+  SE.load(SE.A); for (const q of order) SE.eliminate(q);
+  $('se-explain').innerHTML = `<b>ย้อนแล้ว:</b> ${esc(SE.g.labels[last])} กลับมา${order.length ? ` — ลบไปแล้ว ${order.map(q => esc(SE.g.labels[q])).join(', ')}` : ' — กลับสู่จุดเริ่มต้น'}`;
+  SE.view.highlight({ states: [last] });
+};
+$('se-undo').onclick = SE.undo;
+document.addEventListener('keydown', (ev) => { if (ev.target.matches('input,textarea,select')) return; if (ev.key === 'Backspace' && $('m-regex').classList.contains('active') && $('sub-se').classList.contains('on')) { ev.preventDefault(); SE.undo(); } });
 $('se-from-editor').onclick = () => SE.load(App.current.clone());
 $('se-lib').onclick = () => UI.library(['M4', 'DFA', 'NFA'], (A) => SE.load(A));
 $('se-check').onclick = () => { if (!SE.g || !SE.g.done()) { $('se-check-out').textContent = 'ยังลบไม่ครบ'; return; } const rx = SE.g.result(); const N = RX.toNFA(rx, SE.A.alphabet).nfa; const d = FA.dfaEquivalent(SE.A, N); $('se-check-out').innerHTML = d.equivalent ? `<span class="ok-t">✔ L(${esc(RX.print(rx))}) = L(M) (ตรวจ exact)</span>` : `<span class="bad-t">✘ ต่างกันที่ "${esc(d.witness)}"</span>`; };
