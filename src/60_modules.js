@@ -361,116 +361,234 @@ $('rk-show').onclick = () => { if (!SE.A) return; const k = Math.max(0, Math.min
 // ---------- M5 Closure ----------
 const CL = App.closure = { op: 'union' };
 CL.va = new FA.AutomatonView('cl-ca'); CL.vb = new FA.AutomatonView('cl-cb'); CL.vo = new FA.AutomatonView('cl-out');
+CL.step = UI.stepper('cl-step', (i) => CL.show(i));
+CL.walkStep = UI.stepper('cl-walk-step', (i) => CL.walkShow(i));
 fillSelect($('cl-a'), null, [{ v: '__editor', t: '(automaton ใน Editor)' }]); fillSelect($('cl-b'), null, [{ v: '__editor', t: '(automaton ใน Editor)' }]);
 $('cl-a').value = 'ex211'; $('cl-b').value = 'exA';
 $('cl-ops').addEventListener('click', (ev) => { const b = ev.target.closest('button[data-op]'); if (!b) return; CL.op = b.dataset.op; document.querySelectorAll('#cl-ops button').forEach(x => x.classList.toggle('on', x === b)); CL.run(); });
 $('cl-a').onchange = $('cl-b').onchange = () => CL.run();
+const setTxt = (A) => `start = ${A.start ? A.labelOf(A.start) : '?'} · F = ${FA.setLabel([...A.finals()].map(q => A.labelOf(q)))} · ${A.kind()}`;
+const L = (A, id) => esc(A.labelOf(id)); const LS = (A, ids) => esc(FA.setLabel(ids.map(q => A.labelOf(q))));
 CL.run = () => {
-  const A = pick($('cl-a').value), B = pick($('cl-b').value); CL.A = A; CL.B = B;
+  const A = pick($('cl-a').value), B = pick($('cl-b').value); CL.A = A; CL.B = B; CL.M = null;
   CL.va.setAutomaton(A); CL.va.fit(); CL.vb.setAutomaton(B); CL.vb.fit();
-  let r, extra = '';
-  switch (CL.op) {
-    case 'union': r = FA.union(A, B); break;
-    case 'concat': r = FA.concat(A, B); break;
-    case 'star': r = FA.star(A); break;
-    case 'complement': r = FA.complement(A); break;
-    case 'product': r = FA.product(A, B, 'and'); break;
-    case 'demorgan': { const c1 = FA.complement(A), c2 = FA.complement(B); if (c1.error || c2.error) r = { error: c1.error || c2.error }; else { const u = FA.union(c1.M, c2.M).M; const D = FA.powerset(u).dfa; r = FA.complement(D); extra = `¬(¬L₁ ∪ ¬L₂): complement ทั้งคู่ → union (NFA) → แปลงเป็น DFA (${D.states.length} state) → complement อีกครั้ง`; } break; }
+  $('cl-a-set').textContent = setTxt(A); $('cl-b-set').textContent = setTxt(B); $('cl-out-set').textContent = '';
+  $('cl-counter').innerHTML = ''; $('cl-walk-out').innerHTML = ''; CL.walkStep.setCount(0);
+  const r = FA.closureStages(CL.op, A, B); CL.res = r;
+  if (r.error) {
+    CL.vo.setAutomaton(new FA.Automaton()); CL.step.setCount(0); $('cl-howto').innerHTML = '';
+    if (r.error === 'nfa') {
+      const c = r.counter; const X = A.hasEpsilon() || A.isNondetChoice() ? A : B;
+      $('cl-explain').innerHTML = `<span class="bad-t"><b>ทำไม่ได้กับ NFA</b> — complement ต้องเป็น DFA ก่อน (Problem 2.3.1)</span>`;
+      $('cl-counter').innerHTML = c ? `<b>ดูว่าทำไมสลับวงคู่ใน NFA ถึงผิด:</b> string <span class="mono">${esc(c.w) || 'e'}</span> ใน ${X === A ? 'M₁' : 'M₂'} มีทางเดินจบที่ ${LS(X, c.inF)} (final → accept) <b>และ</b> ทางเดินจบที่ ${LS(X, c.outF)} (ไม่ final) พร้อมกัน<br>ถ้าสลับวงคู่: ${LS(X, c.outF)} กลายเป็น final → "${esc(c.w) || 'e'}" ยังถูก accept อยู่ดี ⇒ string เดียวกันอยู่ทั้งใน L และ "¬L" — เป็นไปไม่ได้ จึงไม่ใช่ complement<br><button class="btn sm" id="cl-fix-dfa" style="margin-top:6px">แปลงเป็น DFA ก่อน (powerset) แล้วทำต่อ</button>` : '';
+      const fb = $('cl-fix-dfa'); if (fb) fb.onclick = () => { CL.fixed = { A: FA.toDFA(A), B: FA.toDFA(B) }; CL.runWith(CL.fixed.A, CL.fixed.B); };
+    } else if (r.error === 'dfa') {
+      $('cl-explain').innerHTML = `<span class="bad-t"><b>Product ต้องใช้ DFA ทั้งคู่</b> — เพราะ state คู่ (p,q) ต้องรู้แน่ว่าแต่ละเครื่องอยู่ที่ไหน</span>`;
+      $('cl-counter').innerHTML = `<button class="btn sm" id="cl-fix-dfa">แปลงเป็น DFA ก่อน (powerset) แล้วทำต่อ</button>`;
+      $('cl-fix-dfa').onclick = () => CL.runWith(FA.toDFA(A), FA.toDFA(B));
+    }
+    return;
   }
-  if (r.error) { $('cl-explain').innerHTML = `<span class="bad-t">${esc(r.error)}</span>`; CL.M = null; CL.vo.setAutomaton(new FA.Automaton()); return; }
-  CL.M = r.M; CL.vo.setAutomaton(r.M); CL.vo.fit();
-  const news = r.added || []; CL.vo.highlight({ states: news, transitions: r.M.transitions.filter(t => t.symbol === FA.E && (news.includes(t.from) || CL.op === 'concat' || CL.op === 'star')).map(t => ({ from: t.from, to: t.to })) });
-  $('cl-explain').innerHTML = `<b>${{ union: 'Union (Figure 2-11)', concat: 'Concatenation (Figure 2-12)', star: 'Kleene star (Figure 2-13)', complement: 'Complement', product: 'Intersection — product construction (Problem 2.3.3)', demorgan: 'Intersection — De Morgan' }[CL.op]}:</b> ${esc(r.note)}${extra ? '<br>' + esc(extra) : ''}<br><span class="note">M มี ${r.M.states.length} state · ${r.M.kind()}</span>`;
+  CL.M = r.M; CL.step.setCount(r.stages.length, 0);
 };
-$('cl-test-run').onclick = () => {
-  if (!CL.M) return; const ws = $('cl-test').value.split(',').map(x => x.trim()).map(x => x === 'e' ? '' : x);
-  let h = `<tr><th>ω</th><th>M₁</th><th>M₂</th><th>M</th></tr>`;
-  for (const w of ws) { const f = (X) => { const ok = FA.accepts(X, w); return `<td class="${ok ? 'ok' : 'bad'}">${ok ? '✔' : '✘'}</td>`; }; h += `<tr><td>${w === '' ? 'e' : esc(w)}</td>${f(CL.A)}${f(CL.B)}${f(CL.M)}</tr>`; }
-  $('cl-test-out').innerHTML = h;
+CL.runWith = (A, B) => { CL.A = A; CL.B = B; CL.va.setAutomaton(A); CL.va.fit(); CL.vb.setAutomaton(B); CL.vb.fit(); $('cl-a-set').textContent = setTxt(A); $('cl-b-set').textContent = setTxt(B); $('cl-counter').innerHTML = ''; const r = FA.closureStages(CL.op, A, B); CL.res = r; if (r.error) return; CL.M = r.M; CL.step.setCount(r.stages.length, 0); };
+CL.text = (st) => {
+  const M = st.automaton, I = st.info, A = CL.A, B = CL.B;
+  const F = (ids) => LS(M, ids);
+  switch (CL.op) {
+    case 'union': return {
+      place: () => ['วาง M₁ ไว้บน, M₂ ไว้ล่าง', ['คัดลอก M₁ ทั้งก้อน — state, เส้น, start, final เหมือนเดิมทุกอย่าง', 'คัดลอก M₂ ไว้ข้างล่าง — ถ้าชื่อ state ซ้ำกับ M₁ ให้เติม ′ (เช่น q0′) เพื่อไม่ให้สับสน', `ตอนนี้มี start 2 ตัว (${L(M, I.s1)} และ ${L(M, I.s2)}) — automaton ต้องมี start ตัวเดียว → ขั้นถัดไปแก้`]],
+      newStart: () => ['เพิ่ม start ใหม่ชื่อ s', ['วาด state ใหม่ <b>s</b> ไว้ซ้ายสุด ให้เป็น start (▷) และไม่เป็น final', 'ยังไม่ต้องลากเส้นอะไรออกจาก s ในขั้นนี้']],
+      eps: () => ['ลากเส้น e จาก s ไปหา start เดิมทั้งสอง', [`ลาก <b>s ─e→ ${L(M, I.s1)}</b> และ <b>s ─e→ ${L(M, I.s2)}</b> (เส้นสีน้ำเงิน)`, `${L(M, I.s1)} และ ${L(M, I.s2)} เลิกเป็น start (เอา ▷ ออก)`, 'ความหมาย: ก่อนอ่านตัวอักษรแรก เครื่อง "เลือก" ได้ว่าจะไปทำตัวเป็น M₁ หรือ M₂ — nondeterminism ทำให้เลือกถูกเสมอถ้ามีทางที่ถูก']],
+      finals: () => ['final ไม่ต้องแก้อะไร', [`final = ${F(I.F)} คือ final ของ M₁ รวมกับของ M₂`, 'ตรวจ: string ที่ M₁ รับ → เดิน s ─e→ start ของ M₁ แล้วทำเหมือน M₁ → จบที่ final ของ M₁ ✓ (ฝั่ง M₂ ก็เช่นกัน) ⇒ L(M) = L₁ ∪ L₂']],
+    }[st.key]?.();
+    case 'concat': return {
+      place: () => ['วาง M₁ ไว้ซ้าย, M₂ ไว้ขวา', ['คัดลอก M₁ ทั้งก้อนไว้ซ้าย', 'คัดลอก M₂ ไว้ขวา (ชื่อซ้ำเติม ′)', `ตอนนี้ M₂ ยังมี start ${L(M, I.s2)} และ M₁ ยังมี final ${F(I.F1)} — สองขั้นถัดไปจะเชื่อมและแก้`]],
+      eps: () => ['ลากเส้น e จากทุก final ของ M₁ ไป start ของ M₂', [`จาก ${F(I.F1)} แต่ละตัว ลาก <b>─e→ ${L(M, I.s2)}</b> (เส้นสีน้ำเงิน)`, 'ความหมาย: พออ่านส่วนที่อยู่ใน L₁ จบ (ถึง final ของ M₁) ก็ "กระโดดฟรี" ไปเริ่มอ่านส่วนที่อยู่ใน L₂ ต่อทันที']],
+      finals: () => ['ปรับ start และ final', [`start = ${L(M, I.s1)} (ของ M₁) ตัวเดียว — start เดิมของ M₂ เลิกเป็น start (เอา ▷ ออก)`,`final = ${F(I.F2)} (ของ M₂) เท่านั้น — ${F(I.F1)} <b>เลิกเป็น final</b> ไม่งั้นเครื่องจะรับ string ที่มีแค่ส่วน L₁ โดยไม่มีส่วน L₂`, 'ตรวจ: string = (ส่วนใน L₁)(ส่วนใน L₂) เดิน M₁ ถึง final → e → เดิน M₂ ถึง final ✓']],
+    }[st.key]?.();
+    case 'star': return {
+      place: () => ['เริ่มจาก M₁', ['คัดลอก M₁ ทั้งก้อน']],
+      newStart: () => ['เพิ่ม start ใหม่ s ที่เป็น final ด้วย', ['วาด <b>s</b> ใหม่ เป็น start และ final (วงคู่) พร้อมกัน', 'เหตุผล: L₁* ต้องรับ string ว่าง e (ซ้ำศูนย์รอบ) — จึงต้องมี state ที่เป็น start และ final ในตัวเดียว']],
+      epsIn: () => ['ลาก s ─e→ start เดิม', [`<b>s ─e→ ${L(M, I.s1)}</b>; ${L(M, I.s1)} เลิกเป็น start`]],
+      epsBack: () => ['ลาก e จากทุก final เดิม ย้อนกลับไป start เดิม', [`จาก ${F(I.F1)} ลาก <b>─e→ ${L(M, I.s1)}</b> (เส้นสีน้ำเงิน)`, 'ความหมาย: จบ 1 รอบของ L₁ แล้ว "เริ่มรอบใหม่" ได้ทันที = ซ้ำกี่รอบก็ได้', `final = ${F(I.F)} (final เดิม + s)`, `ทำไมไม่ทำ ${L(M, I.s1)} เป็น final เฉย ๆ แทนที่จะเพิ่ม s? ถ้า M₁ มีเส้นวนกลับเข้า ${L(M, I.s1)} กลางทาง string ที่ยังไม่ครบ 1 รอบจะถูก accept ผิด (Problem 2.3.2)`]],
+    }[st.key]?.();
+    case 'complement': return {
+      check: () => ['ตรวจก่อน: เป็น DFA ไหม และ complete ไหม', [I.complete ? 'ทุก state มีทางออกครบทุกสัญลักษณ์ → ข้ามขั้นเพิ่ม trap ได้' : 'มี (state, สัญลักษณ์) ที่ไม่มีทางไป → ต้องเพิ่ม trap ก่อน ไม่งั้น string ที่ "ติด" จะไม่ถูก accept ทั้งใน M และ ¬M (ผิด เพราะทุก string ต้องอยู่ฝั่งใดฝั่งหนึ่ง)']],
+      trap: () => ['เพิ่ม trap state', [`วาด state <b>${L(M, I.trap)}</b> (ไม่ final) แล้วลากทางที่ขาดทั้งหมด: ${I.missing.map(([q, a]) => `${L(M, q)} ─${esc(a)}→ ${L(M, I.trap)}`).join(', ')}`, `${L(M, I.trap)} วนตัวเองด้วยทุกสัญลักษณ์ — เข้าแล้วออกไม่ได้`]],
+      swap: () => ['สลับ final ↔ ไม่ final', [`เดิม final = ${F(I.wasFinal)} → ตอนนี้ final = ${F(I.nowFinal)}`, 'ความหมาย: DFA พา string ทุกตัวไปจบที่ state เดียวแน่นอน — state ที่เคย accept ตอนนี้ reject และกลับกัน ⇒ L(¬M) = Σ* − L(M)']],
+    }[st.key]?.();
+    case 'product': return {
+      complete: () => ['ทำ M₁ และ M₂ ให้ complete', [I.trap1 ? 'M₁ ขาดบางทาง → เพิ่ม trap ให้ M₁' : 'M₁ complete อยู่แล้ว', I.trap2 ? 'M₂ ขาดบางทาง → เพิ่ม trap ให้ M₂' : 'M₂ complete อยู่แล้ว', 'เหตุผล: state คู่ (p,q) ต้องรู้แน่ว่าอ่านแล้วแต่ละเครื่องไปไหน']],
+      start: () => [`state แรก = (start ของ M₁, start ของ M₂) = (${L(I.D1, I.p)},${L(I.D2, I.q)})`, ['state ของ M คือ "คู่" — คิดว่าเรากำลังรัน M₁ กับ M₂ ไปพร้อมกัน แล้วจดว่าแต่ละตัวอยู่ที่ไหน', 'เริ่มจากคู่ start ทั้งสอง แล้วค่อย ๆ หาคู่ที่ไปถึงได้ (worklist เหมือน powerset)']],
+      pair: () => [`จาก (${L(I.D1, I.p)},${L(I.D2, I.q)}) อ่าน "${esc(I.a)}"`, [`M₁: ${L(I.D1, I.p)} ─${esc(I.a)}→ ${L(I.D1, I.p2)}`, `M₂: ${L(I.D2, I.q)} ─${esc(I.a)}→ ${L(I.D2, I.q2)}`, `ดังนั้น <b>(${L(I.D1, I.p)},${L(I.D2, I.q)}) ─${esc(I.a)}→ (${L(I.D1, I.p2)},${L(I.D2, I.q2)})</b>${I.isNew ? ' — คู่ใหม่ เพิ่มเข้าไปในเครื่อง' : ' — คู่นี้มีอยู่แล้ว แค่ลากเส้น'}`]],
+      finals: () => ['final = คู่ที่ทั้งสองตัวเป็น final', [`F = ${esc(I.F.join(', ')) || '∅'}`, 'ทำไม? string ∈ L₁ ∩ L₂ ⇔ M₁ จบที่ final <b>และ</b> M₂ จบที่ final พร้อมกัน — ดูได้จาก "เดิน string" ด้านล่าง', 'ถ้าอยากได้ union แทน: ใช้คู่ที่ "อย่างน้อยหนึ่ง" เป็น final (ต้อง complete ทั้งคู่เหมือนกัน)']],
+    }[st.key]?.();
+    case 'demorgan': return {
+      comp1: () => ['ขั้น 1: ¬M₁', ['ทำ complement ของ M₁ (เพิ่ม trap ถ้าจำเป็น แล้วสลับ final)']],
+      comp2: () => ['ขั้น 2: ¬M₂', ['ทำ complement ของ M₂ แบบเดียวกัน']],
+      union: () => ['ขั้น 3: ¬L₁ ∪ ¬L₂', ['union ด้วย start ใหม่ + e-transition (ได้ NFA)']],
+      powerset: () => ['ขั้น 4: แปลง NFA เป็น DFA', [`ใช้ powerset ได้ DFA ${I.n} state — ต้องทำเพราะขั้นถัดไปเป็น complement ซึ่งใช้กับ NFA ไม่ได้`]],
+      comp3: () => ['ขั้น 5: complement อีกครั้ง', ['¬(¬L₁ ∪ ¬L₂) = L₁ ∩ L₂ (De Morgan)', 'เห็นว่าใช้แค่ union กับ complement ก็ได้ intersection — นี่คือวิธีที่หนังสือพิสูจน์ (สั้นในทางเขียน แต่เครื่องใหญ่กว่า product มาก)']],
+    }[st.key]?.();
+  }
 };
+CL.show = (i) => {
+  const r = CL.res; if (!r || r.error) return; const st = r.stages[i];
+  CL.vo.setAutomaton(st.automaton); CL.vo.fit(); CL.vo.highlight(st.hl);
+  $('cl-out-set').textContent = setTxt(st.automaton);
+  const [title, howto] = CL.text(st) || ['', []];
+  $('cl-explain').innerHTML = `<b>Step ${i + 1}/${r.stages.length} · ${title}</b>${i === r.stages.length - 1 ? '<br><span class="ok-t">เสร็จ — ลองป้อน string ด้านล่างเพื่อเดินทั้ง 3 เครื่องพร้อมกัน</span>' : ''}`;
+  $('cl-howto').innerHTML = howto.map(x => `<li>${x}</li>`).join('');
+};
+CL.walk = () => {
+  if (!CL.M) { UI.toast('ยังไม่มีเครื่อง M'); return; }
+  const w = $('cl-walk').value.trim(); CL.w = w;
+  const machines = [['M₁', CL.A, CL.va], ['M₂', CL.B, CL.vb], ['M', CL.M, CL.vo]];
+  if (CL.op === 'product' && CL.res.D1) { machines[0][1] = CL.res.D1; machines[1][1] = CL.res.D2; CL.va.setAutomaton(CL.res.D1); CL.vb.setAutomaton(CL.res.D2); }
+  CL.step.go(CL.res.stages.length - 1);
+  CL.runs = machines.map(([name, A, v]) => ({ name, A, v, r: FA.runNFA(A, w) }));
+  CL.walkStep.setCount(w.length + 1, 0);
+};
+CL.walkShow = (i) => {
+  const w = CL.w; let h = `<tr><th>เครื่อง</th><th>อ่านแล้ว</th><th>state ตอนนี้</th><th>ผลสุดท้าย</th></tr>`;
+  for (const m of CL.runs) {
+    const S = m.r.sets[Math.min(i, m.r.sets.length - 1)].set; const F = m.A.finals();
+    m.v.highlight({ states: [...S], accept: i === w.length ? [...S].filter(q => F.has(q)) : [], transitions: i > 0 && m.r.sets[i] ? m.r.sets[i].contrib.map(c => ({ from: c.q, to: c.p })) : [] });
+    h += `<tr><td class="st">${m.name}</td><td>${esc(w.slice(0, i)) || 'e'}</td><td>${esc(FA.setLabel([...S].map(q => m.A.labelOf(q))))}</td><td class="${m.r.accepted ? 'ok' : 'bad'}">${m.r.accepted ? 'accept' : 'reject'}</td></tr>`;
+  }
+  $('cl-walk-out').innerHTML = h;
+};
+$('cl-walk-run').onclick = CL.walk; $('cl-walk').addEventListener('keydown', e => { if (e.key === 'Enter') CL.walk(); });
 $('cl-to-editor').onclick = () => { if (CL.M) App.goto('editor', CL.M.clone()); };
 
-// ---------- M6 Pumping game ----------
+// ---------- M6 Pumping game (stepper) ----------
 const PG = App.pumping = { role: 'prover' };
 const isPrime = (n) => { if (n < 2) return false; for (let i = 2; i * i <= n; i++) if (n % i === 0) return false; return true; };
 const cnt = (w, c) => [...w].filter(x => x === c).length;
+const rep = (s, k) => s.repeat(Math.max(0, k));
 PG.langs = [
-  { id: 'anbn', name: '{ aⁱbⁱ | i ≥ 0 }', alphabet: ['a', 'b'], regular: false, member: w => /^a*b*$/.test(w) && cnt(w, 'a') === cnt(w, 'b'), sample: n => 'a'.repeat(n) + 'b'.repeat(n), hint: 'เลือก ω = aⁿbⁿ: เพราะ |xy| ≤ n ทำให้ y มีแต่ a — ปั๊มแล้วจำนวน a ≠ b' },
-  { id: 'eq', name: '{ ω | จำนวน a = จำนวน b }', alphabet: ['a', 'b'], regular: false, member: w => cnt(w, 'a') === cnt(w, 'b'), sample: n => 'a'.repeat(n) + 'b'.repeat(n), hint: 'ใช้ ω = aⁿbⁿ เหมือนเดิม (หรือใช้ closure: L ∩ a*b* = aⁿbⁿ ต้อง regular ถ้า L regular — Example 2.4.4)' },
-  { id: 'prime', name: '{ aⁿ | n เป็นจำนวนเฉพาะ }', alphabet: ['a'], regular: false, member: w => /^a*$/.test(w) && isPrime(w.length), sample: n => { let p = n; while (!isPrime(p)) p++; return 'a'.repeat(p); }, hint: 'Example 2.4.3: ถ้า |y| = q, |ω| = p แล้ว i = p+1 ทำให้ |xyⁱz| = p + pq = p(1+q) ไม่ใช่จำนวนเฉพาะ' },
-  { id: 'wwr', name: '{ wwᴿ | w ∈ {a,b}* }  (palindrome คู่)', alphabet: ['a', 'b'], regular: false, member: w => w.length % 2 === 0 && w === [...w].reverse().join(''), sample: n => 'a'.repeat(n) + 'bb' + 'a'.repeat(n), hint: 'ω = aⁿbbaⁿ — y อยู่ในกลุ่ม a หน้า ปั๊มแล้วไม่สมมาตร' },
-  { id: 'ww', name: '{ ww | w ∈ {a,b}* }', alphabet: ['a', 'b'], regular: false, member: w => w.length % 2 === 0 && w.slice(0, w.length / 2) === w.slice(w.length / 2), sample: n => 'a'.repeat(n) + 'b' + 'a'.repeat(n) + 'b', hint: 'ω = aⁿbaⁿb' },
-  { id: 'paren', name: 'วงเล็บสมดุล ( )  (Problem 2.4.6)', alphabet: ['(', ')'], regular: false, member: w => { let d = 0; for (const c of w) { d += c === '(' ? 1 : -1; if (d < 0) return false; } return d === 0; }, sample: n => '('.repeat(n) + ')'.repeat(n), hint: 'ω = (ⁿ)ⁿ' },
-  { id: 'abba', name: '(ab ∪ ba)*  — regular! (ลองแล้วจะแพ้)', alphabet: ['a', 'b'], regular: true, dfa: () => FA.minimize(FA.preset('fig219')).dfa, sample: n => 'ab'.repeat(Math.ceil(n / 2)), hint: 'L regular → คู่แข่งใช้ cycle ใน DFA จริง แบ่งให้ y ปั๊มได้เสมอ → คุณหา i ไม่ได้' },
-  { id: 'evenb', name: 'จำนวน b เป็นเลขคู่  — regular!', alphabet: ['a', 'b'], regular: true, dfa: () => FA.preset('ex211'), sample: n => 'a'.repeat(n), hint: 'L regular → คุณจะแพ้เสมอ' },
+  { id: 'anbn', name: '{ aⁱbⁱ | i ≥ 0 }  เช่น e, ab, aabb', alphabet: ['a', 'b'], regular: false, member: w => /^a*b*$/.test(w) && cnt(w, 'a') === cnt(w, 'b'), sample: n => rep('a', n) + rep('b', n), omega: 'aⁿbⁿ', prefix: 'a ล้วน', yform: 'aᵏ', pumped: (i) => i === 0 ? 'aⁿ⁻ᵏbⁿ' : `aⁿ⁺⁽ⁱ⁻¹⁾ᵏbⁿ`, why: 'จำนวน a ไม่เท่ากับจำนวน b', hint: 'เลือก ω = aⁿbⁿ: n ตัวแรกเป็น a ล้วน ทำให้ y มีแต่ a — ปั๊มแล้วจำนวน a เปลี่ยนแต่ b ไม่เปลี่ยน' },
+  { id: 'eq', name: '{ ω | จำนวน a = จำนวน b }', alphabet: ['a', 'b'], regular: false, member: w => cnt(w, 'a') === cnt(w, 'b'), sample: n => rep('a', n) + rep('b', n), omega: 'aⁿbⁿ', prefix: 'a ล้วน', yform: 'aᵏ', pumped: (i) => i === 0 ? 'aⁿ⁻ᵏbⁿ' : `aⁿ⁺⁽ⁱ⁻¹⁾ᵏbⁿ`, why: 'จำนวน a ไม่เท่ากับจำนวน b', hint: 'ใช้ ω = aⁿbⁿ เหมือนเดิม (ทางลัด Example 2.4.4: L ∩ a*b* = aⁿbⁿ ถ้า L regular ก็ต้อง regular ด้วย — ขัดแย้ง)' },
+  { id: 'prime', name: '{ aᵖ | p เป็นจำนวนเฉพาะ }', alphabet: ['a'], regular: false, member: w => /^a*$/.test(w) && isPrime(w.length), sample: n => { let p = n; while (!isPrime(p)) p++; return rep('a', p); }, omega: 'aᵖ (p จำนวนเฉพาะ ≥ n)', prefix: 'a ล้วน', yform: 'aᵏ', pumped: (i) => `aᵖ⁺⁽ⁱ⁻¹⁾ᵏ`, why: 'ความยาว p + (i−1)k ไม่ใช่จำนวนเฉพาะ (ในข้อสอบเลือก i = p+1 จะได้ p(1+k) ซึ่งเป็นผลคูณเสมอ)', hint: 'Example 2.4.3 — ในเกมนี้ i ≤ 3 อาจต้องลองหลายค่า แต่ในการพิสูจน์เลือก i = p+1 ได้เลย' },
+  { id: 'wwr', name: '{ wwᴿ | w ∈ {a,b}* }  (palindrome ยาวคู่)', alphabet: ['a', 'b'], regular: false, member: w => w.length % 2 === 0 && w === [...w].reverse().join(''), sample: n => rep('a', n) + 'bb' + rep('a', n), omega: 'aⁿbbaⁿ', prefix: 'a ล้วน', yform: 'aᵏ', pumped: (i) => i === 0 ? 'aⁿ⁻ᵏbbaⁿ' : `aⁿ⁺⁽ⁱ⁻¹⁾ᵏbbaⁿ`, why: 'a ข้างหน้ากับข้างหลังไม่เท่ากัน จึงไม่สมมาตร', hint: 'ω = aⁿbbaⁿ — y อยู่ในกลุ่ม a หน้า ปั๊มแล้วไม่สมมาตร' },
+  { id: 'ww', name: '{ ww | w ∈ {a,b}* }', alphabet: ['a', 'b'], regular: false, member: w => w.length % 2 === 0 && w.slice(0, w.length / 2) === w.slice(w.length / 2), sample: n => rep('a', n) + 'b' + rep('a', n) + 'b', omega: 'aⁿbaⁿb', prefix: 'a ล้วน', yform: 'aᵏ', pumped: (i) => i === 0 ? 'aⁿ⁻ᵏbaⁿb' : `aⁿ⁺⁽ⁱ⁻¹⁾ᵏbaⁿb`, why: 'ครึ่งแรกกับครึ่งหลังไม่เหมือนกัน', hint: 'ω = aⁿbaⁿb' },
+  { id: 'paren', name: 'วงเล็บสมดุล ( )  (Problem 2.4.6)', alphabet: ['(', ')'], regular: false, member: w => { let d = 0; for (const c of w) { d += c === '(' ? 1 : -1; if (d < 0) return false; } return d === 0; }, sample: n => rep('(', n) + rep(')', n), omega: '(ⁿ)ⁿ', prefix: '( ล้วน', yform: '(ᵏ', pumped: (i) => i === 0 ? '(ⁿ⁻ᵏ)ⁿ' : `(ⁿ⁺⁽ⁱ⁻¹⁾ᵏ)ⁿ`, why: 'จำนวน ( ไม่เท่ากับ )', hint: 'ω = (ⁿ)ⁿ' },
+  { id: 'abba', name: '(ab ∪ ba)*  — regular! (ลองแล้วจะพิสูจน์ไม่สำเร็จ)', alphabet: ['a', 'b'], regular: true, dfa: () => FA.minimize(FA.preset('fig219')).dfa, sample: n => rep('ab', Math.ceil(n / 2)), hint: 'L regular → คู่แข่งใช้ loop จริงของ DFA แบ่งให้ y ปั๊มได้เสมอ → หา i ที่หลุดไม่ได้ (ตามที่ควรจะเป็น)' },
+  { id: 'evenb', name: 'จำนวน b เป็นเลขคู่  — regular!', alphabet: ['a', 'b'], regular: true, dfa: () => FA.preset('ex211'), sample: n => rep('a', n), hint: 'L regular → พิสูจน์ไม่สำเร็จแน่นอน' },
 ];
-PG.langs.forEach(L => { if (L.regular) L.member = (w) => FA.runDFA(L.dfa(), w).accepted; });
-$('pg-lang').innerHTML = PG.langs.map(L => `<option value="${L.id}">${esc(L.name)}</option>`).join('');
+PG.langs.forEach(Lg => { if (Lg.regular) Lg.member = (w) => FA.runDFA(Lg.dfa(), w).accepted; });
+$('pg-lang').innerHTML = PG.langs.map(Lg => `<option value="${Lg.id}">${esc(Lg.name)}</option>`).join('');
+PG.step = UI.stepper('pg-step', (i) => PG.show(i));
 document.querySelectorAll('#m-pumping [data-role]').forEach(b => b.onclick = () => { PG.role = b.dataset.role; document.querySelectorAll('#m-pumping [data-role]').forEach(x => x.classList.toggle('on', x === b)); PG.start(); });
-$('pg-lang').onchange = () => PG.start();
-PG.lang = () => PG.langs.find(L => L.id === $('pg-lang').value);
+$('pg-lang').onchange = () => PG.start(); $('pg-restart').onclick = () => PG.start();
+PG.lang = () => PG.langs.find(Lg => Lg.id === $('pg-lang').value);
+PG.decomps = (w, n) => { const out = []; for (let i = 0; i < Math.min(n, w.length); i++) for (let j = i + 1; j <= Math.min(n, w.length); j++) out.push({ x: w.slice(0, i), y: w.slice(i, j), z: w.slice(j), i, j }); return out; };
+PG.cells = (w, d, n) => { const cls = (k) => !d ? '' : k < d.i ? 'x' : k < d.j ? 'y' : 'z'; return `<div class="tapecells">${[...w].map((c, k) => `<div class="c ${cls(k)} ${n && k < n ? 'first' : ''}">${esc(c)}</div>`).join('')}${w === '' ? '<span class="note">e (ว่าง)</span>' : ''}</div>`; };
+PG.start = () => {
+  const Lg = PG.lang(); $('pg-lang-note').textContent = Lg.hint;
+  PG.n = Lg.regular ? Lg.dfa().states.length : 3 + Math.floor(Math.random() * 3);
+  PG.S = { omega: null, decomps: [], sel: null, advSel: null, i: null, results: null };
+  $('pg-proof').innerHTML = 'เล่นจนถึง step 6 แล้วร่างพิสูจน์จะปรากฏที่นี่';
+  PG.step.setCount(6, 0);
+};
 PG.quant = (phase) => {
-  const L = PG.lang(); const you = PG.role === 'prover';
-  const rows = [
-    ['∀ L regular', 'สมมติว่า L regular (เพื่อหาข้อขัดแย้ง)', ''],
-    ['∃ n ≥ 1', you ? 'คู่แข่งเลือก n' : 'คุณเลือก n', you ? 'adv' : 'you'],
-    ['∀ ω ∈ L, |ω| ≥ n', you ? 'คุณเลือก ω' : 'คู่แข่งเลือก ω', you ? 'you' : 'adv'],
-    ['∃ x, y, z: ω = xyz, y ≠ e, |xy| ≤ n', you ? 'คู่แข่งแบ่ง' : 'คุณแบ่ง', you ? 'adv' : 'you'],
-    ['∀ i ≥ 0: xyⁱz ∈ L', you ? 'คุณเลือก i ให้หลุด' : 'คู่แข่งเลือก i', you ? 'you' : 'adv'],
-  ];
+  const you = PG.role === 'prover';
+  const rows = [['สมมติว่า L regular', 'จุดตั้งต้นของการหาข้อขัดแย้ง', ''], ['∃ n ≥ 1', you ? 'คู่แข่งเลือก n' : 'คุณเลือก n', you ? 'adv' : 'you'], ['∀ ω ∈ L, |ω| ≥ n', you ? 'คุณเลือก ω' : 'คู่แข่งเลือก ω', you ? 'you' : 'adv'], ['∃ x, y, z: ω = xyz, y ≠ e, |xy| ≤ n', you ? 'คู่แข่งแบ่ง' : 'คุณแบ่ง', you ? 'adv' : 'you'], ['∀ i ≥ 0: xyⁱz ∈ L', you ? 'คุณเลือก i ให้หลุด' : 'คู่แข่งเลือก i', you ? 'you' : 'adv'], ['สรุป', 'ขัดแย้ง ⇒ L ไม่ regular', '']];
   $('pg-quant').innerHTML = rows.map((r, k) => `<div class="q ${r[2]} ${k === phase ? 'cur' : ''}">${esc(r[0])}<span class="who">${esc(r[1])}</span></div>`).join('');
 };
-PG.start = () => {
-  const L = PG.lang(); $('pg-lang-note').textContent = L.hint; PG.state = { phase: 1 };
-  PG.n = L.regular ? L.dfa().states.length : 3 + Math.floor(Math.random() * 3);
-  PG.quant(1);
-  const g = $('pg-game'); g.innerHTML = '';
-  PG.add(`<b>${PG.role === 'prover' ? 'คู่แข่ง' : 'คุณ'}</b>: n = <b>${PG.n}</b>${L.regular ? ' (= จำนวน state ของ DFA)' : ' (สุ่ม — วิธีพิสูจน์ต้องใช้ได้กับทุก n)'}`);
-  if (PG.role === 'prover') {
-    PG.add(`<b>คุณ</b>: เลือก ω ∈ L ที่ยาว ≥ ${PG.n} <div class="row" style="margin-top:6px"><input type="text" class="mono" id="pg-omega" value="${esc(L.sample(PG.n))}" style="flex:1"><button class="btn sm primary" id="pg-omega-ok">ยืนยัน ω</button></div>`);
-    $('pg-omega-ok').onclick = () => PG.chooseOmega($('pg-omega').value.trim());
-  } else {
-    PG.omega = L.sample(PG.n);
-    PG.add(`<b>คู่แข่ง</b>: ω = <span class="mono">${esc(PG.omega)}</span> (|ω| = ${PG.omega.length})`);
-    PG.askDecomp();
+PG.show = (k) => {
+  const Lg = PG.lang(), S = PG.S, n = PG.n, you = PG.role === 'prover';
+  // gates
+  if (k >= 3 && !S.omega) { PG.step.go(2); UI.toast('ยืนยัน ω ก่อน'); return; }
+  if (k >= 4 && S.sel === null) { PG.step.go(3); UI.toast(you ? 'ดูการแบ่งของคู่แข่งก่อน' : 'เลือกวิธีแบ่ง xyz ก่อน'); return; }
+  if (k >= 5 && S.i === null) { PG.step.go(4); UI.toast(you ? 'เลือก i ก่อน' : 'ดู i ที่คู่แข่งเลือกก่อน'); return; }
+  PG.quant(k);
+  const B = $('pg-board'), X = $('pg-explain'), H = $('pg-howto');
+  const titles = ['สมมติว่า L regular', 'คู่แข่งให้ n', 'เลือก ω', 'แบ่ง ω = xyz', 'ปั๊ม y แล้วเลือก i', 'สรุป'];
+  $('pg-phase-title').textContent = `step ${k + 1}/6 · ${titles[k]}`;
+  if (k === 0) {
+    B.innerHTML = `<div class="chain"><div class="b">สมมติ: <b>L regular</b></div><div>⇒</div><div class="b">มี DFA ที่รับ L ได้ มี state จำนวนหนึ่ง = <b>n</b> (เราไม่รู้ว่าเท่าไหร่)</div><div>⇒</div><div class="b">Pumping Theorem ใช้กับ L ได้</div></div><p style="margin-top:14px">เป้าหมายของเรา: หา string ใน L ที่ "ปั๊มไม่ได้" → ขัดแย้งกับ theorem → สมมติฐานผิด → <b>L ไม่ regular</b></p><p class="note" style="margin-top:8px">${Lg.regular ? 'ภาษานี้ regular จริง — เล่นเพื่อดูว่าทำไมหาข้อขัดแย้งไม่ได้' : 'ภาษานี้ไม่ regular — เราจะพิสูจน์ให้ได้'}</p>`;
+    X.innerHTML = `<b>ทำไมเริ่มด้วย "สมมติว่า regular"?</b> เพราะ theorem มีรูป "ถ้า regular แล้ว ปั๊มได้" — เราใช้มันได้ก็ต่อเมื่อสมมติว่า regular ก่อน แล้วค่อยพาไปชนข้อขัดแย้ง (proof by contradiction)`;
+    H.innerHTML = `<li>เขียนบรรทัดแรกของพิสูจน์: "สมมติว่า L เป็น regular language"</li><li>ต่อด้วย: "ตาม Pumping Theorem จะมีจำนวนเต็ม n ≥ 1 ที่…"</li>`;
+    return;
+  }
+  if (k === 1) {
+    B.innerHTML = `<div style="font-size:2.4rem;font-family:var(--mono)">n = ${n}</div><p style="margin-top:8px">${Lg.regular ? `= จำนวน state ของ DFA ของภาษานี้ (${n} state)` : 'คู่แข่งเลือกได้ตามใจ — วิธีพิสูจน์ของเราจึงต้องใช้ได้กับ <b>ทุก n</b> ดังนั้นเราจะเขียน ω ในรูปของ n (เช่น aⁿbⁿ) ไม่ใช่ตัวเลขตายตัว'}</p><p class="note" style="margin-top:8px">ในเกมนี้สุ่ม n มาให้ เพื่อให้เห็น string จริง ๆ — ในข้อสอบเขียนว่า "ให้ n เป็นค่าจาก theorem" แล้วทำงานกับ n เป็นตัวแปร</p>`;
+    X.innerHTML = `<b>n คืออะไร?</b> ในการพิสูจน์ theorem n = จำนวน state ของ DFA — string ที่ยาว ≥ n ต้องผ่าน state ซ้ำ (pigeonhole) นั่นคือที่มาของ "วนได้"`;
+    H.innerHTML = `<li>เขียน: "ให้ n เป็นค่าที่ theorem รับประกัน"</li><li>ห้ามเลือก n เอง — n มาจากคู่แข่ง</li>`;
+    return;
+  }
+  if (k === 2) {
+    const val = S.omega ?? Lg.sample(n);
+    B.innerHTML = `<p>เลือก ω ∈ L ที่ยาว ≥ n = ${n} <span class="note">(แนะนำ: ${esc(Lg.sample(n))})</span></p><div class="row" style="margin-top:8px"><input type="text" class="mono" id="pg-omega" value="${esc(val)}" style="flex:1" ${!you ? 'readonly' : ''}><button class="btn sm primary" id="pg-omega-ok">${S.omega ? 'เปลี่ยน ω' : 'ยืนยัน ω'}</button></div><div id="pg-omega-view" style="margin-top:12px">${S.omega ? PG.cells(S.omega, null, n) + `<p class="note" style="margin-top:6px">ขีดแดง = n ตัวแรก (${esc(S.omega.slice(0, n))}) — y จะต้องอยู่ในช่วงนี้</p>` : ''}</div>`;
+    $('pg-omega-ok').onclick = () => {
+      const w = $('pg-omega').value.trim();
+      if (!Lg.member(w)) { UI.toast('ω ต้องอยู่ใน L'); return; } if (w.length < n) { UI.toast(`ω ต้องยาว ≥ n = ${n}`); return; }
+      S.omega = w; S.decomps = PG.decomps(w, n); S.sel = null; S.i = null; S.results = null;
+      if (Lg.regular) { const c = FA.findPumpingCycle(Lg.dfa(), w); S.advSel = c && !c.error ? S.decomps.findIndex(d => d.i === c.i && d.j === c.j) : 0; S.cycle = c; } else S.advSel = Math.floor(Math.random() * S.decomps.length);
+      if (you) S.sel = S.advSel;
+      PG.show(2);
+    };
+    X.innerHTML = `<b>เคล็ดลับเลือก ω:</b> ให้ <b>n ตัวแรกเป็นตัวอักษรเดียวกันหมด</b> (เช่น aⁿ…) — เพราะกติกา |xy| ≤ n บังคับให้ y อยู่ใน n ตัวแรก ⇒ y จะมีแต่ตัวอักษรนั้น ⇒ ปั๊มแล้วเสียสมดุลแน่นอน`;
+    H.innerHTML = `<li>เขียน: "เลือก ω = ${esc(Lg.omega || 'string ที่ยาวอย่างน้อย n')} ซึ่ง ω ∈ L และ |ω| ≥ n"</li><li>ตรวจว่า ω อยู่ใน L จริง (เกมจะเช็คให้)</li>`;
+    return;
+  }
+  if (k === 3) {
+    const w = S.omega; const d = S.decomps[S.sel ?? S.advSel];
+    const rows = S.decomps.map((dd, idx) => `<div class="d ${idx === S.sel ? 'sel' : ''}" data-idx="${idx}"><span class="bar">${[...w].slice(0, Math.min(w.length, n + 2)).map((c, q) => `<span class="${q < dd.i ? 'x' : q < dd.j ? 'y' : 'z'}">${esc(c)}</span>`).join('')}${w.length > n + 2 ? '<span class="z">…</span>' : ''}</span><span class="mono note">x="${esc(dd.x)}" y="${esc(dd.y)}" z="${esc(dd.z).slice(0, 12)}${dd.z.length > 12 ? '…' : ''}"</span>${idx === S.advSel && you ? '<span class="badge red">คู่แข่งเลือก</span>' : ''}</div>`).join('');
+    B.innerHTML = `<p><b>กติกาการแบ่ง:</b> y ≠ e และ |xy| ≤ n = ${n} ⇒ <b>y ต้องอยู่ใน ${n} ตัวแรก</b> (ช่องขีดแดง)</p><div style="margin:10px 0">${PG.cells(w, d, n)}</div><div class="row" style="margin-bottom:6px"><span class="badge blue">x</span><span class="badge mark">y (ส่วนที่จะปั๊ม)</span><span class="badge green">z</span><span class="note">— วิธีแบ่งที่ถูกกติกามีทั้งหมด ${S.decomps.length} แบบ ${you ? 'คู่แข่งเลือกมา 1 แบบ (คลิกแบบอื่นเพื่อลองได้)' : '<b>คลิกเลือก 1 แบบ</b>'}</span></div><div class="decomp">${rows}</div>${S.cycle && !S.cycle.error ? `<p class="note" style="margin-top:8px">L นี้ regular: คู่แข่งใช้ loop จริงของ DFA — อ่าน ${n} ตัวแรกแล้ว state ${esc(S.cycle.dfa.labelOf(S.cycle.seq[S.cycle.i]))} ซ้ำ จึงตั้ง y = "${esc(S.cycle.y)}" ที่วนกลับมา state เดิม</p>` : ''}`;
+    B.querySelectorAll('.d').forEach(el => el.onclick = () => { S.sel = +el.dataset.idx; S.i = null; S.results = null; PG.show(3); });
+    const yInFirst = d ? (new Set([...d.y]).size === 1 ? `y = "${esc(d.y)}" มีแต่ "${esc(d.y[0])}" ล้วน` : `y = "${esc(d.y)}"`) : '';
+    X.innerHTML = d ? `<b>ทำไมต้อง |xy| ≤ n?</b> ในพิสูจน์ theorem เราดูแค่ ${n} ตัวแรก ซึ่งผ่าน ${n + 1} configuration แต่มีแค่ ${n} state → state ซ้ำเกิดใน ${n} ตัวแรกแน่นอน → loop (y) จึงอยู่ในช่วงนั้น. ผลคือ ${yInFirst} — ${Lg.regular ? 'สำหรับภาษา regular นี่คือ loop จริง' : 'นี่คือจุดที่เราจะใช้โจมตี'}` : '';
+    H.innerHTML = `<li>เขียน: "ตาม theorem, ω = xyz โดย y ≠ e และ |xy| ≤ n"</li><li>เขียน: "เพราะ ${n} ตัวแรกของ ω เป็น ${esc(Lg.prefix || 'แบบเดียวกัน')} ดังนั้น y = ${esc(Lg.yform || 'ส่วนหนึ่งของช่วงนั้น')} สำหรับบาง k ≥ 1"</li><li><b>ห้าม</b>เลือกวิธีแบ่งเอง — ต้องพิสูจน์ให้ครอบคลุม<u>ทุก</u>วิธีแบ่ง (step 6 จะตรวจให้)</li>`;
+    return;
+  }
+  if (k === 4) {
+    const d = S.decomps[S.sel];
+    if (!you && S.i === null) { const ii = [0, 2, 3, 4].find(q => !Lg.member(d.x + rep(d.y, q) + d.z)); S.i = ii === undefined ? 1 : ii; }
+    const rows = [0, 1, 2, 3].map(i => { const s = d.x + rep(d.y, i) + d.z; const inL = Lg.member(s); return `<div class="r ${S.i === i ? 'sel' : ''}" data-i="${i}"><span class="i">i = ${i}</span><div class="tapecells">${[...d.x].map(c => `<div class="c x">${esc(c)}</div>`).join('')}${Array.from({ length: i }, () => [...d.y].map(c => `<div class="c y">${esc(c)}</div>`).join('')).join('<span class="note">·</span>')}${[...d.z].map(c => `<div class="c z">${esc(c)}</div>`).join('')}${s === '' ? '<span class="note">e</span>' : ''}</div><span class="v ${inL ? 'in' : 'out'}">${inL ? '∈ L' : '∉ L'}</span></div>`; }).join('');
+    B.innerHTML = `<p>ปั๊ม y = "<span class="mono">${esc(d.y)}</span>" ซ้ำ i ครั้ง (i = 0 คือตัดทิ้ง) แล้วดูว่ายังอยู่ใน L ไหม ${you ? '— <b>คลิกเลือก i ที่ทำให้หลุด</b>' : '— คู่แข่งเลือก i ให้แล้ว'}</p><div class="pump" style="margin-top:10px">${rows}</div>`;
+    if (you) B.querySelectorAll('.r').forEach(el => el.onclick = () => { S.i = +el.dataset.i; PG.show(4); });
+    const chosen = S.i !== null ? d.x + rep(d.y, S.i) + d.z : null; const inL = chosen !== null && Lg.member(chosen);
+    X.innerHTML = S.i === null ? `<b>ความหมายของการปั๊ม:</b> ถ้า y คือ loop จริงของ DFA การวน 0, 1, 2, … รอบ ต้องพาไปจบ state เดิมเสมอ ⇒ ทุกแถวต้อง ∈ L. แถวไหน ∉ L = ข้อขัดแย้ง` : (inL ? `i = ${S.i}: "${esc(chosen)}" ยังอยู่ใน L — ${you ? 'ลอง i อื่น (ส่วนใหญ่ i = 0 หรือ 2 จะหลุด)' : 'คู่แข่งหา i ที่หลุดไม่ได้ (การแบ่งนี้ปั๊มได้)'}` : `<span class="ok-t">i = ${S.i}: "${esc(chosen) || 'e'}" <b>∉ L</b> — พบข้อขัดแย้งสำหรับการแบ่งนี้</span>`);
+    H.innerHTML = `<li>เขียน: "เลือก i = ${S.i ?? '?'}: xy<sup>${S.i ?? 'i'}</sup>z = ${esc(Lg.pumped ? Lg.pumped(S.i ?? 0) : '…')}"</li><li>เขียนเหตุผลว่าทำไม string นี้ไม่อยู่ใน L: "${esc(Lg.why || '')}"</li><li>ปกติ i = 0 (ตัด y ทิ้ง) หรือ i = 2 ก็พอ — เลือกอันที่อธิบายง่าย</li>`;
+    return;
+  }
+  if (k === 5) {
+    const d = S.decomps[S.sel]; const chosen = d.x + rep(d.y, S.i) + d.z; const win = !Lg.member(chosen);
+    if (!S.results) S.results = S.decomps.map(dd => ({ dd, ii: [0, 2, 3].find(q => !Lg.member(dd.x + rep(dd.y, q) + dd.z)) }));
+    const allWin = S.results.every(r => r.ii !== undefined);
+    const table = `<div class="tblwrap"><table class="tt"><tr><th>x</th><th>y</th><th>z</th><th>i ที่หลุด</th></tr>${S.results.map(r => `<tr class="${r.dd === d ? 'cur' : ''}"><td>${esc(r.dd.x) || 'e'}</td><td class="mk">${esc(r.dd.y)}</td><td>${esc(r.dd.z) || 'e'}</td><td class="${r.ii !== undefined ? 'ok' : 'bad'}">${r.ii !== undefined ? 'i = ' + r.ii : 'ไม่มี (ปั๊มได้)'}</td></tr>`).join('')}</table></div>`;
+    if (Lg.regular || !allWin) {
+      B.innerHTML = `<div class="chain"><div class="b">L regular ⇒ ปั๊มได้</div><div>?</div><div class="b ok">ปั๊มได้จริง (มีวิธีแบ่งที่ทุก i ยังอยู่ใน L)</div><div>⇒</div><div class="b">ไม่เกิดข้อขัดแย้ง — <b>สรุปอะไรไม่ได้</b></div></div><p style="margin:12px 0">${Lg.regular ? 'ภาษานี้ regular จริง จึงมีวิธีแบ่ง (loop จริงของ DFA) ที่ปั๊มได้ทุก i — theorem ไม่ได้ถูกละเมิด' : 'ω นี้อาจไม่ดีพอ — ลอง ω ที่ n ตัวแรกเป็นตัวอักษรเดียวกัน'}</p>${table}`;
+      X.innerHTML = `<b>บทเรียน:</b> Pumping Theorem ใช้ได้ทางเดียว — "ปั๊มไม่ได้ ⇒ ไม่ regular". "ปั๊มได้" ไม่ได้แปลว่า regular (มีภาษาไม่ regular ที่ปั๊มได้)`;
+      H.innerHTML = `<li>ถ้าเจอแบบนี้ในข้อสอบ: เปลี่ยน ω หรือใช้ closure property ช่วย (เช่น ∩ กับ a*b*)</li>`;
+      $('pg-proof').innerHTML = `<span class="note">ไม่มีข้อขัดแย้ง — ${Lg.regular ? 'ภาษานี้ regular จึงเขียนพิสูจน์ "ไม่ regular" ไม่ได้ (ถ้าจะแสดงว่า regular ให้วาด DFA หรือเขียน regex แทน)' : 'ลอง ω ใหม่'}</span>`;
+      return;
+    }
+    B.innerHTML = `<div class="chain"><div class="b">L regular ⇒ ทุก ω ยาว ≥ n ปั๊มได้</div><div>แต่</div><div class="b bad">ω = ${esc(S.omega)} ปั๊มไม่ได้ (ทุกวิธีแบ่งมี i ที่หลุด)</div><div>⇒</div><div class="b ok"><b>L ไม่ regular</b> ∎</div></div><p style="margin:12px 0">การแบ่งที่คุณเล่น (แถวสว่าง) ชนะแล้ว — และตารางยืนยันว่า<b>ทุกวิธีแบ่ง ${S.results.length} แบบ</b>ก็หา i ที่หลุดได้ จึงครบเงื่อนไข "∃ x,y,z" ของคู่แข่งทุกกรณี</p>${table}`;
+    X.innerHTML = `<b>ทำไมสรุปว่า "ไม่ regular" ได้?</b> theorem: regular ⇒ P. เราแสดง ¬P (มี ω ที่ทุกการแบ่งปั๊มแล้วหลุด). ตรรกะ contrapositive: ¬P ⇒ ¬regular`;
+    H.innerHTML = `<li>เขียนว่า "ขัดแย้งกับ Pumping Theorem"</li><li>ปิดท้าย: "ดังนั้น L ไม่เป็น regular language ∎"</li><li>คัดลอกร่างพิสูจน์ด้านล่างไปปรับใช้</li>`;
+    PG.proof(Lg, d, S.i, chosen);
+    return;
   }
 };
-PG.add = (html, cls = '') => { const d = document.createElement('div'); d.className = 'item ' + cls; d.innerHTML = html; $('pg-game').appendChild(d); return d; };
-PG.decomps = (w, n) => { const out = []; for (let i = 0; i < w.length; i++) for (let j = i + 1; j <= Math.min(n, w.length); j++) out.push({ x: w.slice(0, i), y: w.slice(i, j), z: w.slice(j) }); return out; };
-PG.xyz = (d) => `<span class="xyz"><span class="x">${esc(d.x) || '·'}</span><span class="y">${esc(d.y)}</span><span class="z">${esc(d.z) || '·'}</span></span> <span class="note">x = "${esc(d.x)}", y = "${esc(d.y)}", z = "${esc(d.z)}"</span>`;
-PG.chooseOmega = (w) => {
-  const L = PG.lang();
-  if (!w || !L.member(w)) { UI.toast('ω ต้องอยู่ใน L'); return; } if (w.length < PG.n) { UI.toast(`ω ต้องยาว ≥ n = ${PG.n}`); return; }
-  PG.omega = w; PG.quant(3);
-  // adversary picks decomposition
-  let d;
-  if (L.regular) { const c = FA.findPumpingCycle(L.dfa(), w); d = c && !c.error ? { x: c.x, y: c.y, z: c.z, cyc: c } : PG.decomps(w, PG.n)[0]; }
-  else { const all = PG.decomps(w, PG.n); d = all[Math.floor(Math.random() * all.length)]; }
-  PG.d = d;
-  PG.add(`<b>คู่แข่ง</b> แบ่ง ω = xyz (กติกา: y ≠ e, |xy| ≤ ${PG.n})${d.cyc ? ' — ใช้ cycle จริงของ DFA: state ' + esc(d.cyc.dfa.labelOf(d.cyc.seq[d.cyc.i])) + ' ซ้ำ' : ''}<br>${PG.xyz(d)}`);
-  PG.quant(4);
-  PG.add(`<b>คุณ</b>: เลือก i แล้วดู xy<sup>i</sup>z <div class="row" style="margin-top:6px">${[0, 1, 2, 3].map(i => `<button class="btn sm" data-i="${i}">i = ${i}</button>`).join('')}</div>`).querySelectorAll('button').forEach(b => b.onclick = () => PG.pick(+b.dataset.i));
+PG.proof = (Lg, d, i, chosen) => {
+  const kk = d.y.length;
+  const lines = [
+    `<b>Claim:</b> L = ${esc(Lg.name.split('  ')[0])} ไม่เป็น regular`,
+    `<b>Proof.</b> สมมติว่า L เป็น regular. ตาม Pumping Theorem จะมีจำนวนเต็ม n ≥ 1 ที่ทุก string ใน L ที่ยาวอย่างน้อย n ปั๊มได้`,
+    `เลือก ω = <span class="m">${esc(Lg.omega)}</span> จะได้ ω ∈ L และ |ω| ≥ n <span class="note">(ในเกม: n = ${PG.n}, ω = ${esc(PG.S.omega)})</span>`,
+    `ตาม theorem เขียน ω = xyz ได้ โดย y ≠ e และ |xy| ≤ n. เพราะ ${n_(PG.n)} ตัวแรกของ ω เป็น ${esc(Lg.prefix)} จึงได้ <span class="m">y = ${esc(Lg.yform)}</span> สำหรับบาง k ≥ 1 <span class="note">(ในเกม: x = "${esc(d.x)}", y = "${esc(d.y)}" คือ k = ${kk}, z = "${esc(d.z)}")</span>`,
+    `เลือก i = ${i}: <span class="m">xy<sup>${i}</sup>z = ${esc(Lg.pumped(i))}</span> ซึ่ง ${esc(Lg.why)} ดังนั้น xy<sup>${i}</sup>z ∉ L <span class="note">(ในเกม: "${esc(chosen) || 'e'}")</span>`,
+    `ขัดแย้งกับ Pumping Theorem ที่บอกว่า xy<sup>i</sup>z ∈ L ทุก i ≥ 0. ดังนั้นสมมติฐานผิด — <b>L ไม่เป็น regular</b> ∎`,
+    `<span class="note">หมายเหตุ: การพิสูจน์ต้องครอบคลุมทุกการแบ่ง — ประโยค "y = ${esc(Lg.yform)} สำหรับบาง k ≥ 1" ทำหน้าที่นั้น เพราะทุกการแบ่งที่ถูกกติกาจะให้ y แบบนี้เสมอ</span>`,
+  ];
+  $('pg-proof').innerHTML = `<div class="proof">${lines.map(l => `<div>${l}</div>`).join('')}</div>`;
 };
-PG.pick = (i) => {
-  const L = PG.lang(); const d = PG.d; const s = d.x + d.y.repeat(i) + d.z; const inL = L.member(s);
-  const win = !inL;
-  PG.add(`i = ${i}: xy<sup>${i}</sup>z = <span class="mono">${esc(s) || 'e'}</span> → ${inL ? 'ยัง<b>อยู่ใน</b> L' : '<b>ไม่อยู่ใน</b> L'} ${win ? '— <b>คุณชนะรอบนี้</b> ✔' : '— ลอง i อื่น'}`, win ? 'win' : '');
-  if (win && !L.regular) {
-    const all = PG.decomps(PG.omega, PG.n);
-    const rows = all.map(dd => { const ii = [0, 2, 3].find(k => !L.member(dd.x + dd.y.repeat(k) + dd.z)); return { dd, ii }; });
-    const okAll = rows.every(r => r.ii !== undefined);
-    PG.add(`<b>แต่</b> การพิสูจน์ต้องชนะ<u>ทุก</u>วิธีแบ่งของคู่แข่ง (${all.length} แบบ) — ตรวจอัตโนมัติ:<div class="tblwrap" style="margin-top:6px"><table class="tt"><tr><th>x</th><th>y</th><th>z</th><th>i ที่ทำให้หลุด</th></tr>${rows.map(r => `<tr><td>${esc(r.dd.x) || 'e'}</td><td class="mk">${esc(r.dd.y)}</td><td>${esc(r.dd.z) || 'e'}</td><td class="${r.ii !== undefined ? 'ok' : 'bad'}">${r.ii !== undefined ? 'i = ' + r.ii : 'ไม่พบใน {0,2,3}'}</td></tr>`).join('')}</table></div>${okAll ? '<br><b>✔ ทุกวิธีแบ่งมี i ที่หลุด → ขัดแย้งกับ theorem → L ไม่ regular ∎</b>' : '<br>ยังมีวิธีแบ่งที่หาไม่เจอ — ω นี้อาจไม่ดีพอ ลอง ω อื่น'}`, okAll ? 'win' : 'lose');
-  }
-  if (!win && L.regular) PG.add(`ทุก i จะยังอยู่ใน L เสมอ เพราะ y พา DFA วนกลับ state เดิม — <b>คุณแพ้ตามคาด</b>: Pumping Theorem ใช้พิสูจน์ "ไม่ regular" เท่านั้น ใช้พิสูจน์ "regular" ไม่ได้`, 'lose');
-};
-PG.askDecomp = () => {
-  const w = PG.omega; PG.quant(3);
-  const d = PG.add(`<b>คุณ</b> แบ่ง ω = xyz (y ≠ e, |xy| ≤ ${PG.n}):<div class="row" style="margin-top:6px"><label class="note">|x| =</label><input type="text" class="mono" id="pg-i" value="0" style="width:60px"><label class="note">|xy| =</label><input type="text" class="mono" id="pg-j" value="1" style="width:60px"><button class="btn sm primary" id="pg-dec-ok">ยืนยัน</button></div><div id="pg-dec-prev" style="margin-top:6px"></div>`);
-  const prev = () => { const i = +$('pg-i').value, j = +$('pg-j').value; if (!(i >= 0 && j > i && j <= Math.min(PG.n, w.length))) { $('pg-dec-prev').innerHTML = '<span class="bad-t">ผิดกติกา</span>'; return null; } const dd = { x: w.slice(0, i), y: w.slice(i, j), z: w.slice(j) }; $('pg-dec-prev').innerHTML = PG.xyz(dd); return dd; };
-  $('pg-i').oninput = $('pg-j').oninput = prev; prev();
-  $('pg-dec-ok').onclick = () => { const dd = prev(); if (!dd) return; PG.quant(4); const L = PG.lang(); const ii = [0, 2, 3, 4].find(k => !L.member(dd.x + dd.y.repeat(k) + dd.z)); if (ii !== undefined) PG.add(`<b>คู่แข่ง</b> เลือก i = ${ii}: xy<sup>${ii}</sup>z = <span class="mono">${esc(dd.x + dd.y.repeat(ii) + dd.z) || 'e'}</span> ∉ L → คุณแพ้ (ทุกวิธีแบ่งของ ω นี้แพ้หมด เพราะ L ไม่ regular)`, 'lose'); else PG.add(`คู่แข่งหา i ใน {0,2,3,4} ไม่ได้ — การแบ่งนี้ปั๊มได้ ✔${L.regular ? ' (เพราะ L regular จริง)' : ''}`, 'win'); };
-};
-// pigeonhole
+const n_ = (n) => 'n';
+// pigeonhole (unchanged)
 PG.view = new FA.AutomatonView('pg-canvas');
 fillSelect($('pg-dfa'), ['DFA'], [{ v: '__editor', t: '(automaton ใน Editor)' }]);
 $('pg-find').onclick = () => {
@@ -482,7 +600,7 @@ $('pg-find').onclick = () => {
   PG.view.highlight({ states: [r.seq[r.i]], transitions: cyc });
   let h = `<div class="ln"><span class="why">n = |K| = ${r.n} → อ่าน ${r.n} ตัวแรกผ่าน ${r.n + 1} configuration แต่มีแค่ ${r.n} state → ต้องมี state ซ้ำ (pigeonhole)</span></div>`;
   r.seq.forEach((q, k) => { h += `<div class="ln ${(k === r.i || k === r.j) ? 'cur' : ''}"><span class="cfg">${k ? '⊢' : '&nbsp;'} (${esc(D.labelOf(q))}, ${esc(w.slice(k)) || 'e'})</span><span class="why">${k === r.i ? 'q' + FA.sub(r.i) + ' ← ซ้ำ' : k === r.j ? 'q' + FA.sub(r.j) + ' = q' + FA.sub(r.i) + ' ← ซ้ำ' : ''}</span></div>`; });
-  h += `<div class="ln"><span class="why">x = "${esc(r.x)}", y = "${esc(r.y)}" (พา ${esc(D.labelOf(r.seq[r.i]))} กลับมา ${esc(D.labelOf(r.seq[r.i]))}), z = "${esc(r.z)}" → xyⁱz ${FA.runDFA(D, w).accepted ? 'ถูก accept ทุก i' : 'ถูก reject ทุก i (ω ∉ L แต่ cycle ยังจริง)'}: ${[0, 1, 2].map(i => `i=${i}: ${esc(r.x + r.y.repeat(i) + r.z) || 'e'} ${FA.runDFA(D, r.x + r.y.repeat(i) + r.z).accepted ? '✔' : '✘'}`).join(' · ')}</span></div>`;
+  h += `<div class="ln"><span class="why">x = "${esc(r.x)}", y = "${esc(r.y)}" (พา ${esc(D.labelOf(r.seq[r.i]))} กลับมา ${esc(D.labelOf(r.seq[r.i]))}), z = "${esc(r.z)}" → ${[0, 1, 2].map(i => `i=${i}: ${esc(r.x + r.y.repeat(i) + r.z) || 'e'} ${FA.runDFA(D, r.x + r.y.repeat(i) + r.z).accepted ? '✔' : '✘'}`).join(' · ')}</span></div>`;
   $('pg-pigeon').innerHTML = h;
 };
 

@@ -111,6 +111,17 @@ FA.runTests = () => {
     const N = FA.complement(A).M; t('complement: odd b\'s', FA.accepts(N, 'b') && !FA.accepts(N, 'bb'));
     const I = FA.product(A, P('ex212'), 'and').M; t('product ∩: even b & no bbb', FA.accepts(I, 'bb') && !FA.accepts(I, 'bbb') && !FA.accepts(I, 'bbbb') && FA.accepts(I, 'bbabb'));
     t('complement of NFA refused', !!FA.complement(P('slide10')).error); }
+  // --- closureStages (module 5 step-by-step)
+  { const A = P('ex211'), B = P('exA');
+    const cs = { union: 4, concat: 3, star: 4, complement: 2, product: null, demorgan: 5 };
+    for (const op in cs) { const r = FA.closureStages(op, A, B); t(`closureStages ${op}: no error`, !r.error, r.error);
+      if (cs[op]) t(`closureStages ${op}: ${cs[op]} stages`, r.stages.length === cs[op], String(r.stages.length));
+      const last = r.stages[r.stages.length - 1].automaton; t(`closureStages ${op}: last stage = M`, FA.dfaEquivalent(last, r.M).equivalent); }
+    t('closureStages product ≡ FA.product', FA.dfaEquivalent(FA.closureStages('product', A, B).M, FA.product(A, B, 'and').M).equivalent);
+    t('closureStages demorgan ≡ product', FA.dfaEquivalent(FA.closureStages('demorgan', A, B).M, FA.product(A, B, 'and').M).equivalent);
+    t('closureStages union ≡ FA.union', FA.dfaEquivalent(FA.closureStages('union', A, B).M, FA.union(A, B).M).equivalent);
+    const c = FA.closureStages('complement', P('slide10')); t('complement of NFA reports counterexample', c.error === 'nfa' && c.counter && c.counter.w !== undefined, JSON.stringify(c.counter));
+    const ce = FA.nfaComplementCounterexample(P('fig25')); t('fig25 counterexample "ab" has runs ending in F and outside F', ce && ce.w === 'ab', ce && ce.w); }
   // --- language tools
   { t('languageDiff finds witness', FA.languageDiff(P('ex211'), P('exA'), 5)?.w !== undefined);
     t('dfaEquivalent witness for slide4 vs exB', FA.dfaEquivalent(P('slide4'), P('exB')).equivalent === false); }

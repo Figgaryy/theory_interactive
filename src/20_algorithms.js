@@ -225,7 +225,7 @@ FA.union = (A1, A2) => {
   M.transitions = [...a.B.transitions, ...b.B.transitions];
   M.addTransition('s', E, a.map[A1.start]); M.addTransition('s', E, b.map[A2.start]);
   M.meta = { added: [{ from: 's', to: a.map[A1.start] }, { from: 's', to: b.map[A2.start] }], addedStates: ['s'] };
-  return { M, added: ['s'], note: 's ใหม่ + (s, e, s₁), (s, e, s₂); F = F₁ ∪ F₂' };
+  return { M, added: ['s'], maps: { a: a.map, b: b.map }, note: 's ใหม่ + (s, e, s₁), (s, e, s₂); F = F₁ ∪ F₂' };
 };
 FA.concat = (A1, A2) => {
   const a = relabel(A1, 'a:', false), b = relabel(A2, 'b:', true);
@@ -236,7 +236,7 @@ FA.concat = (A1, A2) => {
   M.transitions = [...a.B.transitions, ...b.B.transitions];
   for (const f of A1.finals()) M.addTransition(a.map[f], E, b.map[A2.start]);
   M.meta = { added: [...A1.finals()].map(f => ({ from: a.map[f], to: b.map[A2.start] })), addedStates: [] };
-  return { M, note: 'e จากทุก f ∈ F₁ → s₂; F = F₂ (state ของ M₁ เลิกเป็น final)' };
+  return { M, maps: { a: a.map, b: b.map }, note: 'e จากทุก f ∈ F₁ → s₂; F = F₂ (state ของ M₁ เลิกเป็น final)' };
 };
 FA.star = (A1) => {
   const a = relabel(A1, 'a:', false);
@@ -247,7 +247,7 @@ FA.star = (A1) => {
   M.addTransition('s', E, a.map[A1.start]);
   for (const f of A1.finals()) M.addTransition(a.map[f], E, a.map[A1.start]);
   M.meta = { added: [{ from: 's', to: a.map[A1.start] }, ...[...A1.finals()].map(f => ({ from: a.map[f], to: a.map[A1.start] }))], addedStates: ['s'] };
-  return { M, note: 's ใหม่ (เป็น final เพื่อรับ e) + (s, e, s₁) + e จากทุก f ∈ F₁ กลับไป s₁' };
+  return { M, maps: { a: a.map }, note: 's ใหม่ (เป็น final เพื่อรับ e) + (s, e, s₁) + e จากทุก f ∈ F₁ กลับไป s₁' };
 };
 FA.complement = (A1) => {
   if (A1.hasEpsilon() || A1.isNondetChoice()) return { error: 'Complement ต้องทำกับ DFA เท่านั้น (Problem 2.3.1) — แปลงเป็น DFA ก่อน' };
@@ -276,6 +276,93 @@ FA.product = (A1, A2, mode = 'and') => {
   }
   FA.layoutLayers(M, 90, 200, 150, 90);
   return { M, note: 'state = คู่ (p, q); δ((p,q),a) = (δ₁(p,a), δ₂(q,a)); final เมื่อ' + (mode === 'and' ? 'ทั้งคู่ final' : 'อย่างน้อยหนึ่ง final') };
+};
+
+// ---- closure constructions as step-by-step stages (for the UI) ----
+// A string that shows why swapping finals in an NFA is not complement:
+// it has one run ending in F and another ending outside F.
+FA.nfaComplementCounterexample = (A, maxLen = 6) => {
+  const F = A.finals();
+  for (const w of FA.stringsUpTo(A.alphabet, maxLen)) {
+    const S = FA.runNFA(A, w).final;
+    const inF = [...S].filter(q => F.has(q)), outF = [...S].filter(q => !F.has(q));
+    if (inF.length && outF.length) return { w, inF, outF };
+  }
+  return null;
+};
+FA.closureStages = (op, A1, A2) => {
+  const stages = []; const push = (key, automaton, hl = {}, info = {}) => stages.push({ key, automaton, hl, info });
+  const strip = (M, pred) => { const B = M.clone(); B.transitions = B.transitions.filter(t => !pred(t)); return B; };
+  if (op === 'union') {
+    const r = FA.union(A1, A2); const M = r.M; const s1 = r.maps.a[A1.start], s2 = r.maps.b[A2.start];
+    const placed = strip(M, t => t.from === 's'); placed.states = placed.states.filter(s => s.id !== 's'); placed.state(s1).isStart = true; placed.state(s2).isStart = true;
+    push('place', placed, {}, { s1, s2 });
+    const withS = strip(M, t => t.from === 's'); withS.state(s1).isStart = true; withS.state(s2).isStart = true; withS.state('s').isStart = true;
+    push('newStart', withS, { states: ['s'] }, { s: 's' });
+    push('eps', M, { states: ['s'], transitions: M.meta.added }, { s: 's', s1, s2 });
+    push('finals', M, { accept: [...M.finals()] }, { F: [...M.finals()] });
+    return { M, stages, maps: r.maps };
+  }
+  if (op === 'concat') {
+    const r = FA.concat(A1, A2); const M = r.M; const s1 = r.maps.a[A1.start], s2 = r.maps.b[A2.start]; const F1 = [...A1.finals()].map(f => r.maps.a[f]);
+    const isAdded = (t) => t.symbol === E && M.meta.added.some(a => a.from === t.from && a.to === t.to); const placed = strip(M, isAdded); F1.forEach(f => placed.state(f).isFinal = true); placed.state(s2).isStart = true;
+    push('place', placed, {}, { s1, s2, F1 });
+    const eps = M.clone(); F1.forEach(f => eps.state(f).isFinal = true); eps.state(s2).isStart = true;
+    push('eps', eps, { transitions: M.meta.added, states: [s2] }, { F1, s2 });
+    push('finals', M, { accept: [...M.finals()], states: [s1] }, { F1, F2: [...M.finals()], s1 });
+    return { M, stages, maps: r.maps };
+  }
+  if (op === 'star') {
+    const r = FA.star(A1); const M = r.M; const s1 = r.maps.a[A1.start]; const F1 = [...A1.finals()].map(f => r.maps.a[f]);
+    const isAdded = (t) => t.symbol === E && M.meta.added.some(a => a.from === t.from && a.to === t.to); const placed = strip(M, isAdded); placed.states = placed.states.filter(s => s.id !== 's'); placed.state(s1).isStart = true;
+    push('place', placed, {}, { s1, F1 });
+    const withS = placed.clone(); withS.states.unshift({ ...M.state('s') }); withS.state(s1).isStart = false;
+    push('newStart', withS, { states: ['s'] }, { s: 's' });
+    const eps1 = withS.clone(); eps1.addTransition('s', E, s1);
+    push('epsIn', eps1, { transitions: [{ from: 's', to: s1 }] }, { s: 's', s1 });
+    push('epsBack', M, { transitions: F1.map(f => ({ from: f, to: s1 })) }, { F1, s1, F: [...M.finals()] });
+    return { M, stages, maps: r.maps };
+  }
+  if (op === 'complement') {
+    if (A1.hasEpsilon() || A1.isNondetChoice()) return { error: 'nfa', counter: FA.nfaComplementCounterexample(A1), stages };
+    const c = FA.complete(A1);
+    push('check', A1.clone(), {}, { complete: !c.added });
+    if (c.added) push('trap', c.dfa, { states: [c.trapId], transitions: c.missing.map(([q, a]) => ({ from: q, to: c.trapId })) }, { trap: c.trapId, missing: c.missing });
+    const M = c.dfa.clone(); M.states.forEach(s => s.isFinal = !s.isFinal); M.name = '¬M₁';
+    push('swap', M, { accept: [...M.finals()], reject: [...c.dfa.finals()] }, { wasFinal: [...c.dfa.finals()], nowFinal: [...M.finals()] });
+    return { M, stages };
+  }
+  if (op === 'product' || op === 'productOr') {
+    if (A1.hasEpsilon() || A1.isNondetChoice() || A2.hasEpsilon() || A2.isNondetChoice()) return { error: 'dfa', stages };
+    const mode = op === 'product' ? 'and' : 'or';
+    const alphabet = [...new Set([...A1.alphabet, ...A2.alphabet])];
+    const c1 = FA.complete(new FA.Automaton({ ...A1.toJSON(), alphabet })), c2 = FA.complete(new FA.Automaton({ ...A2.toJSON(), alphabet }));
+    const D1 = c1.dfa, D2 = c2.dfa; const full = FA.product(D1, D2, mode).M;
+    push('complete', full.clone(), {}, { trap1: c1.added, trap2: c2.added, D1, D2 });
+    const id = (p, q) => p + '|' + q; const seen = new Set([id(D1.start, D2.start)]); const queue = [[D1.start, D2.start]]; const revealedE = new Set();
+    const partial = () => { const B = new FA.Automaton({ alphabet }); B.states = full.states.filter(s => seen.has(s.id)).map(s => ({ ...s, isFinal: false })); B.transitions = full.transitions.filter(t => revealedE.has(t.from + '|' + t.symbol)); return B; };
+    push('start', partial(), { states: [id(D1.start, D2.start)] }, { p: D1.start, q: D2.start, D1, D2 });
+    while (queue.length) {
+      const [p, q] = queue.shift();
+      for (const a of alphabet) {
+        const p2 = D1.trans(p, a)[0], q2 = D2.trans(q, a)[0]; const isNew = !seen.has(id(p2, q2)); seen.add(id(p2, q2)); if (isNew) queue.push([p2, q2]); revealedE.add(id(p, q) + '|' + a);
+        push('pair', partial(), { states: [id(p, q)], accept: [id(p2, q2)], transitions: [{ from: id(p, q), to: id(p2, q2) }] }, { p, q, a, p2, q2, isNew, D1, D2 });
+      }
+    }
+    push('finals', full, { accept: full.states.filter(s => s.isFinal).map(s => s.id) }, { mode, F: full.states.filter(s => s.isFinal).map(s => s.label), D1, D2 });
+    return { M: full, stages, D1, D2 };
+  }
+  if (op === 'demorgan') {
+    const c1 = FA.closureStages('complement', A1), c2 = FA.closureStages('complement', A2);
+    if (c1.error || c2.error) return { error: 'nfa', counter: (c1.counter || c2.counter), stages };
+    push('comp1', c1.M, { accept: [...c1.M.finals()] }, {}); push('comp2', c2.M, { accept: [...c2.M.finals()] }, {});
+    const u = FA.union(c1.M, c2.M).M; push('union', u, { states: ['s'], transitions: u.meta.added }, {});
+    const D = FA.powerset(u).dfa; push('powerset', D, {}, { n: D.states.length });
+    const M = D.clone(); M.states.forEach(s => s.isFinal = !s.isFinal); M.name = 'M₁ ∩ M₂';
+    push('comp3', M, { accept: [...M.finals()] }, {});
+    return { M, stages };
+  }
+  return { error: 'op', stages };
 };
 
 // ---- language tools ----
