@@ -9,7 +9,7 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(ROOT, 'src')
 # data (presets/tests) must be defined before the UI modules that use them at boot
 ORDER = ['00_head.html', '10_model.js', '20_algorithms.js', '30_regex.js', '70_presets.js',
-         '80_tests.js', '40_render.js', '50_ui.js', '60_modules.js', '90_app.js']
+         '80_tests.js', '40_render.js', '50_ui.js', '60_modules.js', '75_exams.js', '76_exam_ui.js', '90_app.js']
 
 body = '\n'.join(open(os.path.join(SRC, p), encoding='utf-8').read() for p in ORDER)
 

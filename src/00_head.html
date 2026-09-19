@@ -246,6 +246,29 @@ svg .tl.done{stroke:var(--green)}
 .hole.cur{box-shadow:0 0 0 2px var(--blue)}
 .cfgs{font-family:var(--mono);font-size:.85rem;display:grid;gap:2px;margin-top:8px}
 .cfgs div{padding:2px 6px;border-radius:6px}.cfgs .on{background:var(--blue-soft)}.cfgs .dup{background:var(--mark-soft)}
+.exq{border:1px solid var(--line);border-radius:var(--r);background:var(--paper-2);padding:14px 16px}
+.exq .qh{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:baseline;margin-bottom:8px}
+.exq .qh .n{font-weight:700;font-size:1.05rem}
+.exq .qtext{max-width:80ch;line-height:1.6}
+.exq .parts{display:grid;gap:8px;margin-top:10px}
+.exq .part{display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:center;padding:6px 10px;border-radius:8px;background:var(--paper)}
+.exq .part.ok{background:var(--green-soft)}.exq .part.bad{background:var(--red-soft)}
+.exq .part .why{grid-column:1/-1;font-size:.9rem;color:var(--ink-2)}
+.exq .part input.mono{min-width:0;width:100%;font-family:var(--mono)}
+.exq .part.wide{grid-template-columns:1fr}
+.exq .opt{display:flex;gap:8px;align-items:flex-start;padding:6px 10px;border-radius:8px;cursor:pointer;border:1px solid transparent}
+.exq .opt:hover{background:var(--paper)}.exq .opt.sel{border-color:var(--blue);background:var(--blue-soft)}
+.exq .opt.ok{background:var(--green-soft);border-color:var(--green)}.exq .opt.bad{background:var(--red-soft);border-color:var(--red)}
+.exq .opt .why{display:block;font-size:.9rem;color:var(--ink-2);margin-top:2px}
+.exq .sol{margin-top:12px;border-top:1px dashed var(--line);padding-top:10px}
+.exq .sol ol,.exq .sol ul{margin:0;padding-left:20px;display:grid;gap:6px}
+.exq .sol h4{margin:8px 0 6px}
+.exq .sol .write{border:1px solid var(--line);border-radius:8px;padding:8px 12px;background:var(--paper);line-height:1.6}
+.exq .scorebar{display:inline-block;font-family:var(--mono);font-size:.85rem;padding:2px 8px;border-radius:999px;background:var(--paper-3)}
+.exq textarea{width:100%;min-height:70px;font-family:var(--mono)}
+.exq .actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;align-items:center}
+.exq .verdict{margin-top:6px}
+#ex8-summary .tt{margin-top:8px}
 @media (max-width:900px){
   .app{grid-template-columns:1fr}
   .side{display:none}
@@ -572,6 +595,18 @@ svg .tl.done{stroke:var(--green)}
   </div>
 </section>
 
+<!-- ================= M8 EXAMS ================= -->
+<section class="module" id="m-exams" data-title="ข้อสอบฝึก Midterm" data-sub="4 ชุด · ทำเอง / อ่านเฉลย">
+  <div class="mod-head"><h2 id="ex8-title"></h2><p class="gist" id="ex8-sub"></p></div>
+  <div class="row" style="margin-bottom:12px">
+    <div class="tabs2" id="ex8-sets" style="margin:0;border:0"></div>
+    <span class="sp" style="flex:1"></span>
+    <div class="row" id="ex8-mode"><button class="btn sm on" data-mode="quiz"></button><button class="btn sm" data-mode="study"></button></div>
+    <button class="btn sm" id="ex8-reset"></button>
+  </div>
+  <div class="card" id="ex8-summary" style="margin-bottom:12px"></div>
+  <div id="ex8-list" style="display:grid;gap:14px"></div>
+</section>
 </main>
 </div>
 

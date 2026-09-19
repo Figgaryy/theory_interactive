@@ -122,6 +122,26 @@ FA.runTests = () => {
     t('closureStages union ≡ FA.union', FA.dfaEquivalent(FA.closureStages('union', A, B).M, FA.union(A, B).M).equivalent);
     const c = FA.closureStages('complement', P('slide10')); t('complement of NFA reports counterexample', c.error === 'nfa' && c.counter && c.counter.w !== undefined, JSON.stringify(c.counter));
     const ce = FA.nfaComplementCounterexample(P('fig25')); t('fig25 counterexample "ab" has runs ending in F and outside F', ce && ce.w === 'ab', ce && ce.w); }
+  // --- exam engine helpers
+  { const EX = FA.exam;
+    t('exam: parseSet sorts', EX.parseSet('{b,a}') === 'a,b', EX.parseSet('{b,a}'));
+    t('exam: parseSet nested', EX.parseSet('{{b,a},c}') === 'c,{a,b}', EX.parseSet('{{b,a},c}'));
+    t('exam: parseSet pairs', EX.parseSet('{ (b,a), (a,b) }') === '(a,b),(b,a)', EX.parseSet('{ (b,a), (a,b) }'));
+    t('exam: parseSet empty', EX.parseSet('∅') === '' && EX.parseSet('{}') === '');
+    t('exam: sameAnswer set', EX.sameAnswer('{q1, q0}', '{q0,q1}', 'set') && !EX.sameAnswer('{q0}', '{q0,q1}', 'set'));
+    t('exam: sameAnswer number/text', EX.sameAnswer(' 16', '16', 'number') && EX.sameAnswer('a b', 'ab', 'text'));
+    const tr = EX.parseTrace('(q0, aabb) ⊢ (q0, abb) |- (q0,bb) -> (q1, b) ⊢ (q2, e)');
+    t('exam: parseTrace 5 configs', tr.length === 5 && tr[0].state === 'q0' && tr[0].rest === 'aabb' && tr[4].rest === 'e', JSON.stringify(tr));
+    const A = FA.preset('ex212'); const ex = EX.expectedTrace(A, 'aabb');
+    t('exam: expectedTrace matches runDFA', ex.length === 5 && ex[4].state === 'q2' && ex[4].rest === 'e', JSON.stringify(ex));
+    const qtf = { marks: 5, parts: [{ answer: true }, { answer: false }, { answer: true }, { answer: true }, { answer: false }] };
+    const s = EX.scoreTF(qtf, [true, true, null, true, false]);
+    t('exam: scoreTF +1/-1/0', s.earned === 2 && s.max === 5 && s.perPart.join() === 'ok,bad,blank,ok,ok', JSON.stringify(s));
+    const qmc = { marks: 4, answer: 2 };
+    t('exam: scoreMC', EX.scoreMC(qmc, 2).earned === 4 && EX.scoreMC(qmc, 0).earned === -4 && EX.scoreMC(qmc, null).earned === 0);
+    const qtr = { marks: 4, inputs: ['aabb', 'bbbb'] };
+    const st = EX.scoreTrace(qtr, A, ['(q0,aabb) ⊢ (q0,abb) ⊢ (q0,bb) ⊢ (q1,b) ⊢ (q2,e)', '']);
+    t('exam: scoreTrace half credit', st.earned === 2, JSON.stringify(st)); }
   // --- language tools
   { t('languageDiff finds witness', FA.languageDiff(P('ex211'), P('exA'), 5)?.w !== undefined);
     t('dfaEquivalent witness for slide4 vs exB', FA.dfaEquivalent(P('slide4'), P('exB')).equivalent === false); }
