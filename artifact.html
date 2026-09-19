@@ -2118,19 +2118,28 @@ SE.orderHint = () => {
   };
   SE.howto = (step) => {
     const g = SE.g; const L = (id) => esc(g.labels[id]); const P = (x) => x ? esc(RX.print(x)) : '—';
-    const gam = step.gamma ? `γ = ${P(step.gamma)} → γ* = (${P(step.gamma)})*` : 'ไม่มี loop → γ* = e (ตัดทิ้งได้)';
+    const q = L(step.q); const m = (s) => `<span class="mono">${s}</span>`;
+    const lab = (x) => x ? P(x) : '?';
+    const inTxt = step.ins.map(i => m(`${L(i)} ─${lab(step.pairs.find(p => p.i === i)?.alpha)}→ ${q}`)).join(', ');
+    const outTxt = step.outs.map(j => m(`${q} ─${lab(step.pairs.find(p => p.j === j)?.beta)}→ ${L(j)}`)).join(', ');
+    const loopTxt = step.gamma ? `${m(`${q} ↻ ${P(step.gamma)}`)} — วนอยู่ที่ ${q} ได้กี่รอบก็ได้ (รวมศูนย์รอบ) จึงเขียนเป็น ${m(`(${P(step.gamma)})*`)}` : `${q} ไม่มีเส้นวนตัวเอง — ข้ามส่วนนี้ได้`;
+    const ex = step.pairs[0];
+    const exTxt = ex ? `ตัวอย่างคู่แรก: เข้า ${m(P(ex.alpha))} → วน ${m(ex.gamma ? '(' + P(ex.gamma) + ')*' : '(ไม่มี)')} → ออก ${m(P(ex.beta))} ⟹ เขียนต่อกันเป็นเส้นตรง ${m(`${L(ex.i)} ─${P(ex.simp)}→ ${L(ex.j)}`)}${ex.old ? ` (มีเส้นเดิม ${m(P(ex.old))} อยู่แล้ว จึงรวมเป็น "เดิม ∪ ใหม่")` : ''}` : 'ไม่มีคู่เข้า-ออกเลย → แค่ลบ state ทิ้ง';
     $('se-howto').innerHTML = [
-      `เลือก state <b>${L(step.q)}</b>: มีเส้นเข้า ${step.ins.length} เส้น (จาก ${step.ins.map(L).join(', ') || '—'}) × เส้นออก ${step.outs.length} เส้น (ไป ${step.outs.map(L).join(', ') || '—'}) = ${step.pairs.length} คู่ที่ต้องเขียนใหม่`,
-      `จดฉลาก loop ของ ${L(step.q)}: ${gam}`,
-      `สำหรับทุกคู่ (qᵢ → ${L(step.q)} → qⱼ): ฉลากใหม่ของเส้น qᵢ → qⱼ = <span class="mono">δ ∪ α γ* β</span> (α = ฉลากเข้า, β = ฉลากออก, δ = ฉลากเดิมของ qᵢ → qⱼ ถ้ามี) — ดูตารางด้านล่าง`,
-      `ลบ ${L(step.q)} พร้อมเส้นเข้า/ออกทั้งหมด แล้ววาดเส้น qᵢ → qⱼ ด้วยฉลากใหม่ (ถ้ามีเส้นเดิมอยู่แล้ว ให้แทนที่)`,
-      g.done() ? `เหลือแค่ s และ f → <b>คำตอบ = ฉลากบนเส้น s → f = ${P(g.result())}</b>` : `ยังเหลือ ${g.alive().length - 2} state → ทำซ้ำข้อ 1 กับ state ถัดไป`,
+      `เลือก state <b>${q}</b> ที่จะลบ`,
+      `ดูเส้นที่ติดกับ ${q}: <b>ทางเข้า</b> ${inTxt || '—'} · <b>ทางออก</b> ${outTxt || '—'}`,
+      `ดู <b>loop</b>: ${loopTxt}`,
+      `ทุกเส้นทางที่ "เดินผ่าน ${q}" = เข้า → วน → ออก — เอาสัญลักษณ์ 3 ส่วนนี้มาเขียนต่อกัน แล้ววาดเป็นเส้นตรงจากต้นทางไปปลายทางแทน (ตารางด้านล่างมีทุกคู่)`,
+      exTxt,
+      `ลบ ${q} และเส้นทุกเส้นที่ติดกับมัน — เส้นตรงใหม่ "จำ" เส้นทางที่ผ่าน ${q} ไว้แล้ว ภาษาจึงไม่เปลี่ยน`,
+      g.done() ? `เหลือแค่ s และ f → <b>คำตอบคือฉลากบนเส้น s → f = ${m(P(g.result()))}</b>` : `ยังเหลือ ${g.alive().length - 2} state → เลือก state ถัดไปแล้วทำซ้ำ`,
     ].map(x => `<li>${x}</li>`).join('');
-    let h = `<tr><th>qᵢ → qⱼ</th><th>α (เข้า)</th><th>γ* (loop)</th><th>β (ออก)</th><th>δ เดิม</th><th>δ ∪ αγ*β</th><th>หลัง simplify</th></tr>`;
+    let h = `<tr><th>เส้นทางที่ผ่าน ${q}</th><th>เข้า</th><th>วน</th><th>ออก</th><th>เส้นเดิม</th><th>เส้นตรงใหม่</th></tr>`;
     for (const p of step.pairs) {
-      h += `<tr><td class="st">${L(p.i)} → ${L(p.j)}</td><td>${P(p.alpha)}</td><td>${p.gamma ? '(' + P(p.gamma) + ')*' : 'e'}</td><td>${P(p.beta)}</td><td>${p.old ? P(p.old) : '∅'}</td><td>${P(p.raw)}</td><td class="mk">${P(p.simp)}</td></tr>`;
+      const loop = p.gamma ? `(${P(p.gamma)})*` : '—';
+      h += `<tr><td class="st">${L(p.i)} ─${P(p.alpha)}→ ${q}${p.gamma ? ` ↻${P(p.gamma)}` : ''} ─${P(p.beta)}→ ${L(p.j)}</td><td>${P(p.alpha)}</td><td>${loop}</td><td>${P(p.beta)}</td><td>${p.old ? P(p.old) : 'ไม่มี'}</td><td class="mk">${L(p.i)} ─<b>${P(p.simp)}</b>→ ${L(p.j)}</td></tr>`;
     }
-    if (!step.pairs.length) h += `<tr><td colspan="7" class="dim">ไม่มีคู่เข้า-ออก → แค่ลบ state ทิ้ง</td></tr>`;
+    if (!step.pairs.length) h += `<tr><td colspan="6" class="dim">ไม่มีคู่เข้า-ออก → แค่ลบ state ทิ้ง</td></tr>`;
     $('se-pairs').innerHTML = h;
   };
 SE.eliminate = (id) => {
@@ -2138,11 +2147,12 @@ SE.eliminate = (id) => {
   const step = g.eliminate(id); if (!step) return;
   const A = SE.A;
   const item = document.createElement('div'); item.className = 'item';
-  item.innerHTML = `<b>ลบ ${esc(g.labels[id])}</b>${step.gamma ? ` (loop γ = <span class="mono">${esc(RX.print(step.gamma))}</span>)` : ' (ไม่มี loop)'}<div class="mono note" style="white-space:pre-wrap">${step.pairs.length ? step.pairs.map(p => `${esc(g.labels[p.i])} → ${esc(g.labels[p.j])}:  ${esc(g.formula(p))}`).join('\n') : 'ไม่มีคู่เข้า-ออก → ลบทิ้งเฉย ๆ'}</div>`;
+  const Pp = (x) => x ? esc(RX.print(x)) : '';
+  item.innerHTML = `<b>ลบ ${esc(g.labels[id])}</b>${step.gamma ? ` (มี loop ${esc(RX.print(step.gamma))} → เขียนเป็น (${esc(RX.print(step.gamma))})*)` : ' (ไม่มี loop)'}<div class="mono note" style="white-space:pre-wrap">${step.pairs.length ? step.pairs.map(p => `${esc(g.labels[p.i])} ─${Pp(p.alpha)}→ ${esc(g.labels[id])}${p.gamma ? ' ↻' + Pp(p.gamma) : ''} ─${Pp(p.beta)}→ ${esc(g.labels[p.j])}   ⟹   ${esc(g.labels[p.i])} ─${Pp(p.simp)}→ ${esc(g.labels[p.j])}${p.old ? '   (รวมกับเส้นเดิม ' + Pp(p.old) + ')' : ''}`).join('\n') : 'ไม่มีคู่เข้า-ออก → ลบทิ้งเฉย ๆ'}</div>`;
   $('se-log').appendChild(item);
   SE.render({ transitions: step.pairs.map(p => ({ from: p.i, to: p.j })) });
   SE.howto(step); SE.orderHint();
-  $('se-explain').innerHTML = `<b>ลบ ${esc(g.labels[id])}:</b> ทุกคู่ (qᵢ → ${esc(g.labels[id])} → qⱼ) ได้เส้นใหม่ฉลาก <span class="mono">δ ∪ αγ*β</span> (α = เข้า, γ = loop, β = ออก, δ = เส้น qᵢ→qⱼ เดิม)${g.done() ? `<br><b>เสร็จ!</b> เหลือ s → f เส้นเดียว: <span class="mono">${esc(RX.print(g.result()))}</span>` : ` — เหลืออีก ${g.alive().length - 2} state`}`;
+  $('se-explain').innerHTML = `<b>ลบ ${esc(g.labels[id])}:</b> ทุกทางที่เคย "เดินผ่าน ${esc(g.labels[id])}" (เข้า → วน → ออก) ถูกแทนด้วยเส้นตรงสีน้ำเงินที่เขียนสัญลักษณ์ 3 ส่วนต่อกัน — ดู "วิธีทำทีละขั้น" ด้านขวา${g.done() ? `<br><b>เสร็จ!</b> เหลือ s → f เส้นเดียว: <span class="mono">${esc(RX.print(g.result()))}</span>` : ` — เหลืออีก ${g.alive().length - 2} state`}`;
 };
 $('se-auto').onclick = () => { if (!SE.g) return; for (const q of SE.A.ids()) if (q !== SE.g.S && q !== SE.g.Fn && !SE.g.eliminated.includes(q)) SE.eliminate(q); };
 $('se-reset').onclick = () => { if (SE.A) SE.load(SE.A); };
