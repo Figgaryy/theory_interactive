@@ -133,6 +133,49 @@ RX.toNFA = (ast, alphabet) => {
   const nfa = build(ast);
   return { nfa, stages };
 };
+// ---- AST annotation: pre-order node ids ----
+RX.annotate = (ast) => {
+  let n = 0;
+  const walk = (x) => { x.id = n++; if (x.t === 'cat' || x.t === 'or') { walk(x.l); walk(x.r); } else if (x.t === 'star') walk(x.x); };
+  walk(ast);
+  return n;
+};
+
+// ---- Compositional Thompson construction (Theorem 2.3.1): stable state ids + layout ----
+const bbox = (A) => {
+  const xs = A.states.map(s => s.x), ys = A.states.map(s => s.y);
+  return { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) };
+};
+const shift = (A, dx, dy) => A.states.forEach(s => { s.x += dx; s.y += dy; });
+const normalize = (A) => { const b = bbox(A); shift(A, -b.x0, -(b.y0 + b.y1) / 2); };
+RX.buildNFA = (ast, alphabet) => {
+  const count = RX.annotate(ast);
+  const alpha = alphabet || [...new Set(RX.symbols(ast))];
+  let counter = 0; const fresh = () => 'q' + (counter++);
+  const DX = 110, DY = 110;
+  const stages = [];
+  const build = (node) => {
+    let M, added = [], addedStates = [];
+    switch (node.t) {
+      case 'sym': { M = new FA.Automaton({ alphabet: alpha }); const s = fresh(), f = fresh(); M.states.push({ id: s, label: s, x: 0, y: 0, isStart: true, isFinal: false }); M.states.push({ id: f, label: f, x: DX, y: 0, isStart: false, isFinal: true }); M.addTransition(s, node.c, f); added = [{ from: s, to: f }]; addedStates = [s, f]; break; }
+      case 'eps': { M = new FA.Automaton({ alphabet: alpha }); const s = fresh(); M.states.push({ id: s, label: s, x: 0, y: 0, isStart: true, isFinal: true }); addedStates = [s]; break; }
+      case 'empty': { M = new FA.Automaton({ alphabet: alpha }); const s = fresh(); M.states.push({ id: s, label: s, x: 0, y: 0, isStart: true, isFinal: false }); addedStates = [s]; break; }
+      case 'cat': { const L = build(node.l), R = build(node.r); M = new FA.Automaton({ alphabet: alpha }); const bL = bbox(L), bR = bbox(R); shift(R, bL.x1 + DX - bR.x0, 0); M.states = [...L.states, ...R.states]; M.transitions = [...L.transitions, ...R.transitions]; for (const f of L.finals()) { M.addTransition(f, E, R.start); M.state(f).isFinal = false; added.push({ from: f, to: R.start }); } break; }
+      case 'or': { const L = build(node.l), R = build(node.r); M = new FA.Automaton({ alphabet: alpha }); const s = fresh(); M.states.push({ id: s, label: s, x: 0, y: 0, isStart: true, isFinal: false }); const bL = bbox(L), bR = bbox(R); shift(L, DX - bL.x0, -DY / 2 - (bL.y0 + bL.y1) / 2); shift(R, DX - bR.x0, DY / 2 - (bR.y0 + bR.y1) / 2); M.states = M.states.concat(L.states.map(st => ({ ...st, isStart: false })), R.states.map(st => ({ ...st, isStart: false }))); M.transitions = [...L.transitions, ...R.transitions]; M.addTransition(s, E, L.start); M.addTransition(s, E, R.start); added = [{ from: s, to: L.start }, { from: s, to: R.start }]; addedStates = [s]; break; }
+      case 'star': { const X = build(node.x); M = new FA.Automaton({ alphabet: alpha }); const s = fresh(); M.states.push({ id: s, label: s, x: 0, y: 0, isStart: true, isFinal: true }); const bX = bbox(X); shift(X, DX - bX.x0, 0); M.states = M.states.concat(X.states.map(st => ({ ...st, isStart: false }))); M.transitions = [...X.transitions]; M.addTransition(s, E, X.start); added.push({ from: s, to: X.start }); for (const f of X.finals()) { M.addTransition(f, E, X.start); added.push({ from: f, to: X.start }); } addedStates = [s]; break; }
+    }
+    normalize(M);
+    M.states.forEach(st => { st.x = Math.round(st.x); st.y = Math.round(st.y); });
+    M.alphabet = alpha;
+    M.meta = { added, addedStates };
+    stages.push({ id: node.id, kind: node.t, regex: RX.print(node), children: node.t === 'cat' || node.t === 'or' ? [node.l.id, node.r.id] : node.t === 'star' ? [node.x.id] : [], automaton: M.clone(), added, addedStates, start: M.start, finals: [...M.finals()] });
+    return M;
+  };
+  const root = build(ast);
+  shift(root, 80, 230);
+  root.states.forEach(st => { st.x = Math.round(st.x); st.y = Math.round(st.y); });
+  return { nfa: root, stages, count };
+};
 RX.symbols = (n) => n.t === 'sym' ? [n.c] : n.t === 'cat' || n.t === 'or' ? [...RX.symbols(n.l), ...RX.symbols(n.r)] : n.t === 'star' ? RX.symbols(n.x) : [];
 
 // ---- State elimination (generalized automaton) ----

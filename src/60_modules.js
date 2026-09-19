@@ -140,27 +140,153 @@ $('eq-run').onclick = () => { const A = pick($('eq-a').value), B = pick($('eq-b'
 
 // ---------- M4a RegEx → NFA ----------
 const RXM = App.regex = {};
-RXM.view = new FA.AutomatonView('rx-canvas');
+RXM.view = new FA.AutomatonView('rx-canvas'); RXM.p1 = new FA.AutomatonView('rx-p1'); RXM.p2 = new FA.AutomatonView('rx-p2');
 RXM.step = UI.stepper('rx-step', (i) => RXM.show(i));
-RXM.build = () => {
-  const s = $('rx-in').value;
-  try {
-    const ast = RX.parse(s); RXM.ast = ast; $('rx-ast').innerHTML = `<div class="note" style="font-family:var(--font)">โครงสร้าง (parse tree) — สร้างจากใบขึ้นไปราก</div><pre style="margin:0">${esc(RX.astTree(ast))}</pre>`;
-    const r = RX.toNFA(ast); RXM.res = r;
-    $('rx-stages').innerHTML = r.stages.map((sg, k) => `<div class="item" data-k="${k}"><b class="mono">${esc(sg.regex)}</b><div class="note">${esc(sg.desc)}</div></div>`).join('');
-    RXM.step.setCount(r.stages.length, r.stages.length - 1);
-  } catch (e) { $('rx-ast').innerHTML = `<span class="bad-t">${esc(e.message)}</span>`; }
+const RX_RULES = {
+  sym: 'กฎพื้่นฐาน: ภาษา {c} ต้องมี FA — วาด 2 state เชื่อมด้วยเส้น c',
+  eps: 'กฎพื้่นฐาน: ภาษา {e} — state เดียวที่เป็น final',
+  empty: 'กฎพื้่นฐาน: ภาษา ∅ — state เดียวที่ไม่ final',
+  cat: 'Theorem 2.3.1(b) concatenation: ต่อชิ้นที่ 1 เข้ากับชิ้นที่ 2 ด้วยเส้น e (สีน้ำเงิน) จาก final ของชิ้นที่ 1 ไป start ของชิ้นที่ 2',
+  or: 'Theorem 2.3.1(a) union: start ใหม่ (สีน้ำเงิน) แตกเป็นเส้น e ไปหาทั้งสองชิ้น — เครื่องเดาว่า input อยู่ในภาษาไหน',
+  star: 'Theorem 2.3.1(c) Kleene star: start ใหม่ที่เป็น final ด้วย + เส้น e เข้า และ เส้น e จาก final เดิมย้อนกลับไป start เดิม'
 };
-RXM.show = (i) => { const sg = RXM.res.stages[i]; const m = sg.automaton.meta || {}; RXM.view.setAutomaton(sg.automaton); RXM.view.fit(); RXM.view.highlight({ transitions: m.added || [], states: m.addedStates || [] }); document.querySelectorAll('#rx-stages .item').forEach(d => { const on = +d.dataset.k === i; d.style.background = on ? 'var(--mark-soft)' : ''; if (on && d.scrollIntoView) d.scrollIntoView({ block: 'nearest' }); }); $('rx-explain').innerHTML = `<b>Stage ${i + 1}/${RXM.res.stages.length} · ${esc(sg.regex)}</b><br>${esc(sg.desc)}${(m.added || []).length ? ' — <b style="color:var(--blue-ink)">เส้นสีน้ำเงิน</b> = ที่เพิ่งเพิ่มใน stage นี้' : ''}<span class="f">state: ${sg.automaton.states.length} · transitions: ${sg.automaton.transitions.length} (มี e ${sg.automaton.transitions.filter(t => t.symbol === FA.E).length})</span>`; };
+RXM.build = () => {
+  try {
+    const ast = RX.parse($('rx-in').value);
+    RXM.ast = ast; RXM.res = RX.buildNFA(ast);
+    RXM.byId = {}; RXM.indexOf = {};
+    RXM.res.stages.forEach((s, k) => { RXM.byId[s.id] = s; RXM.indexOf[s.id] = k; });
+    RXM.drawTree();
+    RXM.step.setCount(RXM.res.stages.length, 0);
+  } catch (e) { $('rx-explain').innerHTML = `<span class="bad-t">${esc(e.message)}</span>`; }
+};
+RXM.drawTree = () => {
+  const box = $('rx-tree'); box.innerHTML = '';
+  const NS = 'http://www.w3.org/2000/svg';
+  let slot = 0, maxDepth = 0; const pos = {};
+  const place = (node, depth) => {
+    maxDepth = Math.max(maxDepth, depth);
+    let x;
+    if (node.t === 'cat' || node.t === 'or') x = (place(node.l, depth + 1) + place(node.r, depth + 1)) / 2;
+    else if (node.t === 'star') x = place(node.x, depth + 1);
+    else { x = 50 + slot * 90; slot++; }
+    pos[node.id] = { x, y: 40 + depth * 70 };
+    return x;
+  };
+  place(RXM.ast, 0);
+  const W = 100 + slot * 90, H = 80 + maxDepth * 70;
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('width', '100%'); svg.setAttribute('height', '100%');
+  RXM.treeNodes = {}; RXM.treeLines = {};
+  const kidsOf = (n) => (n.t === 'cat' || n.t === 'or') ? [n.l, n.r] : n.t === 'star' ? [n.x] : [];
+  const addLines = (node) => {
+    kidsOf(node).forEach(addLines);
+    const p = pos[node.id];
+    for (const c of kidsOf(node)) {
+      const cp = pos[c.id];
+      const ln = document.createElementNS(NS, 'line');
+      ln.setAttribute('class', 'tl'); ln.setAttribute('data-child', String(c.id));
+      ln.setAttribute('x1', p.x); ln.setAttribute('y1', p.y); ln.setAttribute('x2', cp.x); ln.setAttribute('y2', cp.y);
+      svg.appendChild(ln); RXM.treeLines[c.id] = ln;
+    }
+  };
+  addLines(RXM.ast);
+  const TLBL = { sym: (n) => n.c, eps: () => 'e', empty: () => '∅', cat: () => '·', or: () => '∪', star: () => '*' };
+  const addNodes = (node) => {
+    kidsOf(node).forEach(addNodes);
+    const p = pos[node.id];
+    const g = document.createElementNS(NS, 'g');
+    g.setAttribute('class', 'tn'); g.setAttribute('data-id', String(node.id)); g.setAttribute('transform', `translate(${p.x},${p.y})`);
+    const rect = document.createElementNS(NS, 'rect');
+    rect.setAttribute('x', '-30'); rect.setAttribute('y', '-16'); rect.setAttribute('width', '60'); rect.setAttribute('height', '32');
+    g.appendChild(rect);
+    const text = document.createElementNS(NS, 'text'); text.textContent = TLBL[node.t](node); g.appendChild(text);
+    const title = document.createElementNS(NS, 'title'); title.textContent = RX.print(node); g.appendChild(title);
+    g.addEventListener('click', () => RXM.step.go(RXM.indexOf[node.id]));
+    svg.appendChild(g); RXM.treeNodes[node.id] = g;
+  };
+  addNodes(RXM.ast);
+  box.appendChild(svg);
+};
+RXM.paintTree = (i) => {
+  RXM.res.stages.forEach((s, k) => {
+    const g = RXM.treeNodes[s.id];
+    if (g) g.setAttribute('class', k < i ? 'tn done' : k === i ? 'tn cur' : 'tn pending');
+    const ln = RXM.treeLines[s.id];
+    if (ln) ln.setAttribute('class', k < i ? 'tl done' : 'tl');
+  });
+};
+RXM.howto = (st, kids) => {
+  const k1 = kids[0], k2 = kids[1];
+  const F1 = k1 ? FA.setLabel(k1.finals) : null, s1 = k1 ? k1.start : null;
+  const s2 = k2 ? k2.start : null, F2 = k2 ? FA.setLabel(k2.finals) : null;
+  const sNew = st.addedStates[0], e = esc;
+  switch (st.kind) {
+    case 'sym': { const s = st.addedStates[0], f = st.addedStates[1], c = st.regex; return [
+      `วาด state ใหม่ 2 ตัว: <b>${e(s)}</b> (start, มี ▷) และ <b>${e(f)}</b> (final, วงคู่)`,
+      `ลากเส้นจาก ${e(s)} → ${e(f)} แล้วเขียนสัญลักษณ์ <b>${e(c)}</b> กำกับ`,
+      `ตรวจ: เครื่องนี้รับ string "${e(c)}" ตัวเดียวเท่านั้น` ]; }
+    case 'eps': return [
+      `วาด state เดียว <b>${e(sNew)}</b> ให้เป็นทั้ง start และ final`,
+      `ไม่มีเส้นใด ๆ → รับเฉพาะ string ว่าง e` ];
+    case 'empty': return [
+      `วาด state เดียว <b>${e(sNew)}</b> เป็น start แต่ไม่ final`,
+      `ไม่มีเส้น ไม่มี final → ไม่รับ string ใดเลย (∅)` ];
+    case 'cat': return [
+      `วางชิ้นที่ 1 [${e(k1.regex)}] ไว้ซ้าย ชิ้นที่ 2 [${e(k2.regex)}] ไว้ขวา — <b>ไม่ต้องเปลี่ยนชื่อ state</b>`,
+      `จาก final ทุกตัวของชิ้นที่ 1 (${e(F1)}) ลากเส้น <b>e</b> → start ของชิ้นที่ 2 (<b>${e(s2)}</b>) — เส้นสีน้ำเงินในรูปผลลัพธ์`,
+      `ยกเลิกวงคู่ของ ${e(F1)}: final ของเครื่องใหม่คือของชิ้นที่ 2 เท่านั้น (${e(F2)})`,
+      `start ยังเป็น <b>${e(s1)}</b> เหมือนชิ้นที่ 1`,
+      `ตรวจ: string ต้องเดินชิ้นที่ 1 จนถึง final แล้ว "กระโดด" ด้วย e ไปเริ่มชิ้นที่ 2 → รับ L₁·L₂ พอดี` ];
+    case 'or': return [
+      `วาด start ใหม่ <b>${e(sNew)}</b> ไว้ซ้ายสุด`,
+      `วางชิ้นที่ 1 [${e(k1.regex)}] ไว้บน ชิ้นที่ 2 [${e(k2.regex)}] ไว้ล่าง`,
+      `ลากเส้น <b>e</b> จาก ${e(sNew)} → ${e(s1)} และ ${e(sNew)} → ${e(s2)} (สีน้ำเงิน); ${e(s1)} กับ ${e(s2)} เลิกเป็น start`,
+      `final = final ของทั้งสองชิ้นรวมกัน = ${e(FA.setLabel(st.finals))}`,
+      `ตรวจ: เครื่อง "เดา" ตั้งแต่ก้าวแรกว่า input อยู่ใน L₁ หรือ L₂ — นี่คือ nondeterminism` ];
+    case 'star': return [
+      `วาด start ใหม่ <b>${e(sNew)}</b> และทำเป็น final ด้วย (วงคู่) — เพื่อรับ string ว่าง e`,
+      `ลากเส้น <b>e</b> จาก ${e(sNew)} → start เดิม ${e(s1)} (${e(s1)} เลิกเป็น start)`,
+      `จาก final เดิมทุกตัว (${e(F1)}) ลากเส้น <b>e</b> กลับไป ${e(s1)} — วนซ้ำได้กี่รอบก็ได้`,
+      `final = ${e(F1)} ∪ {${e(sNew)}} = ${e(FA.setLabel(st.finals))}`,
+      `ทำไมต้องมี ${e(sNew)} ใหม่ ไม่ทำ ${e(s1)} เป็น final เฉย ๆ? เพราะเส้น e ย้อนกลับเข้า ${e(s1)} จะทำให้ string ที่จบกลางทางถูก accept ผิด (Problem 2.3.2)` ];
+  }
+};
+RXM.show = (i) => {
+  const S = RXM.res.stages, st = S[i];
+  const kids = st.children.map(id => RXM.byId[id]);
+  if (kids[0]) { RXM.p1.setAutomaton(kids[0].automaton.clone()); RXM.p1.fit(); $('rx-p1-title').textContent = `ชิ้นที่ 1: ${kids[0].regex}`; }
+  else { RXM.p1.setAutomaton(new FA.Automaton({ alphabet: [] })); RXM.p1.fit(); $('rx-p1-title').textContent = 'ชิ้นที่ 1: —'; }
+  if (kids[1]) { RXM.p2.setAutomaton(kids[1].automaton.clone()); RXM.p2.fit(); $('rx-p2-title').textContent = `ชิ้นที่ 2: ${kids[1].regex}`; }
+  else { RXM.p2.setAutomaton(new FA.Automaton({ alphabet: [] })); RXM.p2.fit(); $('rx-p2-title').textContent = 'ชิ้นที่ 2: —'; }
+  RXM.view.setAutomaton(st.automaton); RXM.view.fit();
+  RXM.view.highlight({ transitions: st.added, states: st.addedStates });
+  RXM.paintTree(i);
+  $('rx-explain').innerHTML = `<b>Stage ${i + 1}/${S.length} · สร้าง ${esc(st.regex)}</b><br>${RX_RULES[st.kind]}<span class="f">state: ${st.automaton.states.length} · เส้น: ${st.automaton.transitions.length} · start = ${st.start} · F = ${FA.setLabel(st.finals)}</span>`;
+  $('rx-howto').innerHTML = RXM.howto(st, kids).map(li => `<li>${li}</li>`).join('');
+  $('rx-try-out').innerHTML = '';
+};
+RXM.runTry = () => {
+  if (!RXM.res) return;
+  const st = RXM.res.stages[RXM.step.i];
+  const ws = $('rx-try').value.split(',').map(x => x.trim()).filter(Boolean).map(x => (x === 'e' || x === 'ε' || x === 'ϵ') ? '' : x);
+  let h = `<tr><th>ω</th><th>ผล</th><th>S สุดท้าย</th></tr>`;
+  for (const w of ws) {
+    const r = FA.runNFA(st.automaton, w);
+    h += `<tr><td>${w === '' ? 'e' : esc(w)}</td><td class="${r.accepted ? 'ok' : 'bad'}">${r.accepted ? 'accept' : 'reject'}</td><td>${esc(FA.setLabel(r.sets[r.sets.length - 1].set))}</td></tr>`;
+  }
+  $('rx-try-out').innerHTML = h;
+};
 $('rx-build').onclick = RXM.build; $('rx-in').addEventListener('keydown', e => { if (e.key === 'Enter') RXM.build(); });
 $('rx-to-editor').onclick = () => { if (RXM.res) App.goto('editor', RXM.res.nfa.clone()); };
 $('rx-to-ps').onclick = () => { if (RXM.res) App.goto('powerset', RXM.res.nfa.clone()); };
+$('rx-try-run').onclick = RXM.runTry; $('rx-try').addEventListener('keydown', e => { if (e.key === 'Enter') RXM.runTry(); });
 document.querySelector('#m-regex .tabs2').addEventListener('click', (ev) => { const b = ev.target.closest('button[data-sub]'); if (!b) return; document.querySelectorAll('#m-regex .tabs2 button').forEach(x => x.classList.toggle('on', x === b)); $('sub-rx').classList.toggle('on', b.dataset.sub === 'rx'); $('sub-se').classList.toggle('on', b.dataset.sub === 'se'); if (b.dataset.sub === 'se') SE.view.fit(); else RXM.view.fit(); });
 
 // ---------- M4b State elimination ----------
 const SE = App.se = {};
 SE.view = new FA.AutomatonView('se-canvas', { onStateClick: (id) => SE.eliminate(id) });
-SE.load = (A) => { SE.A = A; SE.g = new RX.GA(A); SE.render(); $('se-log').innerHTML = ''; $('se-result').textContent = '—'; $('se-check-out').textContent = ''; $('se-explain').innerHTML = `<b>Special form:</b> เพิ่ม s ใหม่ (e → ${esc(A.labelOf(A.start))}) และ f ใหม่ (e จากทุก final) — ตอนนี้ทุกเส้นเป็น regex ได้; <b>คลิก state</b> (ยกเว้น s, f) เพื่อลบ`; $('rk-table').innerHTML = ''; };
+SE.load = (A) => { SE.A = A; SE.g = new RX.GA(A); SE.render(); $('se-howto').innerHTML = ''; $('se-pairs').innerHTML = ''; SE.orderHint(); $('se-log').innerHTML = ''; $('se-result').textContent = '—'; $('se-check-out').textContent = ''; $('se-explain').innerHTML = `<b>Special form:</b> เพิ่ม s ใหม่ (e → ${esc(A.labelOf(A.start))}) และ f ใหม่ (e จากทุก final) — ตอนนี้ทุกเส้นเป็น regex ได้; <b>คลิก state</b> (ยกเว้น s, f) เพื่อลบ`; $('rk-table').innerHTML = ''; };
 SE.display = () => {
   const g = SE.g; const D = new FA.Automaton({ alphabet: [] });
   for (const id of g.alive()) D.states.push({ id, label: g.labels[id], x: g.pos[id].x, y: g.pos[id].y, isStart: id === g.S, isFinal: id === g.Fn });
@@ -168,6 +294,32 @@ SE.display = () => {
   return D;
 };
 SE.render = (hl) => { SE.view.setAutomaton(SE.display()); SE.view.fit(); SE.view.highlight(hl || {}); if (SE.g.done()) $('se-result').textContent = RX.print(SE.g.result()); };
+SE.orderHint = () => {
+    // suggest an elimination order: fewest (in × out) pairs first
+    const g = SE.g; if (!g) { $('se-order').innerHTML = ''; return; }
+    const cand = g.alive().filter(q => q !== g.S && q !== g.Fn).map(q => {
+      const ins = g.alive().filter(i => i !== q && g.edge(i, q)).length, outs = g.alive().filter(j => j !== q && g.edge(q, j)).length;
+      return { q, ins, outs, pairs: ins * outs };
+    }).sort((a, b) => a.pairs - b.pairs);
+    $('se-order').innerHTML = cand.length ? 'ลำดับแนะนำ (คู่เข้า×ออกนอยวก่อน → regex สั้่นกว่่า): ' + cand.map(c => `<b>${esc(g.labels[c.q])}</b> (${c.ins}×${c.outs}=${c.pairs})`).join(' → ') : 'ลบครบแล่ว — อ่านคำตอบจากเส้น s → f';
+  };
+  SE.howto = (step) => {
+    const g = SE.g; const L = (id) => esc(g.labels[id]); const P = (x) => x ? esc(RX.print(x)) : '—';
+    const gam = step.gamma ? `γ = ${P(step.gamma)} → γ* = (${P(step.gamma)})*` : 'ไม่มี loop → γ* = e (ตัดทิ้งได้)';
+    $('se-howto').innerHTML = [
+      `เลือก state <b>${L(step.q)}</b>: มีเส้นเข้า ${step.ins.length} เส้น (จาก ${step.ins.map(L).join(', ') || '—'}) × เส้นออก ${step.outs.length} เส้น (ไป ${step.outs.map(L).join(', ') || '—'}) = ${step.pairs.length} คู่ท่ีต้องเขียนใหม่`,
+      `จดฉลาก loop ของ ${L(step.q)}: ${gam}`,
+      `สำหรับทุกคู่ (qᵢ → ${L(step.q)} → qⱼ): ฉลากใหม่ของเส้น qᵢ → qⱼ = <span class="mono">δ ∪ α γ* β</span> (α = ฉลากเข้า, β = ฉลากออก, δ = ฉลากเดิมของ qᵢ → qⱼ ถ้ามี) — ดูตารางด้านล่าง`,
+      `ลบ ${L(step.q)} พร้อมเส้นเข้า/ออกทั้่งหมด แล่ววาดเส้น qᵢ → qⱼ ด้วยฉลากใหม่ (ถ้ามีเส้นเดิมอยู่แล่ว ให้แทนท่ี)`,
+      g.done() ? `เหลือแค่ s และ f → <b>คำตอบ = ฉลากบนเส้น s → f = ${P(g.result())}</b>` : `ยังเหลือ ${g.alive().length - 2} state → ทำซ้ำข้อ 1 กับ state ถัดไป`,
+    ].map(x => `<li>${x}</li>`).join('');
+    let h = `<tr><th>qᵢ → qⱼ</th><th>α (เข้า)</th><th>γ* (loop)</th><th>β (ออก)</th><th>δ เดิม</th><th>δ ∪ αγ*β</th><th>หลัง simplify</th></tr>`;
+    for (const p of step.pairs) {
+      h += `<tr><td class="st">${L(p.i)} → ${L(p.j)}</td><td>${P(p.alpha)}</td><td>${p.gamma ? '(' + P(p.gamma) + ')*' : 'e'}</td><td>${P(p.beta)}</td><td>${p.old ? P(p.old) : '∅'}</td><td>${P(p.raw)}</td><td class="mk">${P(p.simp)}</td></tr>`;
+    }
+    if (!step.pairs.length) h += `<tr><td colspan="7" class="dim">ไม่มีคู่เข้า-ออก → แค่ลบ state ทิ้ง</td></tr>`;
+    $('se-pairs').innerHTML = h;
+  };
 SE.eliminate = (id) => {
   const g = SE.g; if (!g || id === g.S || id === g.Fn) { UI.toast('ลบ s และ f ไม่ได้ — ต้องเหลือสองตัวนี้'); return; }
   const step = g.eliminate(id); if (!step) return;
@@ -176,6 +328,7 @@ SE.eliminate = (id) => {
   item.innerHTML = `<b>ลบ ${esc(g.labels[id])}</b>${step.gamma ? ` (loop γ = <span class="mono">${esc(RX.print(step.gamma))}</span>)` : ' (ไม่มี loop)'}<div class="mono note" style="white-space:pre-wrap">${step.pairs.length ? step.pairs.map(p => `${esc(g.labels[p.i])} → ${esc(g.labels[p.j])}:  ${esc(g.formula(p))}`).join('\n') : 'ไม่มีคู่เข้า-ออก → ลบทิ้งเฉย ๆ'}</div>`;
   $('se-log').appendChild(item);
   SE.render({ transitions: step.pairs.map(p => ({ from: p.i, to: p.j })) });
+  SE.howto(step); SE.orderHint();
   $('se-explain').innerHTML = `<b>ลบ ${esc(g.labels[id])}:</b> ทุกคู่ (qᵢ → ${esc(g.labels[id])} → qⱼ) ได้เส้นใหม่ฉลาก <span class="mono">δ ∪ αγ*β</span> (α = เข้า, γ = loop, β = ออก, δ = เส้น qᵢ→qⱼ เดิม)${g.done() ? `<br><b>เสร็จ!</b> เหลือ s → f เส้นเดียว: <span class="mono">${esc(RX.print(g.result()))}</span>` : ` — เหลืออีก ${g.alive().length - 2} state`}`;
 };
 $('se-auto').onclick = () => { if (!SE.g) return; for (const q of SE.A.ids()) if (q !== SE.g.S && q !== SE.g.Fn && !SE.g.eliminated.includes(q)) SE.eliminate(q); };

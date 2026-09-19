@@ -81,6 +81,19 @@ FA.runTests = () => {
     const n3 = RX.toNFA(RX.parse('(a ∪ b*a)*')).nfa; t('regex (a∪b*a)* ≡ slide4 DFA', FA.dfaEquivalent(n3, P('slide4')).equivalent);
     const n4 = RX.toNFA(RX.parse('(ab ∪ aba)*')).nfa; t('regex (ab∪aba)* ≡ Fig 2-4 ≡ Fig 2-5 ≡ Fig 2-6', FA.dfaEquivalent(n4, P('fig24')).equivalent && FA.dfaEquivalent(P('fig25'), P('fig26')).equivalent && FA.dfaEquivalent(n4, P('fig25')).equivalent);
     const n5 = RX.toNFA(RX.parse('(a ∪ b)*(bb ∪ bab)(a ∪ b)*')).nfa; t('fig27 ≡ regex (a∪b)*(bb∪bab)(a∪b)*', FA.dfaEquivalent(n5, P('fig27')).equivalent); }
+  // --- compositional buildNFA (stable ids + layout)
+  { const RX = FA.RX;
+    for (const r of ['(ab ∪ aab)*', 'a*ba*b', '(a ∪ b*a)*', '(ab ∪ aba)*', 'e', '∅', 'a ∪ e', '(a ∪ b)*abb']) {
+      const ast = RX.parse(r); const b = RX.buildNFA(ast); const ref = RX.toNFA(RX.parse(r)).nfa;
+      t(`buildNFA ${r}: language equals reference construction`, FA.dfaEquivalent(b.nfa, ref).equivalent);
+      t(`buildNFA ${r}: one stage per AST node`, b.stages.length === b.count, `${b.stages.length} vs ${b.count}`);
+      let minD = Infinity; const st = b.nfa.states; for (let i = 0; i < st.length; i++) for (let j = i + 1; j < st.length; j++) minD = Math.min(minD, Math.hypot(st[i].x - st[j].x, st[i].y - st[j].y));
+      t(`buildNFA ${r}: no overlapping states (min distance ≥ 60)`, st.length < 2 || minD >= 60, String(minD));
+    }
+    const b = RX.buildNFA(RX.parse('(ab ∪ aab)*')); const finalIds = new Set(b.nfa.ids());
+    t('buildNFA: state ids are stable across stages', b.stages.every(s => s.automaton.ids().every(id => finalIds.has(id))));
+    t('buildNFA: root stage is last and has kind star', b.stages[b.stages.length - 1].kind === 'star' && b.stages[b.stages.length - 1].id === 0);
+    t('buildNFA: star stage lists its child', b.stages[b.stages.length - 1].children.length === 1); }
   // --- State elimination Fig 2-15 (Example 2.3.2)
   { const RX = FA.RX; const A = P('fig215'); const g = new RX.GA(A);
     g.eliminate('q1'); g.eliminate('q2'); g.eliminate('q3');
