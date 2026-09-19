@@ -338,7 +338,7 @@ FA.closureStages = (op, A1, A2) => {
     const alphabet = [...new Set([...A1.alphabet, ...A2.alphabet])];
     const c1 = FA.complete(new FA.Automaton({ ...A1.toJSON(), alphabet })), c2 = FA.complete(new FA.Automaton({ ...A2.toJSON(), alphabet }));
     const D1 = c1.dfa, D2 = c2.dfa; const full = FA.product(D1, D2, mode).M;
-    push('complete', full.clone(), {}, { trap1: c1.added, trap2: c2.added, D1, D2 });
+    push('complete', new FA.Automaton({ alphabet }), {}, { trap1: c1.added, trap2: c2.added, trapId1: c1.trapId, trapId2: c2.trapId, D1, D2 });
     const id = (p, q) => p + '|' + q; const seen = new Set([id(D1.start, D2.start)]); const queue = [[D1.start, D2.start]]; const revealedE = new Set();
     const partial = () => { const B = new FA.Automaton({ alphabet }); B.states = full.states.filter(s => seen.has(s.id)).map(s => ({ ...s, isFinal: false })); B.transitions = full.transitions.filter(t => revealedE.has(t.from + '|' + t.symbol)); return B; };
     push('start', partial(), { states: [id(D1.start, D2.start)] }, { p: D1.start, q: D2.start, D1, D2 });

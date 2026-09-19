@@ -419,7 +419,7 @@ CL.text = (st) => {
       swap: () => ['สลับ final ↔ ไม่ final', [`เดิม final = ${F(I.wasFinal)} → ตอนนี้ final = ${F(I.nowFinal)}`, 'ความหมาย: DFA พา string ทุกตัวไปจบที่ state เดียวแน่นอน — state ที่เคย accept ตอนนี้ reject และกลับกัน ⇒ L(¬M) = Σ* − L(M)']],
     }[st.key]?.();
     case 'product': return {
-      complete: () => ['ทำ M₁ และ M₂ ให้ complete', [I.trap1 ? 'M₁ ขาดบางทาง → เพิ่ม trap ให้ M₁' : 'M₁ complete อยู่แล้ว', I.trap2 ? 'M₂ ขาดบางทาง → เพิ่ม trap ให้ M₂' : 'M₂ complete อยู่แล้ว', 'เหตุผล: state คู่ (p,q) ต้องรู้แน่ว่าอ่านแล้วแต่ละเครื่องไปไหน']],
+      complete: () => ['ทำ M₁ และ M₂ ให้ complete (ช่อง M ยังว่าง — ยังไม่ได้สร้างอะไร)', [I.trap1 ? 'M₁ ขาดบางทาง → เพิ่ม trap ให้ M₁' : 'M₁ complete อยู่แล้ว', I.trap2 ? 'M₂ ขาดบางทาง → เพิ่ม trap ให้ M₂' : 'M₂ complete อยู่แล้ว', 'เหตุผล: state คู่ (p,q) ต้องรู้แน่ว่าอ่านแล้วแต่ละเครื่องไปไหน']],
       start: () => [`state แรก = (start ของ M₁, start ของ M₂) = (${L(I.D1, I.p)},${L(I.D2, I.q)})`, ['state ของ M คือ "คู่" — คิดว่าเรากำลังรัน M₁ กับ M₂ ไปพร้อมกัน แล้วจดว่าแต่ละตัวอยู่ที่ไหน', 'เริ่มจากคู่ start ทั้งสอง แล้วค่อย ๆ หาคู่ที่ไปถึงได้ (worklist เหมือน powerset)']],
       pair: () => [`จาก (${L(I.D1, I.p)},${L(I.D2, I.q)}) อ่าน "${esc(I.a)}"`, [`M₁: ${L(I.D1, I.p)} ─${esc(I.a)}→ ${L(I.D1, I.p2)}`, `M₂: ${L(I.D2, I.q)} ─${esc(I.a)}→ ${L(I.D2, I.q2)}`, `ดังนั้น <b>(${L(I.D1, I.p)},${L(I.D2, I.q)}) ─${esc(I.a)}→ (${L(I.D1, I.p2)},${L(I.D2, I.q2)})</b>${I.isNew ? ' — คู่ใหม่ เพิ่มเข้าไปในเครื่อง' : ' — คู่นี้มีอยู่แล้ว แค่ลากเส้น'}`]],
       finals: () => ['final = คู่ที่ทั้งสองตัวเป็น final', [`F = ${esc(I.F.join(', ')) || '∅'}`, 'ทำไม? string ∈ L₁ ∩ L₂ ⇔ M₁ จบที่ final <b>และ</b> M₂ จบที่ final พร้อมกัน — ดูได้จาก "เดิน string" ด้านล่าง', 'ถ้าอยากได้ union แทน: ใช้คู่ที่ "อย่างน้อยหนึ่ง" เป็น final (ต้อง complete ทั้งคู่เหมือนกัน)']],
@@ -436,6 +436,7 @@ CL.text = (st) => {
 CL.show = (i) => {
   const r = CL.res; if (!r || r.error) return; const st = r.stages[i];
   CL.vo.setAutomaton(st.automaton); CL.vo.fit(); CL.vo.highlight(st.hl);
+  if (st.info.D1) { CL.va.setAutomaton(st.info.D1); CL.va.fit(); CL.vb.setAutomaton(st.info.D2); CL.vb.fit(); if (st.key === 'complete') { CL.va.highlight({ states: st.info.trapId1 ? [st.info.trapId1] : [] }); CL.vb.highlight({ states: st.info.trapId2 ? [st.info.trapId2] : [] }); } else if (st.key === 'pair') { CL.va.highlight({ states: [st.info.p], accept: [st.info.p2], transitions: [{ from: st.info.p, to: st.info.p2 }] }); CL.vb.highlight({ states: [st.info.q], accept: [st.info.q2], transitions: [{ from: st.info.q, to: st.info.q2 }] }); } else { CL.va.highlight({}); CL.vb.highlight({}); } }
   $('cl-out-set').textContent = setTxt(st.automaton);
   const [title, howto] = CL.text(st) || ['', []];
   $('cl-explain').innerHTML = `<b>Step ${i + 1}/${r.stages.length} · ${title}</b>${i === r.stages.length - 1 ? '<br><span class="ok-t">เสร็จ — ลองป้อน string ด้านล่างเพื่อเดินทั้ง 3 เครื่องพร้อมกัน</span>' : ''}`;

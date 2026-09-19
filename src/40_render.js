@@ -88,14 +88,14 @@ class AutomatonView {
     const A = this.A; this.gE.innerHTML = ''; this.gS.innerHTML = '';
     if (!A) return;
     const H = this.hl; const hs = new Set(H.states || []), acc = new Set(H.accept || []), rej = new Set(H.reject || []), dim = new Set(H.dim || []);
-    const hlE = new Set((H.transitions || []).map(t => typeof t === 'string' ? t : t.from + '|' + t.to));
-    const dimE = new Set((H.dimTransitions || []).map(t => typeof t === 'string' ? t : t.from + '|' + t.to));
+    const SEP = '␟'; const hlE = new Set((H.transitions || []).map(t => typeof t === 'string' ? t : t.from + SEP + t.to));
+    const dimE = new Set((H.dimTransitions || []).map(t => typeof t === 'string' ? t : t.from + SEP + t.to));
     const pairs = {};
-    for (const t of A.transitions) (pairs[t.from + '|' + t.to] ||= []).push(t.symbol);
+    for (const t of A.transitions) (pairs[t.from + SEP + t.to] ||= []).push(t.symbol);
     const labelFn = this.opts.edgeLabel || ((from, to) => A.edgeLabel(from, to));
     for (const key in pairs) {
-      const [f, to] = key.split('|'); const u = A.state(f), v = A.state(to); if (!u || !v) continue;
-      const bidir = f !== to && !!pairs[to + '|' + f];
+      const [f, to] = key.split(SEP); const u = A.state(f), v = A.state(to); if (!u || !v) continue;
+      const bidir = f !== to && !!pairs[to + SEP + f];
       const { d, lx, ly } = this.edgePath(u, v, bidir);
       const isHl = hlE.has(key);
       const g = el('g', { class: 'ed' + (isHl ? ' hl' : '') + (dimE.has(key) || dim.has(f) || dim.has(to) ? ' dim' : '') + (pairs[key].every(s => s === FA.E) ? ' eps' : ''), 'data-from': f, 'data-to': to }, this.gE);

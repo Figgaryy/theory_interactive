@@ -1049,7 +1049,7 @@ FA.closureStages = (op, A1, A2) => {
     const alphabet = [...new Set([...A1.alphabet, ...A2.alphabet])];
     const c1 = FA.complete(new FA.Automaton({ ...A1.toJSON(), alphabet })), c2 = FA.complete(new FA.Automaton({ ...A2.toJSON(), alphabet }));
     const D1 = c1.dfa, D2 = c2.dfa; const full = FA.product(D1, D2, mode).M;
-    push('complete', full.clone(), {}, { trap1: c1.added, trap2: c2.added, D1, D2 });
+    push('complete', new FA.Automaton({ alphabet }), {}, { trap1: c1.added, trap2: c2.added, trapId1: c1.trapId, trapId2: c2.trapId, D1, D2 });
     const id = (p, q) => p + '|' + q; const seen = new Set([id(D1.start, D2.start)]); const queue = [[D1.start, D2.start]]; const revealedE = new Set();
     const partial = () => { const B = new FA.Automaton({ alphabet }); B.states = full.states.filter(s => seen.has(s.id)).map(s => ({ ...s, isFinal: false })); B.transitions = full.transitions.filter(t => revealedE.has(t.from + '|' + t.symbol)); return B; };
     push('start', partial(), { states: [id(D1.start, D2.start)] }, { p: D1.start, q: D2.start, D1, D2 });
@@ -1669,14 +1669,14 @@ class AutomatonView {
     const A = this.A; this.gE.innerHTML = ''; this.gS.innerHTML = '';
     if (!A) return;
     const H = this.hl; const hs = new Set(H.states || []), acc = new Set(H.accept || []), rej = new Set(H.reject || []), dim = new Set(H.dim || []);
-    const hlE = new Set((H.transitions || []).map(t => typeof t === 'string' ? t : t.from + '|' + t.to));
-    const dimE = new Set((H.dimTransitions || []).map(t => typeof t === 'string' ? t : t.from + '|' + t.to));
+    const SEP = '␟'; const hlE = new Set((H.transitions || []).map(t => typeof t === 'string' ? t : t.from + SEP + t.to));
+    const dimE = new Set((H.dimTransitions || []).map(t => typeof t === 'string' ? t : t.from + SEP + t.to));
     const pairs = {};
-    for (const t of A.transitions) (pairs[t.from + '|' + t.to] ||= []).push(t.symbol);
+    for (const t of A.transitions) (pairs[t.from + SEP + t.to] ||= []).push(t.symbol);
     const labelFn = this.opts.edgeLabel || ((from, to) => A.edgeLabel(from, to));
     for (const key in pairs) {
-      const [f, to] = key.split('|'); const u = A.state(f), v = A.state(to); if (!u || !v) continue;
-      const bidir = f !== to && !!pairs[to + '|' + f];
+      const [f, to] = key.split(SEP); const u = A.state(f), v = A.state(to); if (!u || !v) continue;
+      const bidir = f !== to && !!pairs[to + SEP + f];
       const { d, lx, ly } = this.edgePath(u, v, bidir);
       const isHl = hlE.has(key);
       const g = el('g', { class: 'ed' + (isHl ? ' hl' : '') + (dimE.has(key) || dim.has(f) || dim.has(to) ? ' dim' : '') + (pairs[key].every(s => s === FA.E) ? ' eps' : ''), 'data-from': f, 'data-to': to }, this.gE);
@@ -2364,7 +2364,7 @@ CL.text = (st) => {
       swap: () => ['สลับ final ↔ ไม่ final', [`เดิม final = ${F(I.wasFinal)} → ตอนนี้ final = ${F(I.nowFinal)}`, 'ความหมาย: DFA พา string ทุกตัวไปจบที่ state เดียวแน่นอน — state ที่เคย accept ตอนนี้ reject และกลับกัน ⇒ L(¬M) = Σ* − L(M)']],
     }[st.key]?.();
     case 'product': return {
-      complete: () => ['ทำ M₁ และ M₂ ให้ complete', [I.trap1 ? 'M₁ ขาดบางทาง → เพิ่ม trap ให้ M₁' : 'M₁ complete อยู่แล้ว', I.trap2 ? 'M₂ ขาดบางทาง → เพิ่ม trap ให้ M₂' : 'M₂ complete อยู่แล้ว', 'เหตุผล: state คู่ (p,q) ต้องรู้แน่ว่าอ่านแล้วแต่ละเครื่องไปไหน']],
+      complete: () => ['ทำ M₁ และ M₂ ให้ complete (ช่อง M ยังว่าง — ยังไม่ได้สร้างอะไร)', [I.trap1 ? 'M₁ ขาดบางทาง → เพิ่ม trap ให้ M₁' : 'M₁ complete อยู่แล้ว', I.trap2 ? 'M₂ ขาดบางทาง → เพิ่ม trap ให้ M₂' : 'M₂ complete อยู่แล้ว', 'เหตุผล: state คู่ (p,q) ต้องรู้แน่ว่าอ่านแล้วแต่ละเครื่องไปไหน']],
       start: () => [`state แรก = (start ของ M₁, start ของ M₂) = (${L(I.D1, I.p)},${L(I.D2, I.q)})`, ['state ของ M คือ "คู่" — คิดว่าเรากำลังรัน M₁ กับ M₂ ไปพร้อมกัน แล้วจดว่าแต่ละตัวอยู่ที่ไหน', 'เริ่มจากคู่ start ทั้งสอง แล้วค่อย ๆ หาคู่ที่ไปถึงได้ (worklist เหมือน powerset)']],
       pair: () => [`จาก (${L(I.D1, I.p)},${L(I.D2, I.q)}) อ่าน "${esc(I.a)}"`, [`M₁: ${L(I.D1, I.p)} ─${esc(I.a)}→ ${L(I.D1, I.p2)}`, `M₂: ${L(I.D2, I.q)} ─${esc(I.a)}→ ${L(I.D2, I.q2)}`, `ดังนั้น <b>(${L(I.D1, I.p)},${L(I.D2, I.q)}) ─${esc(I.a)}→ (${L(I.D1, I.p2)},${L(I.D2, I.q2)})</b>${I.isNew ? ' — คู่ใหม่ เพิ่มเข้าไปในเครื่อง' : ' — คู่นี้มีอยู่แล้ว แค่ลากเส้น'}`]],
       finals: () => ['final = คู่ที่ทั้งสองตัวเป็น final', [`F = ${esc(I.F.join(', ')) || '∅'}`, 'ทำไม? string ∈ L₁ ∩ L₂ ⇔ M₁ จบที่ final <b>และ</b> M₂ จบที่ final พร้อมกัน — ดูได้จาก "เดิน string" ด้านล่าง', 'ถ้าอยากได้ union แทน: ใช้คู่ที่ "อย่างน้อยหนึ่ง" เป็น final (ต้อง complete ทั้งคู่เหมือนกัน)']],
@@ -2381,6 +2381,7 @@ CL.text = (st) => {
 CL.show = (i) => {
   const r = CL.res; if (!r || r.error) return; const st = r.stages[i];
   CL.vo.setAutomaton(st.automaton); CL.vo.fit(); CL.vo.highlight(st.hl);
+  if (st.info.D1) { CL.va.setAutomaton(st.info.D1); CL.va.fit(); CL.vb.setAutomaton(st.info.D2); CL.vb.fit(); if (st.key === 'complete') { CL.va.highlight({ states: st.info.trapId1 ? [st.info.trapId1] : [] }); CL.vb.highlight({ states: st.info.trapId2 ? [st.info.trapId2] : [] }); } else if (st.key === 'pair') { CL.va.highlight({ states: [st.info.p], accept: [st.info.p2], transitions: [{ from: st.info.p, to: st.info.p2 }] }); CL.vb.highlight({ states: [st.info.q], accept: [st.info.q2], transitions: [{ from: st.info.q, to: st.info.q2 }] }); } else { CL.va.highlight({}); CL.vb.highlight({}); } }
   $('cl-out-set').textContent = setTxt(st.automaton);
   const [title, howto] = CL.text(st) || ['', []];
   $('cl-explain').innerHTML = `<b>Step ${i + 1}/${r.stages.length} · ${title}</b>${i === r.stages.length - 1 ? '<br><span class="ok-t">เสร็จ — ลองป้อน string ด้านล่างเพื่อเดินทั้ง 3 เครื่องพร้อมกัน</span>' : ''}`;
