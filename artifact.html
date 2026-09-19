@@ -2545,7 +2545,9 @@ $('pg-find').onclick = () => {
   const D = r.dfa; PG.view.setAutomaton(D); PG.view.fit();
   const cyc = []; for (let k = r.i; k < r.j; k++) cyc.push({ from: r.seq[k], to: r.seq[k + 1] });
   PG.view.highlight({ states: [r.seq[r.i]], transitions: cyc });
+  const inL = FA.runDFA(D, w).accepted;
   let h = `<div class="ln"><span class="why">n = |K| = ${r.n} → อ่าน ${r.n} ตัวแรกผ่าน ${r.n + 1} configuration แต่มีแค่ ${r.n} state → ต้องมี state ซ้ำ (pigeonhole)</span></div>`;
+  if (!inL) { let sug = null; for (const u of FA.stringsUpTo(D.alphabet, r.n + 3)) { if (u.length >= r.n && FA.runDFA(D, u).accepted) { sug = u; break; } } h += `<div class="ln"><span class="why" style="color:var(--red)">⚠ "${esc(w)}" ∉ L — theorem พูดถึงเฉพาะ ω ∈ L; cycle ที่เจอเป็นแค่การวนใน trap (reject ตลอด)${sug ? ` ลอง ω = <b>${esc(sug)}</b> ที่อยู่ใน L แล้วจะเห็น ✔ ทุก i` : ''}</span></div>`; }
   r.seq.forEach((q, k) => { h += `<div class="ln ${(k === r.i || k === r.j) ? 'cur' : ''}"><span class="cfg">${k ? '⊢' : '&nbsp;'} (${esc(D.labelOf(q))}, ${esc(w.slice(k)) || 'e'})</span><span class="why">${k === r.i ? 'q' + FA.sub(r.i) + ' ← ซ้ำ' : k === r.j ? 'q' + FA.sub(r.j) + ' = q' + FA.sub(r.i) + ' ← ซ้ำ' : ''}</span></div>`; });
   h += `<div class="ln"><span class="why">x = "${esc(r.x)}", y = "${esc(r.y)}" (พา ${esc(D.labelOf(r.seq[r.i]))} กลับมา ${esc(D.labelOf(r.seq[r.i]))}), z = "${esc(r.z)}" → ${[0, 1, 2].map(i => `i=${i}: ${esc(r.x + r.y.repeat(i) + r.z) || 'e'} ${FA.runDFA(D, r.x + r.y.repeat(i) + r.z).accepted ? '✔' : '✘'}`).join(' · ')}</span></div>`;
   $('pg-pigeon').innerHTML = h;
