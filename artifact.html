@@ -236,6 +236,16 @@ svg .tl.done{stroke:var(--green)}
 .chain .b.bad{border-color:var(--red);background:var(--red-soft)}.chain .b.ok{border-color:var(--green);background:var(--green-soft)}
 .proof{font-family:var(--font);line-height:1.7;display:grid;gap:6px}
 .proof .m{font-family:var(--mono)}
+.holes{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.hole{border:1.5px solid var(--line-2);border-radius:10px;padding:6px 8px;min-height:64px;background:var(--paper)}
+.hole .hn{font-family:var(--mono);font-weight:600;text-align:center;border-bottom:1px dashed var(--line);padding-bottom:3px;margin-bottom:4px}
+.hole .pg{display:flex;flex-wrap:wrap;gap:3px;justify-content:center}
+.hole .pg span{width:22px;height:22px;border-radius:50%;background:var(--blue-soft);color:var(--blue-ink);font-family:var(--mono);font-size:.72rem;display:grid;place-items:center;border:1px solid var(--blue)}
+.hole.dup{border-color:var(--red);background:var(--red-soft)}
+.hole.dup .pg span{background:var(--mark);border-color:var(--red);color:var(--ink)}
+.hole.cur{box-shadow:0 0 0 2px var(--blue)}
+.cfgs{font-family:var(--mono);font-size:.85rem;display:grid;gap:2px;margin-top:8px}
+.cfgs div{padding:2px 6px;border-radius:6px}.cfgs .on{background:var(--blue-soft)}.cfgs .dup{background:var(--mark-soft)}
 @media (max-width:900px){
   .app{grid-template-columns:1fr}
   .side{display:none}
@@ -503,11 +513,15 @@ svg .tl.done{stroke:var(--green)}
     </div>
   </div>
   <div class="card" style="margin-top:14px"><h3>เขียนพิสูจน์ลงข้อสอบ <span class="note">generate จากค่าที่คุณเล่นจริง</span></h3><div id="pg-proof" class="note">เล่นจนจบ step 6 แล้วร่างพิสูจน์จะปรากฏที่นี่</div></div>
-  <div class="workspace" style="margin-top:14px">
-    <div class="card"><h3>Pigeonhole บน DFA จริง</h3><p class="note">เลือก DFA แล้วป้อน string ยาว ≥ |K| — จะชี้ configuration ที่ state ซ้ำ = y ที่ปั๊มได้</p>
-      <div class="row" style="margin-top:8px"><select id="pg-dfa" style="flex:1"></select><input type="text" class="mono" id="pg-w" placeholder="string" style="width:140px"><button class="btn sm" id="pg-find">หา cycle</button></div>
-      <div id="pg-pigeon" class="trace" style="margin-top:8px"></div></div>
-    <div class="stage"><div class="bar"><b>DFA สำหรับ pigeonhole</b></div><div class="canvas short" id="pg-canvas"></div></div>
+  <div class="stage" style="margin-top:14px">
+    <div class="bar"><b>Pigeonhole บน DFA จริง — ทำไม theorem ถึงจริง</b><span class="sp"></span>
+      <select id="pg-dfa" style="max-width:260px"></select><input type="text" class="mono" id="pg-w" placeholder="ω ∈ L ยาว ≥ |K|" style="width:150px"><button class="btn sm primary" id="pg-find">▶ เริ่ม</button></div>
+    <div class="workspace" style="padding:12px;gap:12px">
+      <div><div class="canvas short" id="pg-canvas" style="border:1px solid var(--line);border-radius:8px"></div><div id="ph-tape" style="margin-top:8px"></div></div>
+      <div id="ph-board" style="min-height:200px"></div>
+    </div>
+    <div class="stepper" id="ph-step"></div>
+    <div class="explain" id="ph-explain">เลือก DFA แล้วกด ▶ เริ่ม</div>
   </div>
 </section>
 
@@ -2535,23 +2549,74 @@ PG.proof = (Lg, d, i, chosen) => {
   $('pg-proof').innerHTML = `<div class="proof">${lines.map(l => `<div>${l}</div>`).join('')}</div>`;
 };
 const n_ = (n) => 'n';
-// pigeonhole (unchanged)
+// ---------- pigeonhole stepper ----------
+const PH = App.pigeon = {};
 PG.view = new FA.AutomatonView('pg-canvas');
 fillSelect($('pg-dfa'), ['DFA'], [{ v: '__editor', t: '(automaton ใน Editor)' }]);
-$('pg-find').onclick = () => {
-  const A = pick($('pg-dfa').value); const w = $('pg-w').value.trim() || 'a'.repeat(A.states.length);
-  const r = FA.findPumpingCycle(A, w);
-  if (!r || r.error) { $('pg-pigeon').innerHTML = `<div class="ln"><span class="why">${esc(r ? r.error : 'ไม่พบ')}</span></div>`; PG.view.setAutomaton(A); PG.view.fit(); return; }
-  const D = r.dfa; PG.view.setAutomaton(D); PG.view.fit();
-  const cyc = []; for (let k = r.i; k < r.j; k++) cyc.push({ from: r.seq[k], to: r.seq[k + 1] });
-  PG.view.highlight({ states: [r.seq[r.i]], transitions: cyc });
-  const inL = FA.runDFA(D, w).accepted;
-  let h = `<div class="ln"><span class="why">n = |K| = ${r.n} → อ่าน ${r.n} ตัวแรกผ่าน ${r.n + 1} configuration แต่มีแค่ ${r.n} state → ต้องมี state ซ้ำ (pigeonhole)</span></div>`;
-  if (!inL) { let sug = null; for (const u of FA.stringsUpTo(D.alphabet, r.n + 3)) { if (u.length >= r.n && FA.runDFA(D, u).accepted) { sug = u; break; } } h += `<div class="ln"><span class="why" style="color:var(--red)">⚠ "${esc(w)}" ∉ L — theorem พูดถึงเฉพาะ ω ∈ L; cycle ที่เจอเป็นแค่การวนใน trap (reject ตลอด)${sug ? ` ลอง ω = <b>${esc(sug)}</b> ที่อยู่ใน L แล้วจะเห็น ✔ ทุก i` : ''}</span></div>`; }
-  r.seq.forEach((q, k) => { h += `<div class="ln ${(k === r.i || k === r.j) ? 'cur' : ''}"><span class="cfg">${k ? '⊢' : '&nbsp;'} (${esc(D.labelOf(q))}, ${esc(w.slice(k)) || 'e'})</span><span class="why">${k === r.i ? 'q' + FA.sub(r.i) + ' ← ซ้ำ' : k === r.j ? 'q' + FA.sub(r.j) + ' = q' + FA.sub(r.i) + ' ← ซ้ำ' : ''}</span></div>`; });
-  h += `<div class="ln"><span class="why">x = "${esc(r.x)}", y = "${esc(r.y)}" (พา ${esc(D.labelOf(r.seq[r.i]))} กลับมา ${esc(D.labelOf(r.seq[r.i]))}), z = "${esc(r.z)}" → ${[0, 1, 2].map(i => `i=${i}: ${esc(r.x + r.y.repeat(i) + r.z) || 'e'} ${FA.runDFA(D, r.x + r.y.repeat(i) + r.z).accepted ? '✔' : '✘'}`).join(' · ')}</span></div>`;
-  $('pg-pigeon').innerHTML = h;
+PH.step = UI.stepper('ph-step', (i) => PH.show(i));
+PH.start = () => {
+  const A = FA.complete(FA.toDFA(pick($('pg-dfa').value))).dfa; const n = A.states.length;
+  let w = $('pg-w').value.trim();
+  if (!w || w.length < n) {
+    let sug = null; for (const u of FA.stringsUpTo(A.alphabet, n + 3)) { if (u.length >= n && FA.runDFA(A, u).accepted) { sug = u; break; } }
+    if (sug) { w = sug; $('pg-w').value = w; UI.toast(`ใช้ ω = ${w} (ต้องยาว ≥ ${n})`); } else { UI.toast(`ต้องการ string ยาว ≥ ${n}`); return; }
+  }
+  const bad = [...w].find(c => !A.alphabet.includes(c)); if (bad) { UI.toast(`'${bad}' ไม่อยู่ใน Σ`); return; }
+  const seq = [A.start]; let q = A.start; for (let i = 0; i < Math.min(n, w.length); i++) { q = A.trans(q, w[i])[0]; seq.push(q); }
+  let rep = null; for (let j = 1; j < seq.length && !rep; j++) for (let i = 0; i < j; i++) if (seq[i] === seq[j]) { rep = { i, j }; break; }
+  PH.d = { A, n, w, seq, rep, inL: FA.runDFA(A, w).accepted };
+  PG.view.setAutomaton(A); PG.view.fit();
+  PH.steps = [{ k: 'holes' }, { k: 'pigeons' }]; for (let i = 0; i <= Math.min(n, w.length); i++) PH.steps.push({ k: 'place', i }); PH.steps.push({ k: 'repeat' }, { k: 'pump' }, { k: 'theorem' });
+  PH.step.setCount(PH.steps.length, 0);
 };
+PH.holes = (upto, curIdx) => {
+  const { A, seq, rep } = PH.d;
+  return `<div class="holes">${A.ids().map(q => { const birds = []; for (let i = 0; i <= upto && i < seq.length; i++) if (seq[i] === q) birds.push(i); const dup = rep && upto >= rep.j && q === seq[rep.j]; return `<div class="hole ${dup ? 'dup' : ''} ${curIdx !== null && seq[curIdx] === q ? 'cur' : ''}"><div class="hn">${esc(A.labelOf(q))}${A.isFinal(q) ? ' ◎' : ''}</div><div class="pg">${birds.map(i => `<span title="configuration ${i}">${i}</span>`).join('')}</div></div>`; }).join('')}</div>`;
+};
+PH.cfgs = (upto, curIdx) => { const { A, w, seq, rep } = PH.d; return `<div class="cfgs">${seq.slice(0, upto + 1).map((q, i) => `<div class="${i === curIdx ? 'on' : ''} ${rep && upto >= rep.j && (i === rep.i || i === rep.j) ? 'dup' : ''}">${i ? '⊢' : '&nbsp;'} #${i}: (${esc(A.labelOf(q))}, ${esc(w.slice(i)) || 'e'})</div>`).join('')}</div>`; };
+PH.tape = (pos, d) => { const { w, n } = PH.d; const cls = (k) => !d ? '' : k < d.i ? 'x' : k < d.j ? 'y' : 'z'; return `<div class="tapecells">${[...w].map((c, k) => `<div class="c ${cls(k)} ${k < n ? 'first' : ''}" style="${k === pos ? 'outline:2px solid var(--blue)' : ''}">${esc(c)}</div>`).join('')}</div><p class="note" style="margin-top:4px">ขีดแดง = ${n} ตัวแรก${d ? ' · ฟ้า x · เหลือง y · เขียว z' : ''}</p>`; };
+PH.show = (idx) => {
+  const st = PH.steps[idx]; const { A, n, w, seq, rep, inL } = PH.d; const B = $('ph-board'), X = $('ph-explain'); const L = (q) => esc(A.labelOf(q));
+  const m = (s) => `<span class="mono">${s}</span>`;
+  if (st.k === 'holes') {
+    PG.view.highlight({ states: A.ids() }); $('ph-tape').innerHTML = PH.tape(-1, null);
+    B.innerHTML = `<p><b>ขั้น 1 · นับ "รัง"</b> — state ทั้งหมดของ DFA คือรังนกพิราบ</p>${PH.holes(-1, null)}<p style="margin-top:8px">n = |K| = <b>${n}</b> รัง</p>`;
+    X.innerHTML = `Pigeonhole principle: ถ้ามีนกพิราบ<b>มากกว่า</b>รัง อย่างน้อยหนึ่งรังต้องมีนก ≥ 2 ตัว — เราจะให้ "นก" = configuration และ "รัง" = state`; return;
+  }
+  if (st.k === 'pigeons') {
+    PG.view.highlight({}); $('ph-tape').innerHTML = PH.tape(-1, null);
+    B.innerHTML = `<p><b>ขั้น 2 · นับ "นกพิราบ"</b> — อ่านแค่ <b>${n} ตัวแรก</b>ของ ω = ${m(esc(w))} (ช่องขีดแดง)</p><p style="margin-top:6px">ก่อนอ่าน 1 configuration + หลังอ่านแต่ละตัวอีก ${n} = <b>${n + 1} configuration</b> (นก ${n + 1} ตัว) แต่มีรังแค่ <b>${n}</b></p><div class="cfgs" style="margin-top:8px">${Array.from({ length: n + 1 }, (_, i) => `<div>#${i}: หลังอ่าน ${i} ตัว → อยู่ state ?</div>`).join('')}</div>`;
+    X.innerHTML = `นก ${n + 1} ตัว > รัง ${n} รัง ⇒ <b>ต้องมีรังที่ได้นก 2 ตัว</b> = มี configuration สองอันที่อยู่ state เดียวกัน — ยังไม่รู้ว่ารังไหน แต่รู้แน่ว่ามี (หัวใจของพิสูจน์). ทำไมดูแค่ ${n} ตัวแรก? เพื่อบังคับให้การซ้ำเกิด<b>ภายใน ${n} ตัวแรก</b> → จะได้ |xy| ≤ n`; return;
+  }
+  if (st.k === 'place') {
+    const i = st.i; const q = seq[i]; const prev = i ? seq[i - 1] : null;
+    PG.view.highlight({ states: [q], transitions: prev !== null ? [{ from: prev, to: q }] : [] }); $('ph-tape').innerHTML = PH.tape(i, null);
+    const dupNow = rep && i === rep.j; const used = new Set(seq.slice(0, i + 1)).size;
+    B.innerHTML = `<p><b>ขั้น 3 · วางนกทีละตัว</b> — นก #${i} ${i ? `= หลังอ่าน "${esc(w[i - 1])}": δ(${L(prev)}, ${esc(w[i - 1])}) = <b>${L(q)}</b>` : `= ก่อนอ่านอะไร อยู่ start = <b>${L(q)}</b>`} → วางลงรัง ${L(q)}</p>${PH.holes(i, i)}${PH.cfgs(i, i)}`;
+    X.innerHTML = dupNow ? `<span class="bad-t"><b>รัง ${L(q)} มีนก 2 ตัวแล้ว!</b> นก #${rep.i} และ #${rep.j} อยู่ state เดียวกัน</span> — configuration #${rep.i} = (${L(q)}, ${esc(w.slice(rep.i)) || 'e'}) และ #${rep.j} = (${L(q)}, ${esc(w.slice(rep.j)) || 'e'}) : เครื่องอ่าน "${esc(w.slice(rep.i, rep.j))}" แล้ว<b>กลับมาที่เดิม</b>` : (i < n ? `วางแล้ว ${i + 1} ตัว ใช้รังไป ${used} รัง ยังไม่ซ้ำ — เหลือนก ${n - i} ตัว รังว่าง ${n - used} รัง${n - i > n - used ? ' → นกที่เหลือมากกว่ารังว่าง <b>ต้องซ้ำแน่</b>' : ''}` : `วางครบ ${n + 1} ตัวใน ${n} รัง`); return;
+  }
+  if (st.k === 'repeat') {
+    if (!rep) { B.innerHTML = 'ไม่พบการซ้ำ (string สั้นกว่า n?)'; return; }
+    const d = { i: rep.i, j: rep.j }; const x = w.slice(0, rep.i), y = w.slice(rep.i, rep.j), z = w.slice(rep.j);
+    const cyc = []; for (let k = rep.i; k < rep.j; k++) cyc.push({ from: seq[k], to: seq[k + 1] });
+    PG.view.highlight({ states: [seq[rep.i]], transitions: cyc }); $('ph-tape').innerHTML = PH.tape(-1, d);
+    B.innerHTML = `<p><b>ขั้น 4 · ตัด ω เป็น x y z ตรงจุดที่ซ้ำ</b></p><div class="xyz" style="margin:8px 0"><span class="x">${esc(x) || '·'}</span><span class="y">${esc(y)}</span><span class="z">${esc(z) || '·'}</span></div><ul style="margin:0;padding-left:18px;display:grid;gap:4px"><li>x = "${esc(x)}" = ตัวอักษรก่อนนก #${rep.i} → พา start ไป ${L(seq[rep.i])}</li><li><b>y = "${esc(y)}"</b> = ตัวอักษรระหว่างนก #${rep.i} กับ #${rep.j} → พา ${L(seq[rep.i])} <b>วนกลับมา ${L(seq[rep.j])} (state เดียวกัน)</b> — เส้นสีน้ำเงินบนกราฟ</li><li>z = "${esc(z)}" = ที่เหลือทั้งหมด</li></ul>${PH.holes(rep.j, null)}`;
+    X.innerHTML = `เงื่อนไขของ theorem ออกมาเองจากตรงนี้: <b>y ≠ e</b> เพราะ #${rep.i} ≠ #${rep.j} (นกคนละตัว ห่างกันอย่างน้อย 1 ตัวอักษร) · <b>|xy| ≤ n</b> เพราะ |xy| = ${rep.j} ≤ ${n} (การซ้ำเกิดใน ${n} ตัวแรกที่เราดู)`; return;
+  }
+  if (st.k === 'pump') {
+    const x = w.slice(0, rep.i), y = w.slice(rep.i, rep.j), z = w.slice(rep.j);
+    const rows = [0, 1, 2, 3].map(i => { const s = x + y.repeat(i) + z; const r = FA.runDFA(A, s); return `<tr><td class="st">i = ${i}</td><td>${esc(s) || 'e'}</td><td>${L(r.final)}</td><td class="${r.accepted ? 'ok' : 'bad'}">${r.accepted ? 'accept' : 'reject'}</td></tr>`; }).join('');
+    $('ph-tape').innerHTML = PH.tape(-1, { i: rep.i, j: rep.j });
+    B.innerHTML = `<p><b>ขั้น 5 · ปั๊ม y</b> — เพราะ y พา ${L(seq[rep.i])} กลับมา ${L(seq[rep.i])} จะวน 0, 1, 2, … รอบ ก็ออกจาก ${L(seq[rep.i])} ไปอ่าน z เหมือนเดิม → จบ state เดิมเสมอ</p><div class="tblwrap" style="margin-top:8px"><table class="tt"><tr><th>i</th><th>xyⁱz</th><th>จบที่</th><th>ผล</th></tr>${rows}</table></div>`;
+    X.innerHTML = inL ? `ω ∈ L จึงจบที่ final — และ xyⁱz ทุกตัวก็จบ state เดียวกัน ⇒ <b>xyⁱz ∈ L ทุก i</b> นี่คือข้อความของ Pumping Theorem` : `<span class="bad-t">ω ∉ L</span> — ทุก i จึง reject เหมือนกันหมด (cycle มีจริง แต่ theorem พูดถึงเฉพาะ ω ∈ L — ลอง string ที่อยู่ใน L)`; return;
+  }
+  if (st.k === 'theorem') {
+    PG.view.highlight({}); $('ph-tape').innerHTML = PH.tape(-1, { i: rep.i, j: rep.j });
+    B.innerHTML = `<div class="chain"><div class="b">มี DFA n state (L regular)</div><div>⇒</div><div class="b">string ยาว ≥ n ต้องมี state ซ้ำใน n ตัวแรก (pigeonhole)</div><div>⇒</div><div class="b ok">y ≠ e, |xy| ≤ n และ xyⁱz ∈ L ทุก i</div></div><p style="margin-top:12px">นี่คือพิสูจน์ของ <b>Theorem 2.4.1</b> ทั้งหมด — ไม่มีอะไรมากกว่านับนกกับรัง</p><p style="margin-top:6px"><b>เกมด้านบนใช้มันกลับด้าน:</b> ถ้าเจอ ω ∈ L ที่<u>ทุก</u>วิธีแบ่ง xyz มี i ที่ xyⁱz ∉ L ⇒ กล่องขวาสุดเป็นเท็จ ⇒ กล่องซ้ายสุดเป็นเท็จ ⇒ <b>ไม่มี DFA ⇒ L ไม่ regular</b></p>`;
+    X.innerHTML = `ข้อสอบฝึกชุด 1 ข้อ 15 ("พิสูจน์ว่า diagram ของ DFA ทุกตัวมี cycle") ก็คือ pigeonhole แบบเดียวกัน: เดินด้วยตัวอักษร a ซ้ำ ๆ n ครั้ง ต้องกลับมา state เดิม = cycle`; return;
+  }
+};
+$('pg-find').onclick = PH.start; $('pg-w').addEventListener('keydown', e => { if (e.key === 'Enter') PH.start(); });
 
 // ---------- M7 Reference ----------
 const EX = [

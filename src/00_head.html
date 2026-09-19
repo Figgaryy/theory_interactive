@@ -236,6 +236,16 @@ svg .tl.done{stroke:var(--green)}
 .chain .b.bad{border-color:var(--red);background:var(--red-soft)}.chain .b.ok{border-color:var(--green);background:var(--green-soft)}
 .proof{font-family:var(--font);line-height:1.7;display:grid;gap:6px}
 .proof .m{font-family:var(--mono)}
+.holes{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.hole{border:1.5px solid var(--line-2);border-radius:10px;padding:6px 8px;min-height:64px;background:var(--paper)}
+.hole .hn{font-family:var(--mono);font-weight:600;text-align:center;border-bottom:1px dashed var(--line);padding-bottom:3px;margin-bottom:4px}
+.hole .pg{display:flex;flex-wrap:wrap;gap:3px;justify-content:center}
+.hole .pg span{width:22px;height:22px;border-radius:50%;background:var(--blue-soft);color:var(--blue-ink);font-family:var(--mono);font-size:.72rem;display:grid;place-items:center;border:1px solid var(--blue)}
+.hole.dup{border-color:var(--red);background:var(--red-soft)}
+.hole.dup .pg span{background:var(--mark);border-color:var(--red);color:var(--ink)}
+.hole.cur{box-shadow:0 0 0 2px var(--blue)}
+.cfgs{font-family:var(--mono);font-size:.85rem;display:grid;gap:2px;margin-top:8px}
+.cfgs div{padding:2px 6px;border-radius:6px}.cfgs .on{background:var(--blue-soft)}.cfgs .dup{background:var(--mark-soft)}
 @media (max-width:900px){
   .app{grid-template-columns:1fr}
   .side{display:none}
@@ -503,11 +513,15 @@ svg .tl.done{stroke:var(--green)}
     </div>
   </div>
   <div class="card" style="margin-top:14px"><h3>เขียนพิสูจน์ลงข้อสอบ <span class="note">generate จากค่าที่คุณเล่นจริง</span></h3><div id="pg-proof" class="note">เล่นจนจบ step 6 แล้วร่างพิสูจน์จะปรากฏที่นี่</div></div>
-  <div class="workspace" style="margin-top:14px">
-    <div class="card"><h3>Pigeonhole บน DFA จริง</h3><p class="note">เลือก DFA แล้วป้อน string ยาว ≥ |K| — จะชี้ configuration ที่ state ซ้ำ = y ที่ปั๊มได้</p>
-      <div class="row" style="margin-top:8px"><select id="pg-dfa" style="flex:1"></select><input type="text" class="mono" id="pg-w" placeholder="string" style="width:140px"><button class="btn sm" id="pg-find">หา cycle</button></div>
-      <div id="pg-pigeon" class="trace" style="margin-top:8px"></div></div>
-    <div class="stage"><div class="bar"><b>DFA สำหรับ pigeonhole</b></div><div class="canvas short" id="pg-canvas"></div></div>
+  <div class="stage" style="margin-top:14px">
+    <div class="bar"><b>Pigeonhole บน DFA จริง — ทำไม theorem ถึงจริง</b><span class="sp"></span>
+      <select id="pg-dfa" style="max-width:260px"></select><input type="text" class="mono" id="pg-w" placeholder="ω ∈ L ยาว ≥ |K|" style="width:150px"><button class="btn sm primary" id="pg-find">▶ เริ่ม</button></div>
+    <div class="workspace" style="padding:12px;gap:12px">
+      <div><div class="canvas short" id="pg-canvas" style="border:1px solid var(--line);border-radius:8px"></div><div id="ph-tape" style="margin-top:8px"></div></div>
+      <div id="ph-board" style="min-height:200px"></div>
+    </div>
+    <div class="stepper" id="ph-step"></div>
+    <div class="explain" id="ph-explain">เลือก DFA แล้วกด ▶ เริ่ม</div>
   </div>
 </section>
 
