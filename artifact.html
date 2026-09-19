@@ -523,6 +523,10 @@ svg .tl.done{stroke:var(--green)}
     <div class="stepper" id="ph-step"></div>
     <div class="explain" id="ph-explain">เลือก DFA แล้วกด ▶ เริ่ม</div>
   </div>
+  <div class="card" style="margin-top:14px"><h3>โจทย์ที่ต้องใช้ pigeonhole <span class="note">จากข้อสอบฝึก + textbook</span></h3>
+    <div class="row"><select id="ex-pick" style="min-width:320px"></select><button class="btn sm primary" id="ex-demo">▶ ทดลองบนเครื่องด้านบน</button></div>
+    <div id="ex-body" style="margin-top:10px"></div>
+  </div>
 </section>
 
 <!-- ================= M7 REFERENCE ================= -->
@@ -2617,6 +2621,50 @@ PH.show = (idx) => {
   }
 };
 $('pg-find').onclick = PH.start; $('pg-w').addEventListener('keydown', e => { if (e.key === 'Enter') PH.start(); });
+
+// ---------- worked pigeonhole problems ----------
+const EXP = App.exProblems = [
+  {
+    id: 'q15', title: 'ข้อสอบฝึกชุด 1 ข้อ 15 (10 คะแนน) — DFA ทุกตัวมี cycle',
+    statement: 'พิสูจน์ว่า state-transition diagram ของ DFA ทุกตัวต้องมี cycle เสมอ',
+    demo: (A) => A.alphabet[0].repeat(A.states.length),
+    demoNote: 'เครื่องด้านบนจะเดินด้วยตัวอักษรตัวแรกของ Σ ซ้ำ n ครั้ง (n = จำนวน state) — ดู step 3–9: รังที่ได้นก 2 ตัวคือจุดที่ cycle อยู่',
+    steps: [
+      ['ตั้งชื่อสิ่งที่มี', 'ให้ M = (K, Σ, δ, s, F) เป็น DFA ใด ๆ, n = |K| และเลือกตัวอักษร a ∈ Σ ตัวใดก็ได้', '"ให้ M = (K, Σ, δ, s, F) เป็น DFA ใด ๆ และให้ n = |K|. เลือก a ∈ Σ"'],
+      ['สร้างนกให้มากกว่ารัง', 'เดินเครื่องด้วย string aⁿ (a ซ้ำ n ตัว) จาก s แล้วจดลำดับ state ที่ผ่าน: q₀ = s, q₁ = δ(q₀,a), …, qₙ = δ(qₙ₋₁,a) ได้ทั้งหมด n+1 state — เดินได้ตลอดเพราะ δ ของ DFA นิยามครบทุกคู่ (state, ตัวอักษร)', '"นิยาม q₀ = s และ qᵢ₊₁ = δ(qᵢ, a) สำหรับ i = 0, …, n−1 จะได้ลำดับ q₀, q₁, …, qₙ ยาว n+1 ตัว"'],
+      ['Pigeonhole', 'ลำดับมี n+1 ตำแหน่ง แต่ค่าที่เป็นไปได้มีแค่ n ค่า (สมาชิกของ K) → ต้องมี i < j ที่ qᵢ = qⱼ', '"เนื่องจากลำดับมีสมาชิก n+1 ตัวแต่ K มีสมาชิกเพียง n ตัว โดย pigeonhole principle จึงมี 0 ≤ i < j ≤ n ที่ qᵢ = qⱼ"'],
+      ['การซ้ำ = cycle', 'ทางเดิน qᵢ →a qᵢ₊₁ →a … →a qⱼ ออกจาก qᵢ แล้วกลับมา qᵢ (เพราะ qⱼ = qᵢ) ยาว j−i ≥ 1 เส้น = cycle ใน diagram (ถ้า j−i = 1 คือ self-loop ซึ่งเป็น cycle เช่นกัน)', '"เส้นทาง qᵢ, qᵢ₊₁, …, qⱼ ใน state-transition diagram เริ่มและจบที่ state เดียวกันและมีความยาว j−i ≥ 1 จึงเป็น cycle"'],
+      ['สรุป', 'M เป็น DFA ใดก็ได้ ดังนั้น diagram ของ DFA ทุกตัวมี cycle', '"ดังนั้น state-transition diagram ของ DFA ทุกตัวมี cycle ∎"'],
+    ],
+    pitfalls: ['ต้องเดิน n ตัว (ไม่ใช่ n−1) เพื่อให้ได้ n+1 ตำแหน่ง > n รัง', 'ต้องอ้างว่า δ เป็นฟังก์ชัน (DFA) — NFA อาจตายกลางทาง และ NFA ที่ไม่มี cycle มีจริง เช่น เครื่องรับ {aba} ที่ไม่มี trap', 'cycle อาจอยู่ที่ trap state (วนตัวเอง) ก็นับ — โจทย์ไม่ได้ถามว่าอยู่ตรงไหน'],
+    lecturer: 'เฉลยอาจารย์: นิยาม f : K → K, f(q) = δ(q, a) แล้วอ้างว่ากราฟของฟังก์ชันบนเซตจำกัดต้องมี cycle — คือขั้น 2–4 ย่อในประโยคเดียว',
+  },
+  {
+    id: 'p247', title: 'Textbook Problem 2.4.7 — ภาษาอนันต์ ⇔ มี string ยาว n ≤ |ω| < 2n',
+    statement: 'ให้ M = (K, Σ, δ, s, F) เป็น DFA และ n = |K| จงพิสูจน์ว่า L(M) เป็นเซตอนันต์ ก็ต่อเมื่อ M รับ string ω บางตัวที่ n ≤ |ω| < 2n',
+    demo: (A) => { const n = A.states.length; for (const u of FA.stringsUpTo(A.alphabet, 2 * n - 1)) if (u.length >= n && FA.runDFA(A, u).accepted) return u; return A.alphabet[0].repeat(n); },
+    demoNote: 'เครื่องด้านบนใช้ string ที่ accept และยาว ≥ n — step 10 จะเห็นว่า xy²z, xy³z ยาวขึ้นเรื่อย ๆ แต่ยัง accept (ทิศ ⇐) และ xy⁰z สั้นลงไม่เกิน n ตัว (ทิศ ⇒)',
+    steps: [
+      ['(⇐) มี string ยาว ≥ n ที่ accept → ภาษาอนันต์', 'ให้ ω ∈ L(M), |ω| ≥ n อ่าน n ตัวแรกของ ω ผ่าน n+1 configuration แต่มี n state → มี i < j ≤ n ที่ state ซ้ำ (pigeonhole เหมือนข้อ 15 แต่ตัวอักษรเป็นของ ω เอง) เขียน ω = xyz โดย y = ตัวอักษรตำแหน่ง i+1..j (y ≠ e)', '"สมมติ ω ∈ L(M) และ |ω| ≥ n. พิจารณา state q₀, …, qₙ ที่ M ผ่านขณะอ่าน n ตัวแรกของ ω โดย pigeonhole มี i < j ≤ n ที่ qᵢ = qⱼ. ให้ ω = xyz โดย |x| = i, |xy| = j"'],
+      ['ปั๊มให้ยาวไม่จำกัด', 'y พา qᵢ กลับมา qᵢ ดังนั้น xyᵏz ทุก k ≥ 0 พา M ไปจบ state เดียวกับ ω ซึ่งเป็น final → xy²z, xy³z, … ∈ L(M) และยาวขึ้นเรื่อย ๆ (y ≠ e) → L(M) มี string ไม่จำกัดจำนวน = อนันต์', '"เนื่องจาก (qᵢ, y) ⊢* (qᵢ, e) จึงได้ (s, xyᵏz) ⊢* (f, e) สำหรับทุก k ≥ 0 โดย f ∈ F เดียวกับของ ω. เพราะ y ≠ e string xyᵏz มีความยาวต่างกันทั้งหมด ดังนั้น L(M) อนันต์"'],
+      ['(⇒) ภาษาอนันต์ → มี string ยาว n ≤ |ω| < 2n', 'L(M) อนันต์ จึงมี string ยาว ≥ n อยู่แน่ (string ที่ยาว < n มีจำกัด) เลือก ω ∈ L(M) ที่**สั้นที่สุด**ในบรรดาที่ยาว ≥ n', '"เนื่องจาก L(M) อนันต์และมี string ยาวน้อยกว่า n จำนวนจำกัด จึงมี string ใน L(M) ที่ยาว ≥ n. ให้ ω เป็นตัวที่สั้นที่สุดในบรรดานั้น"'],
+      ['ถ้ายาวเกิน 2n จะขัดแย้ง', 'สมมติ |ω| ≥ 2n ทำ pigeonhole กับ n ตัวแรกได้ ω = xyz, 1 ≤ |y| ≤ |xy| ≤ n ตัด y ทิ้ง (k = 0): xz ยัง accept, สั้นลงอย่างมาก n ตัว → |xz| ≥ 2n − n = n แต่ |xz| < |ω| ขัดกับที่ว่า ω สั้นที่สุด ดังนั้น |ω| < 2n', '"สมมติ |ω| ≥ 2n. ตามขั้นก่อน ω = xyz โดย 1 ≤ |y| ≤ n และ xz ∈ L(M). แต่ |xz| = |ω| − |y| ≥ 2n − n = n และ |xz| < |ω| ขัดแย้งกับการเลือก ω. ดังนั้น n ≤ |ω| < 2n ∎"'],
+    ],
+    pitfalls: ['ทิศ ⇒ ต้องเลือก "สั้นที่สุด" ก่อน แล้วค่อยขัดแย้ง — ถ้าเลือก string ยาว ≥ 2n มาตัด อาจยังยาวเกิน 2n', 'ใช้ |xy| ≤ n เพื่อรับประกันว่าตัด y แล้วสั้นลงไม่เกิน n → ยังยาว ≥ n', 'ประโยชน์: เป็น algorithm ตัดสินว่า L(M) จำกัดหรือไม่ — แค่ทดสอบ string ยาว n..2n−1 ทุกตัว (จำนวนจำกัด)'],
+    lecturer: '',
+  },
+];
+$('ex-pick').innerHTML = EXP.map(e => `<option value="${e.id}">${esc(e.title)}</option>`).join('');
+App.showEx = () => {
+  const e = EXP.find(x => x.id === $('ex-pick').value); if (!e) return;
+  $('ex-body').innerHTML = `<div class="def" style="margin-bottom:10px"><b>โจทย์:</b> ${esc(e.statement)}</div>
+    <ol style="margin:0;padding-left:20px;display:grid;gap:10px">${e.steps.map(([t, why, write]) => `<li><b>${esc(t)}</b><div style="margin-top:2px">${why}</div><div class="proof" style="margin-top:4px;padding:6px 10px;border-left:3px solid var(--green);background:var(--green-soft);border-radius:0 6px 6px 0"><span class="note">เขียนลงกระดาษ:</span> ${esc(write)}</div></li>`).join('')}</ol>
+    <p style="margin-top:10px"><b>จุดที่มักพลาด</b></p><ul style="margin:4px 0 0;padding-left:18px;display:grid;gap:3px">${e.pitfalls.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+    ${e.lecturer ? `<p class="note" style="margin-top:8px">${esc(e.lecturer)}</p>` : ''}
+    <p class="note" style="margin-top:8px">▶ ทดลองบนเครื่อง: ${esc(e.demoNote)}</p>`;
+};
+$('ex-pick').onchange = App.showEx; App.showEx();
+$('ex-demo').onclick = () => { const e = EXP.find(x => x.id === $('ex-pick').value); const A = FA.complete(FA.toDFA(pick($('pg-dfa').value))).dfa; $('pg-w').value = e.demo(A); PH.start(); document.querySelector('#pg-canvas').scrollIntoView({ block: 'center' }); };
 
 // ---------- M7 Reference ----------
 const EX = [
