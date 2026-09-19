@@ -143,9 +143,9 @@ const RXM = App.regex = {};
 RXM.view = new FA.AutomatonView('rx-canvas'); RXM.p1 = new FA.AutomatonView('rx-p1'); RXM.p2 = new FA.AutomatonView('rx-p2');
 RXM.step = UI.stepper('rx-step', (i) => RXM.show(i));
 const RX_RULES = {
-  sym: 'กฎพื้่นฐาน: ภาษา {c} ต้องมี FA — วาด 2 state เชื่อมด้วยเส้น c',
-  eps: 'กฎพื้่นฐาน: ภาษา {e} — state เดียวที่เป็น final',
-  empty: 'กฎพื้่นฐาน: ภาษา ∅ — state เดียวที่ไม่ final',
+  sym: 'กฎพื้นฐาน: ภาษา {c} ต้องมี FA — วาด 2 state เชื่อมด้วยเส้น c',
+  eps: 'กฎพื้นฐาน: ภาษา {e} — state เดียวที่เป็น final',
+  empty: 'กฎพื้นฐาน: ภาษา ∅ — state เดียวที่ไม่ final',
   cat: 'Theorem 2.3.1(b) concatenation: ต่อชิ้นที่ 1 เข้ากับชิ้นที่ 2 ด้วยเส้น e (สีน้ำเงิน) จาก final ของชิ้นที่ 1 ไป start ของชิ้นที่ 2',
   or: 'Theorem 2.3.1(a) union: start ใหม่ (สีน้ำเงิน) แตกเป็นเส้น e ไปหาทั้งสองชิ้น — เครื่องเดาว่า input อยู่ในภาษาไหน',
   star: 'Theorem 2.3.1(c) Kleene star: start ใหม่ที่เป็น final ด้วย + เส้น e เข้า และ เส้น e จาก final เดิมย้อนกลับไป start เดิม'
@@ -301,16 +301,16 @@ SE.orderHint = () => {
       const ins = g.alive().filter(i => i !== q && g.edge(i, q)).length, outs = g.alive().filter(j => j !== q && g.edge(q, j)).length;
       return { q, ins, outs, pairs: ins * outs };
     }).sort((a, b) => a.pairs - b.pairs);
-    $('se-order').innerHTML = cand.length ? 'ลำดับแนะนำ (คู่เข้า×ออกนอยวก่อน → regex สั้่นกว่่า): ' + cand.map(c => `<b>${esc(g.labels[c.q])}</b> (${c.ins}×${c.outs}=${c.pairs})`).join(' → ') : 'ลบครบแล่ว — อ่านคำตอบจากเส้น s → f';
+    $('se-order').innerHTML = cand.length ? 'ลำดับแนะนำ (คู่เข้า×ออกน้อยก่อน → regex สั้นกว่า): ' + cand.map(c => `<b>${esc(g.labels[c.q])}</b> (${c.ins}×${c.outs}=${c.pairs})`).join(' → ') : 'ลบครบแล้ว — อ่านคำตอบจากเส้น s → f';
   };
   SE.howto = (step) => {
     const g = SE.g; const L = (id) => esc(g.labels[id]); const P = (x) => x ? esc(RX.print(x)) : '—';
     const gam = step.gamma ? `γ = ${P(step.gamma)} → γ* = (${P(step.gamma)})*` : 'ไม่มี loop → γ* = e (ตัดทิ้งได้)';
     $('se-howto').innerHTML = [
-      `เลือก state <b>${L(step.q)}</b>: มีเส้นเข้า ${step.ins.length} เส้น (จาก ${step.ins.map(L).join(', ') || '—'}) × เส้นออก ${step.outs.length} เส้น (ไป ${step.outs.map(L).join(', ') || '—'}) = ${step.pairs.length} คู่ท่ีต้องเขียนใหม่`,
+      `เลือก state <b>${L(step.q)}</b>: มีเส้นเข้า ${step.ins.length} เส้น (จาก ${step.ins.map(L).join(', ') || '—'}) × เส้นออก ${step.outs.length} เส้น (ไป ${step.outs.map(L).join(', ') || '—'}) = ${step.pairs.length} คู่ที่ต้องเขียนใหม่`,
       `จดฉลาก loop ของ ${L(step.q)}: ${gam}`,
       `สำหรับทุกคู่ (qᵢ → ${L(step.q)} → qⱼ): ฉลากใหม่ของเส้น qᵢ → qⱼ = <span class="mono">δ ∪ α γ* β</span> (α = ฉลากเข้า, β = ฉลากออก, δ = ฉลากเดิมของ qᵢ → qⱼ ถ้ามี) — ดูตารางด้านล่าง`,
-      `ลบ ${L(step.q)} พร้อมเส้นเข้า/ออกทั้่งหมด แล่ววาดเส้น qᵢ → qⱼ ด้วยฉลากใหม่ (ถ้ามีเส้นเดิมอยู่แล่ว ให้แทนท่ี)`,
+      `ลบ ${L(step.q)} พร้อมเส้นเข้า/ออกทั้งหมด แล้ววาดเส้น qᵢ → qⱼ ด้วยฉลากใหม่ (ถ้ามีเส้นเดิมอยู่แล้ว ให้แทนที่)`,
       g.done() ? `เหลือแค่ s และ f → <b>คำตอบ = ฉลากบนเส้น s → f = ${P(g.result())}</b>` : `ยังเหลือ ${g.alive().length - 2} state → ทำซ้ำข้อ 1 กับ state ถัดไป`,
     ].map(x => `<li>${x}</li>`).join('');
     let h = `<tr><th>qᵢ → qⱼ</th><th>α (เข้า)</th><th>γ* (loop)</th><th>β (ออก)</th><th>δ เดิม</th><th>δ ∪ αγ*β</th><th>หลัง simplify</th></tr>`;

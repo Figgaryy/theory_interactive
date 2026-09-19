@@ -391,16 +391,16 @@ svg .tl.done{stroke:var(--green)}
       <div class="row"><input type="text" class="mono" id="rx-in" value="(ab ∪ aab)*" style="flex:1" spellcheck="false"><button class="btn primary" id="rx-build">สร้าง</button></div>
       <p class="note" style="margin-top:6px">ใช้ได้: สัญลักษณ์ตัวเดียว, <code>e</code> (empty string), <code>∅</code>, <code>∪</code> หรือ <code>|</code> หรือ <code>U</code>, <code>*</code>, วงเล็บ. ตัวอย่าง: <code>a*ba*b</code>, <code>(a ∪ b*a)*</code></p>
     </div>
-    <div class="stage" style="margin-bottom:12px"><div class="bar"><b>Parse tree</b><span class="note">ลำดับสร้าง = ใบก่อน รากทีหลัง · คลิก node เพื่อกระโดดไป stage นั้่น</span></div><div class="canvas short" id="rx-tree" style="background-image:none;height:220px"></div></div>
+    <div class="stage" style="margin-bottom:12px"><div class="bar"><b>Parse tree</b><span class="note">ลำดับสร้าง = ใบก่อน รากทีหลัง · คลิก node เพื่อกระโดดไป stage นั้น</span></div><div class="canvas short" id="rx-tree" style="background-image:none;height:220px"></div></div>
     <div class="workspace three">
-      <div class="stage"><div class="bar"><b id="rx-p1-title">ชิ้่นท่ี 1</b></div><div class="canvas short" id="rx-p1"></div></div>
-      <div class="stage"><div class="bar"><b id="rx-p2-title">ชิ้่นท่ี 2</b></div><div class="canvas short" id="rx-p2"></div></div>
-      <div class="stage"><div class="bar"><b>ผลลัพท์ของ stage นีี้</b><span class="sp"></span><button class="btn sm" id="rx-to-editor">→ Editor</button><button class="btn sm" id="rx-to-ps">→ NFA→DFA</button></div><div class="canvas short" id="rx-canvas"></div></div>
+      <div class="stage"><div class="bar"><b id="rx-p1-title">ชิ้นที่ 1</b></div><div class="canvas short" id="rx-p1"></div></div>
+      <div class="stage"><div class="bar"><b id="rx-p2-title">ชิ้นที่ 2</b></div><div class="canvas short" id="rx-p2"></div></div>
+      <div class="stage"><div class="bar"><b>ผลลัพธ์ของ stage นี้</b><span class="sp"></span><button class="btn sm" id="rx-to-editor">→ Editor</button><button class="btn sm" id="rx-to-ps">→ NFA→DFA</button></div><div class="canvas short" id="rx-canvas"></div></div>
     </div>
     <div class="stage" style="margin-top:12px"><div class="stepper" id="rx-step"></div><div class="explain" id="rx-explain"></div></div>
     <div class="workspace" style="margin-top:12px">
-      <div class="card"><h3>ว่ิธีทำทีละขั้่น <span class="note">ทำตามบนกระดาษได้</span></h3><ol id="rx-howto" style="margin:0;padding-left:20px;display:grid;gap:6px"></ol></div>
-      <div class="card"><h3>ทดลองกัับ automaton ของ stage นีี้</h3><div class="row"><input type="text" class="mono" id="rx-try" placeholder="เช่่น ab, aab, abaab, a (คั่่นด่้วย ,)" style="flex:1"><button class="btn sm" id="rx-try-run">ทดสอบ</button></div><div class="tblwrap" style="margin-top:8px"><table class="tt" id="rx-try-out"></table></div></div>
+      <div class="card"><h3>วิธีทำทีละขั้น <span class="note">ทำตามบนกระดาษได้</span></h3><ol id="rx-howto" style="margin:0;padding-left:20px;display:grid;gap:6px"></ol></div>
+      <div class="card"><h3>ทดลองกับ automaton ของ stage นี้</h3><div class="row"><input type="text" class="mono" id="rx-try" placeholder="เช่น ab, aab, abaab, a (คั่นด้วย ,)" style="flex:1"><button class="btn sm" id="rx-try-run">ทดสอบ</button></div><div class="tblwrap" style="margin-top:8px"><table class="tt" id="rx-try-out"></table></div></div>
     </div>
   </div>
   <div class="subpane" id="sub-se">
@@ -411,7 +411,7 @@ svg .tl.done{stroke:var(--green)}
         <div class="explain" id="se-explain"></div>
       </div>
       <div class="panel">
-        <div class="card"><h3>วธีทำทีละขั้่น <span class="note">การลบล่าสุด</span></h3>
+        <div class="card"><h3>วิธีทำทีละขั้น <span class="note">การลบล่าสุด</span></h3>
           <div id="se-order" class="note" style="margin-bottom:8px"></div>
           <ol id="se-howto" style="margin:0;padding-left:20px;display:grid;gap:6px"></ol>
           <div class="tblwrap" style="margin-top:8px"><table class="tt" id="se-pairs"></table></div>
