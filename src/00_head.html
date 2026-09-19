@@ -1,0 +1,509 @@
+<title>Finite Automata Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&display=swap">
+<style>
+:root{
+  --paper:#F3F5F7; --paper-2:#FFFFFF; --paper-3:#E9EDF2; --line:#D3DAE3; --line-2:#B9C3CF;
+  --ink:#1B2430; --ink-2:#4A5668; --ink-3:#7A8797;
+  --blue:#1F5FBF; --blue-ink:#154A99; --blue-soft:#DCE8FA;
+  --red:#C8322B; --red-soft:#FADCDA;
+  --green:#1E8A4C; --green-soft:#D8F0E2;
+  --mark:#F5D44A; --mark-soft:#FBF0B8;
+  --grid:rgba(31,95,191,.10);
+  --shadow:0 1px 2px rgba(27,36,48,.06),0 8px 24px rgba(27,36,48,.06);
+  --r:10px; --font:'IBM Plex Sans Thai',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#0F151C; --paper-2:#172029; --paper-3:#1F2A35; --line:#2A3542; --line-2:#3A4757;
+  --ink:#E6EBF0; --ink-2:#A7B3C2; --ink-3:#7D8A9A;
+  --blue:#7FB0F5; --blue-ink:#A9CBFA; --blue-soft:#1E3352;
+  --red:#F08A83; --red-soft:#4A2323;
+  --green:#5CCB8A; --green-soft:#1D3A2A;
+  --mark:#E2C24A; --mark-soft:#4A3F14;
+  --grid:rgba(127,176,245,.09);
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+}}
+:root[data-theme="dark"]{
+  --paper:#0F151C; --paper-2:#172029; --paper-3:#1F2A35; --line:#2A3542; --line-2:#3A4757;
+  --ink:#E6EBF0; --ink-2:#A7B3C2; --ink-3:#7D8A9A;
+  --blue:#7FB0F5; --blue-ink:#A9CBFA; --blue-soft:#1E3352;
+  --red:#F08A83; --red-soft:#4A2323;
+  --green:#5CCB8A; --green-soft:#1D3A2A;
+  --mark:#E2C24A; --mark-soft:#4A3F14;
+  --grid:rgba(127,176,245,.09);
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+code,.mono,kbd{font-family:var(--mono);font-size:.93em}
+h1,h2,h3{margin:0;line-height:1.25;text-wrap:balance;font-weight:600}
+h2{font-size:1.35rem}h3{font-size:1.02rem}
+p{margin:0}
+a{color:var(--blue)}
+.app{display:grid;grid-template-columns:232px 1fr;grid-template-rows:auto 1fr;min-height:100%}
+.topbar{grid-column:1/-1;position:sticky;top:env(safe-area-inset-top,0px);z-index:20;display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--paper-2);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:baseline;gap:8px;white-space:nowrap}
+.brand b{font-size:1.05rem;letter-spacing:-.01em}
+.brand span{color:var(--ink-3);font-size:.8rem}
+.topbar .grow{flex:1}
+.chips{display:none;gap:6px;overflow-x:auto;scrollbar-width:none;flex:1}
+.chips::-webkit-scrollbar{display:none}
+.side{border-right:1px solid var(--line);padding:16px 12px;background:var(--paper-2);position:sticky;top:56px;align-self:start;height:calc(100vh - 56px);overflow:auto}
+.side .eyebrow{font-size:.7rem;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-3);padding:0 8px 8px}
+.navbtn{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;border:0;background:none;padding:9px 8px;border-radius:8px;cursor:pointer;color:var(--ink-2)}
+.navbtn .n{font-family:var(--mono);font-size:.75rem;color:var(--ink-3);min-width:14px;padding-top:3px}
+.navbtn .t{font-weight:500;color:var(--ink)}
+.navbtn .s{display:block;font-size:.76rem;color:var(--ink-3);line-height:1.35}
+.navbtn:hover{background:var(--paper-3)}
+.navbtn.active{background:var(--blue-soft)}
+.navbtn.active .t,.navbtn.active .n{color:var(--blue-ink)}
+main{padding:20px 20px 60px;min-width:0}
+.module{display:none;max-width:1400px}
+.module.active{display:block}
+.mod-head{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 20px;margin-bottom:14px}
+.mod-head .gist{color:var(--ink-2);max-width:62ch}
+.theory{margin:0 0 14px;border:1px solid var(--line);border-radius:var(--r);background:var(--paper-2)}
+.theory summary{cursor:pointer;padding:10px 14px;font-weight:500;color:var(--blue-ink);list-style:none;display:flex;gap:8px;align-items:center}
+.theory summary::before{content:"▸";font-size:.8em;transition:transform .15s}
+.theory[open] summary::before{transform:rotate(90deg)}
+.theory .body{padding:0 16px 14px;color:var(--ink-2);display:grid;gap:8px;max-width:80ch}
+.theory .body p{max-width:75ch}
+.def{border-left:3px solid var(--mark);background:var(--mark-soft);padding:8px 12px;border-radius:0 6px 6px 0;color:var(--ink)}
+.workspace{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(300px,.85fr);gap:16px;align-items:start}
+.workspace.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.stage{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;min-width:0}
+.stage .bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line);background:var(--paper-2)}
+.stage .bar .sp{flex:1}
+.stage .cap{font-size:.78rem;color:var(--ink-3);padding:6px 12px;border-top:1px solid var(--line)}
+.canvas{position:relative;background-color:var(--paper-2);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:24px 24px;height:420px;touch-action:none;user-select:none}
+.canvas.short{height:300px}.canvas.tall{height:520px}
+.canvas svg{width:100%;height:100%;display:block;cursor:default}
+.canvas .hint{position:absolute;left:12px;bottom:10px;font-size:.75rem;color:var(--ink-3);pointer-events:none;background:var(--paper-2);padding:2px 8px;border-radius:6px;border:1px solid var(--line)}
+.panel{display:grid;gap:12px;min-width:0}
+.card{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;min-width:0}
+.card h3{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.card h3 .badge{margin-left:auto}
+.btn{border:1px solid var(--line-2);background:var(--paper-2);border-radius:8px;padding:6px 11px;cursor:pointer;font-weight:500;font-size:.88rem;display:inline-flex;align-items:center;gap:6px;color:var(--ink);white-space:nowrap}
+.btn:hover{background:var(--paper-3)}
+.btn:focus-visible,.navbtn:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.primary:hover{background:var(--blue-ink)}
+:root[data-theme="dark"] .btn.primary,:root:not([data-theme="light"]) .btn.primary{color:#0F151C}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]) .btn.primary{color:#fff}}
+:root[data-theme="light"] .btn.primary{color:#fff}
+.btn.on{background:var(--blue-soft);border-color:var(--blue);color:var(--blue-ink)}
+.btn.sm{padding:3px 8px;font-size:.8rem}
+.btn.danger{color:var(--red);border-color:var(--red)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.field{display:grid;gap:4px}
+.field label{font-size:.78rem;color:var(--ink-3)}
+input[type=text],select,textarea{border:1px solid var(--line-2);background:var(--paper);border-radius:8px;padding:6px 10px;min-width:0;width:100%}
+input.mono{font-family:var(--mono)}
+.badge{font-size:.72rem;padding:2px 8px;border-radius:999px;border:1px solid var(--line-2);color:var(--ink-2);font-weight:500;white-space:nowrap}
+.badge.blue{background:var(--blue-soft);color:var(--blue-ink);border-color:transparent}
+.badge.red{background:var(--red-soft);color:var(--red);border-color:transparent}
+.badge.green{background:var(--green-soft);color:var(--green);border-color:transparent}
+.badge.mark{background:var(--mark-soft);color:var(--ink);border-color:transparent}
+.tuple{font-family:var(--mono);font-size:.85rem;line-height:1.7;overflow-x:auto;white-space:nowrap}
+.tuple .k{color:var(--blue-ink)}
+table.tt{border-collapse:collapse;font-family:var(--mono);font-size:.85rem;width:100%}
+table.tt th,table.tt td{border:1px solid var(--line);padding:4px 8px;text-align:left;vertical-align:top}
+table.tt th{background:var(--paper-3);font-weight:500;color:var(--ink-2)}
+table.tt td.st{font-weight:500}
+table.tt tr.hl td{background:var(--mark-soft)}
+table.tt tr.cur td{background:var(--blue-soft)}
+table.tt td.mk{background:var(--mark-soft)}
+table.tt td.ok{background:var(--green-soft)}
+table.tt td.bad{background:var(--red-soft)}
+table.tt td.dim{color:var(--ink-3)}
+table.tt input{width:100%;border:0;background:transparent;padding:2px 0;font-family:var(--mono)}
+.tblwrap{overflow-x:auto}
+.tape{display:flex;align-items:flex-end;gap:2px;padding:10px 12px 14px;background:var(--paper-2);border-bottom:1px solid var(--line);overflow-x:auto;min-height:74px}
+.tape .cell{width:34px;height:34px;border:1.5px solid var(--line-2);border-radius:4px;display:grid;place-items:center;font-family:var(--mono);font-size:1rem;position:relative;flex:none;background:var(--paper)}
+.tape .cell.read{color:var(--ink-3);border-color:var(--line)}
+.tape .cell.head{border-color:var(--blue);background:var(--blue-soft);box-shadow:0 0 0 2px var(--blue-soft)}
+.tape .cell.head::after{content:"▲";position:absolute;top:100%;font-size:.7rem;color:var(--blue);line-height:1.2}
+.tape .cell.eof{border-style:dashed;color:var(--ink-3);font-size:.7rem}
+.tape .ctl{margin-left:auto;display:flex;gap:6px;align-items:center;flex:none;padding-left:12px}
+.trace{font-family:var(--mono);font-size:.86rem;line-height:1.65;display:grid;gap:2px;max-height:360px;overflow:auto}
+.trace .ln{display:grid;grid-template-columns:auto 1fr;gap:10px;padding:2px 6px;border-radius:6px;align-items:baseline}
+.trace .ln.cur{background:var(--blue-soft)}
+.trace .ln.dead{color:var(--ink-3)}
+.trace .ln .why{font-family:var(--font);font-size:.8rem;color:var(--ink-2)}
+.trace .cfg{white-space:nowrap}
+.verdict{margin-top:8px;padding:8px 12px;border-radius:8px;font-weight:600;display:flex;gap:8px;align-items:center}
+.verdict.ok{background:var(--green-soft);color:var(--green)}
+.verdict.bad{background:var(--red-soft);color:var(--red)}
+.verdict.wait{background:var(--paper-3);color:var(--ink-2);font-weight:500}
+.stepper{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 10px;border-top:1px solid var(--line);background:var(--paper-3)}
+.stepper .cnt{font-family:var(--mono);font-size:.8rem;color:var(--ink-2);min-width:60px;text-align:center}
+.explain{padding:10px 14px;border-top:1px solid var(--line);color:var(--ink);font-size:.92rem;min-height:56px}
+.explain .f{font-family:var(--mono);font-size:.86rem;display:block;margin-top:4px;color:var(--blue-ink);white-space:pre-wrap}
+.setpill{display:inline-block;font-family:var(--mono);font-size:.82rem;padding:1px 7px;border-radius:6px;background:var(--paper-3);border:1px solid var(--line);margin:1px}
+.setpill.final{border-color:var(--green);background:var(--green-soft)}
+.setpill.start{border-color:var(--blue)}
+.setpill.hl{background:var(--mark-soft);border-color:var(--mark)}
+.tree{font-family:var(--mono);font-size:.82rem;line-height:1.5;overflow:auto;max-height:360px}
+.tree .node{white-space:nowrap}
+.tree .acc{color:var(--green);font-weight:600}.tree .dead{color:var(--ink-3)}.tree .e{color:var(--blue-ink)}
+.tabs2{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.tabs2 button{border:0;background:none;padding:8px 12px;cursor:pointer;color:var(--ink-2);border-bottom:2px solid transparent;font-weight:500}
+.tabs2 button.on{color:var(--blue-ink);border-bottom-color:var(--blue)}
+.subpane{display:none}.subpane.on{display:block}
+.quant{font-family:var(--mono);font-size:.86rem;display:grid;gap:4px}
+.quant .q{padding:6px 10px;border-radius:6px;border-left:3px solid var(--line-2);background:var(--paper)}
+.quant .q.you{border-left-color:var(--green)}.quant .q.adv{border-left-color:var(--red)}
+.quant .q.cur{background:var(--mark-soft)}
+.quant .who{font-family:var(--font);font-size:.75rem;color:var(--ink-3);margin-left:8px}
+.xyz{font-family:var(--mono);font-size:1.3rem;letter-spacing:.06em;word-break:break-all}
+.xyz .x{background:var(--blue-soft);color:var(--blue-ink)}.xyz .y{background:var(--mark-soft);border-bottom:2px solid var(--mark)}.xyz .z{background:var(--green-soft);color:var(--green)}
+.log{display:grid;gap:6px;font-size:.9rem}
+.log .item{padding:8px 10px;border-radius:8px;background:var(--paper);border:1px solid var(--line)}
+.log .item.win{background:var(--green-soft);border-color:var(--green)}
+.log .item.lose{background:var(--red-soft);border-color:var(--red)}
+.parts{display:grid;gap:6px}
+.parts label{display:flex;gap:8px;align-items:center;font-family:var(--mono);font-size:.85rem}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:.9rem}
+.kv dt{color:var(--ink-3)}.kv dd{margin:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.ref table.tt{font-family:var(--font)}
+.ref table.tt code{font-size:.82rem}
+.gap{border-left:3px solid var(--red);padding-left:10px}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--paper-2);color:var(--ink);padding:0;max-width:min(720px,94vw);box-shadow:var(--shadow)}
+dialog::backdrop{background:rgba(15,21,28,.45)}
+dialog .dh{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line)}
+dialog .dh h3{flex:1}
+dialog .db{padding:12px 16px;max-height:70vh;overflow:auto;display:grid;gap:8px}
+.preset{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;cursor:pointer;background:var(--paper)}
+.preset:hover{border-color:var(--blue)}
+.preset .t{font-weight:500}.preset .s{font-size:.8rem;color:var(--ink-3);grid-column:1/-1}
+.preset .src{font-size:.75rem;color:var(--blue-ink)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:8px 14px;border-radius:8px;font-size:.88rem;z-index:50;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+kbd{border:1px solid var(--line-2);border-bottom-width:2px;border-radius:4px;padding:0 5px;font-size:.78em;background:var(--paper)}
+.tests pre{font-family:var(--mono);font-size:.8rem;white-space:pre-wrap;margin:0;max-height:300px;overflow:auto}
+.ok-t{color:var(--green)}.bad-t{color:var(--red)}
+.note{font-size:.82rem;color:var(--ink-3)}
+svg .st circle.body{fill:var(--paper-2);stroke:var(--ink);stroke-width:1.8}
+svg .st.final circle.ring{fill:none;stroke:var(--ink);stroke-width:1.4}
+svg .st text{font-family:var(--mono);font-size:13px;fill:var(--ink);text-anchor:middle;dominant-baseline:central;pointer-events:none}
+svg .st.hl circle.body{fill:var(--mark-soft);stroke:var(--blue);stroke-width:2.6}
+svg .st.acc circle.body{fill:var(--green-soft);stroke:var(--green);stroke-width:2.6}
+svg .st.rej circle.body{fill:var(--red-soft);stroke:var(--red);stroke-width:2.6}
+svg .st.dim circle.body,svg .st.dim circle.ring{stroke:var(--line-2);stroke-dasharray:3 3}
+svg .st.dim text{fill:var(--ink-3)}
+svg .st.sel circle.body{stroke:var(--blue);stroke-width:3}
+svg .st.g0 circle.body{fill:var(--blue-soft)}svg .st.g1 circle.body{fill:var(--green-soft)}svg .st.g2 circle.body{fill:var(--mark-soft)}svg .st.g3 circle.body{fill:var(--red-soft)}svg .st.g4 circle.body{fill:var(--paper-3)}svg .st.g5 circle.body{fill:#E7D8F5}
+svg .startmark{fill:none;stroke:var(--ink);stroke-width:1.8}
+svg .ed path{fill:none;stroke:var(--ink-2);stroke-width:1.6}
+svg .ed text{font-family:var(--mono);font-size:12.5px;fill:var(--ink);text-anchor:middle;paint-order:stroke;stroke:var(--paper-2);stroke-width:4px;stroke-linejoin:round}
+svg .ed.hl path{stroke:var(--blue);stroke-width:2.8}
+svg .ed.hl text{fill:var(--blue-ink);font-weight:600}
+svg .ed.eps path{stroke-dasharray:5 4}
+svg .ed.dim path{stroke:var(--line-2)}svg .ed.dim text{fill:var(--ink-3)}
+svg .ed.hit path{stroke:transparent;stroke-width:14;marker-end:none;cursor:pointer}
+svg .st{cursor:grab}
+svg .ghost{stroke:var(--blue);stroke-dasharray:4 4;fill:none;stroke-width:1.5}
+@media (max-width:900px){
+  .app{grid-template-columns:1fr}
+  .side{display:none}
+  .chips{display:flex}
+  .brand span{display:none}
+  main{padding:14px 16px 60px}
+  .workspace,.workspace.three{grid-template-columns:1fr}
+  .canvas{height:340px}
+}
+.chip{border:1px solid var(--line-2);background:var(--paper-2);border-radius:999px;padding:4px 11px;font-size:.82rem;white-space:nowrap;cursor:pointer;color:var(--ink-2)}
+.chip.active{background:var(--blue-soft);border-color:var(--blue);color:var(--blue-ink)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="app">
+<header class="topbar">
+  <div class="brand"><b>Finite Automata Lab</b><span>Theory of Computation · Chapter 2</span></div>
+  <div class="chips" id="chips"></div>
+  <div class="grow"></div>
+  <button class="btn sm" id="btn-library">📚 Library</button>
+  <button class="btn sm" id="btn-import">นำเข้า</button>
+  <button class="btn sm" id="btn-export">ส่งออก</button>
+  <button class="btn sm" id="btn-theme" title="สลับธีม">◐</button>
+</header>
+<nav class="side" id="sidenav"><div class="eyebrow">Learning path</div></nav>
+<main id="main">
+
+<!-- ================= M1 EDITOR + SIMULATOR ================= -->
+<section class="module" id="m-editor" data-title="Editor + Simulator" data-sub="วาด automaton แล้วดู string วิ่งทีละ step">
+  <div class="mod-head"><h2>1 · วาด automaton แล้วป้อน string</h2><p class="gist">Automaton คือ "เครื่องอ่านเทป" ที่จำได้แค่ว่าตอนนี้อยู่ state ไหน อ่านสัญลักษณ์ทีละตัวจากซ้ายไปขวา แล้วเปลี่ยน state ตามลูกศร — จบเทปแล้วอยู่ state วงคู่ = <b>accept</b></p></div>
+  <details class="theory"><summary>ทฤษฎี · DFA / NFA / configuration / ⊢</summary><div class="body">
+    <div class="def"><b>DFA</b> M = (K, Σ, δ, s, F) — K = เซตของ state (จำกัด), Σ = alphabet, δ : K × Σ → K <i>ฟังก์ชัน</i> (ทุก state + ทุกสัญลักษณ์ มีทางไปทางเดียวเป๊ะ), s = start, F ⊆ K = final states</div>
+    <div class="def"><b>NFA</b> M = (K, Σ, Δ, s, F) — Δ ⊆ K × (Σ ∪ {e}) × K <i>ความสัมพันธ์</i>: จาก (state, สัญลักษณ์) ไปได้หลายทาง หรือไม่มีทางเลย และมี <b>e-transition</b> = เปลี่ยน state โดยไม่อ่านอะไร</div>
+    <p><b>Configuration</b> (q, ω) = (state ปัจจุบัน, input ที่ยังไม่ได้อ่าน). <b>(q, σω′) ⊢<sub>M</sub> (q′, ω′)</b> เมื่อ δ(q, σ) = q′ ("yields in one step"). ⊢* = ศูนย์ step หรือมากกว่า.</p>
+    <p>ω ถูก <b>accept</b> iff (s, ω) ⊢* (q, e) สำหรับบาง q ∈ F. L(M) = เซตของ string ที่ accept ทั้งหมด. <b>NFA accept ถ้ามี "อย่างน้อยหนึ่ง" เส้นทางที่ไปถึง F</b> — เครื่องเดาถูกเสมอ.</p>
+    <p>ข้อสอบชอบถาม: e ∈ L(M) iff s ∈ F (Problem 2.1.1). DFA ที่ไม่มีทางออกสำหรับบางสัญลักษณ์ = ไม่ complete → เพิ่ม <b>trap/dead state</b> (Example 2.1.2 q₃).</p>
+  </div></details>
+  <div class="workspace">
+    <div class="stage">
+      <div class="bar" id="ed-tools">
+        <button class="btn sm on" data-mode="select" title="ลาก state / คลิกเพื่อเลือก">↖ เลือก/ลาก</button>
+        <button class="btn sm" data-mode="state" title="คลิกพื้นที่ว่างเพื่อเพิ่ม state">＋ State</button>
+        <button class="btn sm" data-mode="trans" title="คลิก state ต้นทาง → state ปลายทาง">→ Transition</button>
+        <button class="btn sm" data-mode="start" title="คลิก state เพื่อตั้งเป็น start">▷ Start</button>
+        <button class="btn sm" data-mode="final" title="คลิก state เพื่อสลับ final">◎ Final</button>
+        <button class="btn sm" data-mode="delete" title="คลิก state/เส้น เพื่อลบ">✕ ลบ</button>
+        <span class="sp"></span>
+        <button class="btn sm" id="ed-layout">จัดวงกลม</button>
+        <button class="btn sm" id="ed-clear">ล้าง</button>
+      </div>
+      <div class="tape" id="ed-tape"></div>
+      <div class="canvas" id="ed-canvas"><div class="hint" id="ed-hint">ลาก state เพื่อจัดวาง · ดับเบิลคลิก state เพื่อเปลี่ยนชื่อ · <kbd>Del</kbd> ลบที่เลือก</div></div>
+      <div class="stepper" id="ed-step"></div>
+      <div class="explain" id="ed-explain">เลือก preset จาก 📚 Library หรือวาดเอง แล้วกด ▶</div>
+    </div>
+    <div class="panel">
+      <div class="card">
+        <h3>นิยาม M <span class="badge" id="ed-badge">—</span></h3>
+        <div class="tuple" id="ed-tuple"></div>
+        <div class="row" style="margin-top:8px">
+          <div class="field" style="flex:1"><label>Σ (คั่นด้วยช่องว่างหรือจุลภาค)</label><input type="text" class="mono" id="ed-alpha" value="a b"></div>
+          <button class="btn sm" id="ed-complete" title="เพิ่ม trap state ให้ทุก (q,σ) มีทางไป">+ trap state</button>
+        </div>
+        <div class="tblwrap" style="margin-top:8px"><table class="tt" id="ed-table"></table></div>
+        <p class="note" style="margin-top:6px">แก้ในตารางได้เลย: พิมพ์ชื่อ state ปลายทาง (NFA คั่นหลายตัวด้วย , ว่าง = ไม่มีทางไป)</p>
+      </div>
+      <div class="card">
+        <h3>Input string</h3>
+        <div class="row">
+          <input type="text" class="mono" id="ed-input" value="aababa" style="flex:1" spellcheck="false">
+          <button class="btn primary" id="ed-run">▶ Run</button>
+        </div>
+        <div class="row" style="margin-top:8px" id="ed-nfaview">
+          <span class="note">มุมมอง NFA:</span>
+          <button class="btn sm on" data-view="set">Active set</button>
+          <button class="btn sm" data-view="tree">Computation tree</button>
+        </div>
+        <div id="ed-verdict" class="verdict wait">ยังไม่ได้รัน</div>
+      </div>
+      <div class="card">
+        <h3>Trace <span class="note">(q, ω) ⊢ (q′, ω′)</span></h3>
+        <div class="trace" id="ed-trace"></div>
+        <div class="tree" id="ed-tree" hidden></div>
+      </div>
+      <div class="card">
+        <h3>ทดสอบหลาย string</h3>
+        <div class="row"><input type="text" class="mono" id="ed-multi-in" placeholder="e, a, ab, aab, ba (คั่นด้วย ,)" style="flex:1"><button class="btn sm" id="ed-multi-run">ทดสอบ</button></div>
+        <div class="tblwrap" style="margin-top:8px"><table class="tt" id="ed-multi"></table></div>
+      </div>
+      <div class="card">
+        <h3>ตรวจกับ RegEx <span class="note">brute-force ทุก string ยาว ≤ 7</span></h3>
+        <div class="row"><input type="text" class="mono" id="ed-cmp-in" placeholder="เช่น (a ∪ b*a)*  หรือพิมพ์ | แทน ∪" style="flex:1"><button class="btn sm" id="ed-cmp-run">ตรวจ</button></div>
+        <div id="ed-cmp-out" class="note" style="margin-top:6px"></div>
+      </div>
+      <div class="card">
+        <h3>ส่งไปทำต่อ</h3>
+        <div class="row">
+          <button class="btn sm" data-send="powerset">→ NFA→DFA</button>
+          <button class="btn sm" data-send="minimize">→ Minimize</button>
+          <button class="btn sm" data-send="regex">→ FA→RegEx</button>
+          <button class="btn sm" data-send="pumping">→ Pumping</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= M2 POWERSET ================= -->
+<section class="module" id="m-powerset" data-title="NFA → DFA" data-sub="Powerset construction ทีละ cell">
+  <div class="mod-head"><h2>2 · NFA → DFA (Powerset construction)</h2><p class="gist">NFA "อยู่หลาย state พร้อมกัน" ได้ — งั้นก็ให้ <b>เซตของ state</b> ทั้งเซตนั้นเป็น state ใหม่ตัวเดียวของ DFA ("superstate") แล้วคำนวณว่าเมื่ออ่านสัญลักษณ์ เซตนั้นย้ายไปเป็นเซตไหน</p></div>
+  <details class="theory"><summary>ทฤษฎี · Theorem 2.2.1 (Rabin–Scott 1959)</summary><div class="body">
+    <div class="def"><b>E(q)</b> (e-Closure) = {p | (q, e) ⊢* (p, e)} = ทุก state ที่ไปถึงจาก q โดยไม่อ่านอะไรเลย (รวม q เอง). คำนวณโดยวนเพิ่ม r ที่มี (p, e, r) ∈ Δ กับ p ∈ E(q) จนไม่มีอะไรเพิ่ม (≤ |K| รอบ)</div>
+    <div class="def">M′ = (K′, Σ, δ′, s′, F′): K′ = 2<sup>K</sup>, s′ = E(s), F′ = {Q ⊆ K | Q ∩ F ≠ ∅}, <b>δ′(Q, σ) = ⋃{ E(p) | q ∈ Q, (q, σ, p) ∈ Δ }</b></div>
+    <p>แนวคิดพิสูจน์ (induction on |ω|): (q, ω) ⊢*<sub>M</sub> (p, e) iff (E(q), ω) ⊢*<sub>M′</sub> (P, e) โดย p ∈ P. ดังนั้น ω ∈ L(M) iff s′ ไปถึง P ∈ F′ iff ω ∈ L(M′).</p>
+    <p>สร้างเฉพาะ superstate ที่ <b>ไปถึงได้จาก s′</b> (worklist) — ไม่ต้องสร้างทั้ง 2<sup>|K|</sup>. แต่ worst case ยังเป็น exponential จริง (Example 2.2.5: ภาษา "มีสัญลักษณ์บางตัวไม่ปรากฏ" NFA n+1 state → DFA ต้องมี 2<sup>n</sup> state).</p>
+  </div></details>
+  <div class="workspace">
+    <div class="panel">
+      <div class="stage"><div class="bar"><b>NFA ต้นทาง</b><span class="sp"></span><button class="btn sm" id="ps-from-editor">ใช้จาก Editor</button><button class="btn sm" id="ps-lib">📚</button></div><div class="canvas short" id="ps-src"></div></div>
+      <div class="card"><h3>ขั้น A · ตาราง e-Closure <span class="badge mark" id="ps-conv"></span></h3><div class="tblwrap"><table class="tt" id="ps-closure"></table></div></div>
+      <div class="card"><h3>ขั้น B · Powerset transition table</h3><div class="tblwrap"><table class="tt" id="ps-table"></table></div></div>
+    </div>
+    <div class="stage">
+      <div class="bar"><b>ขั้น C · DFA ผลลัพธ์</b><span class="sp"></span><button class="btn sm" id="ps-to-editor">→ Editor</button><button class="btn sm" id="ps-to-min">→ Minimize</button></div>
+      <div class="canvas tall" id="ps-out"></div>
+      <div class="stepper" id="ps-step"></div>
+      <div class="explain" id="ps-explain"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= M3 MINIMIZE ================= -->
+<section class="module" id="m-minimize" data-title="DFA Minimization" data-sub="รวม state ที่แยกกันไม่ออก">
+  <div class="mod-head"><h2>3 · ย่อ DFA ให้เล็กที่สุด</h2><p class="gist">สอง state "เหมือนกัน" ถ้าไม่ว่าจะป้อน string อะไรต่อจากนี้ ผลลัพธ์ accept/reject เหมือนกันเสมอ — เริ่มจากแบ่งเป็น 2 กลุ่ม (final / ไม่ final) แล้วค่อย ๆ <b>แยกกลุ่ม</b> เมื่อเจอสัญลักษณ์ที่พาไปคนละกลุ่ม จนแยกไม่ได้อีก</p></div>
+  <details class="theory"><summary>ทฤษฎี · ≡ₙ, Lemma 2.5.1, Myhill–Nerode</summary><div class="body">
+    <div class="def">L′<sub>p</sub> = ภาษาที่ accept ถ้าเริ่มจาก p. <b>p ≡ q</b> iff L′<sub>p</sub> = L′<sub>q</sub>. <b>p ≡<sub>n</sub> q</b> iff เหมือนกันสำหรับทุก string ยาว ≤ n. ≡₀ ⊇ ≡₁ ⊇ … ⊇ ≡ และเพราะ K จำกัด จึงหยุดนิ่งภายใน |K|−1 รอบ</div>
+    <div class="def"><b>Lemma 2.5.1</b> p ≡<sub>n+1</sub> q iff (a) p ≡<sub>n</sub> q และ (b) ทุก a ∈ Σ: δ(p,a) ≡<sub>n</sub> δ(q,a) — นี่คือกฎที่ใช้ "แยกกลุ่ม" แต่ละรอบ</div>
+    <p><b>Myhill–Nerode (Theorem 2.5.2)</b>: x ≈<sub>L</sub> y iff ทุก z: xz ∈ L ⇔ yz ∈ L. จำนวน class ของ ≈<sub>L</sub> = จำนวน state ต่ำสุดที่เป็นไปได้ และ L regular iff class มีจำกัด — ใช้พิสูจน์ว่า aⁿbⁿ ไม่ regular ได้อีกทาง ([e],[a],[aa],… ไม่ซ้ำกันเลย). <span class="gap">ไม่มีในสไลด์ แต่มีใน textbook หน้า 96–98</span></p>
+    <p>ก่อน minimize ต้อง (1) ลบ state ที่ไปไม่ถึงจาก s และ (2) ทำให้ complete (มี trap) เพราะ algorithm ใช้ δ(q,a) ทุกคู่. Algorithm นี้ polynomial: O(|K|²·|Σ|·|K|).</p>
+  </div></details>
+  <div class="workspace">
+    <div class="panel">
+      <div class="stage"><div class="bar"><b>DFA ต้นทาง</b><span class="sp"></span><button class="btn sm" id="mn-from-editor">ใช้จาก Editor</button><button class="btn sm" id="mn-lib">📚</button></div><div class="canvas short" id="mn-src"></div></div>
+      <div class="card"><h3>ขั้น 1 · ลบ state ที่ไปไม่ถึง</h3><div id="mn-unreach" class="note"></div></div>
+      <div class="card"><h3>ขั้น 2–3 · แบ่งกลุ่ม ≡₀ แล้ว refine</h3><div class="tblwrap"><table class="tt" id="mn-part"></table></div></div>
+    </div>
+    <div class="stage">
+      <div class="bar"><b>ขั้น 4 · DFA ที่ย่อแล้ว</b><span class="sp"></span><button class="btn sm" id="mn-to-editor">→ Editor</button></div>
+      <div class="canvas tall" id="mn-out"></div>
+      <div class="stepper" id="mn-step"></div>
+      <div class="explain" id="mn-explain"></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:14px"><h3>ตรวจว่า 2 DFA equivalent ไหม</h3>
+    <div class="row"><select id="eq-a" style="max-width:260px"></select><span>vs</span><select id="eq-b" style="max-width:260px"></select><button class="btn sm" id="eq-run">เปรียบเทียบ</button></div>
+    <div id="eq-out" class="note" style="margin-top:6px">ย่อทั้งคู่แล้วเทียบโครงสร้างจาก start (textbook หน้า 104) — ถ้าไม่เท่ากันจะบอก string ที่แยกได้</div>
+  </div>
+</section>
+
+<!-- ================= M4 REGEX ================= -->
+<section class="module" id="m-regex" data-title="RegEx ↔ FA" data-sub="Thompson construction / State elimination">
+  <div class="mod-head"><h2>4 · Regular expression ↔ Finite automaton</h2><p class="gist">Theorem 2.3.2: ภาษาเป็น regular <b>iff</b> มี FA accept — สองทิศ: RegEx → NFA สร้างจากชิ้นเล็กประกอบใหญ่ (union/concat/star) และ FA → RegEx โดย "ลบ state ทีละตัว" แล้วเขียนฉลากเส้นเป็น regex แทน</p></div>
+  <details class="theory"><summary>ทฤษฎี · Theorem 2.3.1 (closure) · R(i,j,k) · state elimination</summary><div class="body">
+    <div class="def"><b>RegEx → NFA</b> (Figure 2-14): สัญลักษณ์เดี่ยว = 2 state; <b>concat</b> M₁M₂ = e จากทุก F₁ → s₂; <b>union</b> = s ใหม่ + e → s₁, s₂; <b>star</b> = s ใหม่ (เป็น final ด้วย ให้ accept e) + e → s₁ + e จากทุก F₁ กลับไป s₁</div>
+    <div class="def"><b>FA → RegEx</b>: R(i,j,k) = string ทั้งหมดที่พาจาก qᵢ ไป qⱼ โดยผ่านเฉพาะ state หมายเลข ≤ k. <b>R(i,j,k) = R(i,j,k−1) ∪ R(i,k,k−1)·R(k,k,k−1)*·R(k,j,k−1)</b> (ไปตรง ๆ หรือ แวะ qₖ กี่รอบก็ได้). L(M) = ⋃ R(1,j,n) สำหรับ qⱼ ∈ F</p></div>
+    <p>ในทางปฏิบัติใช้ <b>state elimination</b> (Example 2.3.2): ทำ "special form" (s ใหม่ที่ไม่มีลูกศรเข้า, f ใหม่ตัวเดียวที่ไม่มีลูกศรออก) แล้วลบ state q ทีละตัว: ทุกคู่ qᵢ →α q →β qⱼ (γ = loop ที่ q) เพิ่มเส้น qᵢ → qⱼ ฉลาก <b>δ ∪ αγ*β</b> (Figure 2-17). เหลือ s → f เส้นเดียว = คำตอบ. ลำดับการลบต่างกัน → regex หน้าตาต่างแต่ภาษาเดียวกัน.</p>
+    <p>ทำไม complement ต้องเป็น DFA? (Problem 2.3.1) เพราะสลับ F ↔ K−F ใน NFA ผิด: string ที่มีทั้ง path accept และ path reject จะถูก accept ทั้งก่อนและหลังสลับ.</p>
+  </div></details>
+  <div class="tabs2"><button class="on" data-sub="rx">RegEx → NFA</button><button data-sub="se">FA → RegEx (state elimination)</button></div>
+  <div class="subpane on" id="sub-rx">
+    <div class="workspace">
+      <div class="panel">
+        <div class="card"><h3>Regular expression</h3>
+          <div class="row"><input type="text" class="mono" id="rx-in" value="(ab ∪ aab)*" style="flex:1" spellcheck="false"><button class="btn primary" id="rx-build">สร้าง</button></div>
+          <p class="note" style="margin-top:6px">ใช้ได้: สัญลักษณ์ตัวเดียว, <code>e</code> (empty string), <code>∅</code>, <code>∪</code> หรือ <code>|</code> หรือ <code>U</code>, <code>*</code>, วงเล็บ. ตัวอย่าง: <code>a*ba*b</code>, <code>(a ∪ b*a)*</code></p>
+          <div id="rx-ast" class="tree" style="margin-top:8px"></div>
+        </div>
+        <div class="card"><h3>ขั้นตอนประกอบ (stage)</h3><div id="rx-stages" class="log"></div></div>
+      </div>
+      <div class="stage"><div class="bar"><b>NFA ที่สร้าง</b><span class="sp"></span><button class="btn sm" id="rx-to-editor">→ Editor</button><button class="btn sm" id="rx-to-ps">→ NFA→DFA</button></div><div class="canvas tall" id="rx-canvas"></div><div class="stepper" id="rx-step"></div><div class="explain" id="rx-explain"></div></div>
+    </div>
+  </div>
+  <div class="subpane" id="sub-se">
+    <div class="workspace">
+      <div class="stage">
+        <div class="bar"><b>Generalized automaton</b> <span class="note">คลิก state เพื่อลบ</span><span class="sp"></span><button class="btn sm" id="se-from-editor">ใช้จาก Editor</button><button class="btn sm" id="se-lib">📚</button><button class="btn sm" id="se-auto">ลบอัตโนมัติทั้งหมด</button><button class="btn sm" id="se-reset">เริ่มใหม่</button></div>
+        <div class="canvas tall" id="se-canvas"></div>
+        <div class="explain" id="se-explain"></div>
+      </div>
+      <div class="panel">
+        <div class="card"><h3>บันทึกการลบ</h3><div id="se-log" class="log"></div></div>
+        <div class="card"><h3>ผลลัพธ์</h3><div class="mono" id="se-result" style="font-size:1.05rem;word-break:break-all">—</div><div class="row" style="margin-top:8px"><button class="btn sm" id="se-check">ตรวจว่า L(regex) = L(M)</button></div><div id="se-check-out" class="note" style="margin-top:6px"></div></div>
+        <div class="card"><h3>ตาราง R(i, j, k) <span class="note">สำหรับดูสูตร recursion</span></h3>
+          <div class="row"><label class="note">k =</label><input type="text" class="mono" id="rk-k" value="0" style="width:60px"><button class="btn sm" id="rk-show">แสดง</button></div>
+          <div class="tblwrap" style="margin-top:8px"><table class="tt" id="rk-table"></table></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= M5 CLOSURE ================= -->
+<section class="module" id="m-closure" data-title="Closure properties" data-sub="union · concat · star · complement · ∩">
+  <div class="mod-head"><h2>5 · Closure properties</h2><p class="gist">Theorem 2.3.1: เอาภาษา regular มา union / ต่อกัน / star / complement / intersect ก็ยังได้ภาษา regular — พิสูจน์ด้วยการ <b>ประกอบเครื่องใหม่จากเครื่องเดิม</b> ทุกข้อ</p></div>
+  <details class="theory"><summary>ทฤษฎี · การสร้างแต่ละ op</summary><div class="body">
+    <p><b>Union</b> (Fig 2-11): s ใหม่, Δ = Δ₁ ∪ Δ₂ ∪ {(s,e,s₁),(s,e,s₂)}, F = F₁ ∪ F₂ — เครื่อง "เดา" ว่า input อยู่ใน L₁ หรือ L₂. <b>Concat</b> (Fig 2-12): e จากทุก f ∈ F₁ → s₂, F = F₂. <b>Star</b> (Fig 2-13): s ใหม่ ∈ F, (s,e,s₁), e จาก F₁ → s₁ — ทำไมต้องมี s ใหม่? ถ้าแค่ทำ s₁ เป็น final อาจรับ string ผิด (Problem 2.3.2).</p>
+    <p><b>Complement</b>: ต้องเป็น DFA <i>complete</i> แล้วสลับ F ↔ K−F. <b>Intersection</b>: L₁ ∩ L₂ = <span class="mono">¬(¬L₁ ∪ ¬L₂)</span> (De Morgan) หรือสร้างตรง ๆ ด้วย product K₁ × K₂ (Problem 2.3.3) ซึ่งเห็นภาพกว่า: เครื่องรันสองเครื่องพร้อมกัน accept เมื่อทั้งคู่ accept.</p>
+  </div></details>
+  <div class="row" style="margin-bottom:12px">
+    <div class="field"><label>M₁</label><select id="cl-a" style="min-width:220px"></select></div>
+    <div class="field"><label>M₂</label><select id="cl-b" style="min-width:220px"></select></div>
+    <div class="field"><label>Operation</label><div class="row" id="cl-ops">
+      <button class="btn sm on" data-op="union">L₁ ∪ L₂</button><button class="btn sm" data-op="concat">L₁ · L₂</button><button class="btn sm" data-op="star">L₁*</button><button class="btn sm" data-op="complement">¬L₁</button><button class="btn sm" data-op="product">L₁ ∩ L₂ (product)</button><button class="btn sm" data-op="demorgan">L₁ ∩ L₂ (De Morgan)</button>
+    </div></div>
+  </div>
+  <div class="workspace three">
+    <div class="stage"><div class="bar"><b>M₁</b></div><div class="canvas short" id="cl-ca"></div></div>
+    <div class="stage"><div class="bar"><b>M₂</b></div><div class="canvas short" id="cl-cb"></div></div>
+    <div class="stage"><div class="bar"><b>M</b><span class="sp"></span><button class="btn sm" id="cl-to-editor">→ Editor</button></div><div class="canvas short" id="cl-out"></div></div>
+  </div>
+  <div class="card" style="margin-top:14px"><h3>อธิบายการสร้าง</h3><div id="cl-explain"></div>
+    <div class="row" style="margin-top:10px"><input type="text" class="mono" id="cl-test" placeholder="ทดสอบ string (คั่นด้วย ,) เช่น e, ab, ba, abab" style="flex:1"><button class="btn sm" id="cl-test-run">ทดสอบทั้ง 3 เครื่อง</button></div>
+    <div class="tblwrap" style="margin-top:8px"><table class="tt" id="cl-test-out"></table></div>
+  </div>
+</section>
+
+<!-- ================= M6 PUMPING ================= -->
+<section class="module" id="m-pumping" data-title="Pumping Theorem" data-sub="เกมพิสูจน์ว่า L ไม่ regular">
+  <div class="mod-head"><h2>6 · Pumping Theorem — เล่นเป็นเกม</h2><p class="gist">DFA มี state จำกัด n ตัว ดังนั้น string ยาว ≥ n ต้อง "วนกลับมา state เดิม" (pigeonhole) — ส่วนที่วน (y) จะปั๊มซ้ำกี่รอบก็ยัง accept. ถ้าหา string ที่ปั๊มแล้วหลุดจากภาษาได้ → ภาษานั้น<b>ไม่ regular</b></p></div>
+  <details class="theory"><summary>ทฤษฎี · Theorem 2.4.1 + วิธีใช้</summary><div class="body">
+    <div class="def">L regular ⇒ ∃ n ≥ 1 ที่ ทุก ω ∈ L, |ω| ≥ n เขียนได้เป็น ω = xyz โดย y ≠ e, |xy| ≤ n และ xy<sup>i</sup>z ∈ L ทุก i ≥ 0</div>
+    <p>พิสูจน์: n = |K|. อ่าน n ตัวแรกของ ω ผ่าน n+1 configuration แต่มีแค่ n state → มี i &lt; j ที่ qᵢ = qⱼ. y = ωᵢ₊₁…ωⱼ พา qᵢ กลับมา qᵢ จึงตัดออก/ซ้ำได้ไม่จำกัด.</p>
+    <p><b>ใช้พิสูจน์ "ไม่ regular" เท่านั้น</b> (contrapositive). เป็นเกม: คู่แข่งให้ n → คุณเลือก ω → คู่แข่งแบ่ง xyz (ตามกติกา) → คุณเลือก i → ชนะถ้า xy<sup>i</sup>z ∉ L. ต้องชนะได้ <i>ทุก</i> วิธีแบ่งของคู่แข่ง.</p>
+    <p>ตัวอย่างสไลด์: aⁿbⁿ → y = a<sup>n−k</sup> อยู่ในกลุ่ม a ล้วน (เพราะ |xy| ≤ n) → xy<sup>p</sup>z = a<sup>k+p(n−k)</sup>bⁿ จำนวน a ≠ n. Example 2.4.4: "จำนวน a = b" ใช้ closure ช่วย: ถ้า regular แล้ว L ∩ a*b* = aⁿbⁿ ต้อง regular ด้วย — ขัดแย้ง.</p>
+  </div></details>
+  <div class="workspace">
+    <div class="panel">
+      <div class="card"><h3>เลือกภาษา</h3><select id="pg-lang"></select><p class="note" id="pg-lang-note" style="margin-top:6px"></p>
+        <div class="row" style="margin-top:8px"><span class="note">บทบาทของคุณ:</span><button class="btn sm on" data-role="prover">Prover (พิสูจน์ว่าไม่ regular)</button><button class="btn sm" data-role="adversary">Adversary (แบ่ง xyz เอง)</button></div></div>
+      <div class="card"><h3>Theorem อ่านเป็น 5 บรรทัด</h3><div class="quant" id="pg-quant"></div></div>
+    </div>
+    <div class="panel">
+      <div class="card"><h3>กระดานเกม</h3><div id="pg-game" class="log"></div></div>
+      <div class="card"><h3>Pigeonhole บน DFA จริง</h3><p class="note">เลือก DFA แล้วป้อน string ยาว ≥ |K| — จะชี้ configuration ที่ state ซ้ำ = y ที่ปั๊มได้</p>
+        <div class="row" style="margin-top:8px"><select id="pg-dfa" style="flex:1"></select><input type="text" class="mono" id="pg-w" placeholder="string" style="width:140px"><button class="btn sm" id="pg-find">หา cycle</button></div>
+        <div id="pg-pigeon" class="trace" style="margin-top:8px"></div>
+      </div>
+    </div>
+  </div>
+  <div class="stage" style="margin-top:14px"><div class="bar"><b>DFA สำหรับ pigeonhole</b></div><div class="canvas short" id="pg-canvas"></div></div>
+</section>
+
+<!-- ================= M7 REFERENCE ================= -->
+<section class="module ref" id="m-ref" data-title="Reference" data-sub="สรุป · complexity · glossary · exercises">
+  <div class="mod-head"><h2>7 · Reference</h2><p class="gist">สรุปทุกอย่างที่ต้องจำ + สิ่งที่อยู่ใน textbook แต่ไม่อยู่ในสไลด์</p></div>
+  <div class="grid2">
+    <div class="card"><h3>Theorem 2.6.1 · Algorithms & complexity</h3><div class="tblwrap"><table class="tt">
+      <tr><th>ปัญหา</th><th>Algorithm</th><th>Complexity</th></tr>
+      <tr><td>NFA → DFA</td><td>Powerset (module 2)</td><td><b>Exponential</b> O(2<sup>|K|</sup>·|Δ|·|K|²) — จำเป็น (Ex 2.2.5)</td></tr>
+      <tr><td>RegEx → NFA</td><td>Thompson (module 4a)</td><td>Polynomial: ≤ 2|R| states, ≤ 4|R|² transitions</td></tr>
+      <tr><td>NFA → RegEx</td><td>R(i,j,k) / state elimination (4b)</td><td><b>Exponential</b> (regex ยาวถึง 3<sup>|K|</sup>)</td></tr>
+      <tr><td>DFA → minimal DFA</td><td>Partition refinement (module 3)</td><td>Polynomial (≤ |K|−1 รอบ)</td></tr>
+      <tr><td>DFA₁ ≡ DFA₂ ?</td><td>Minimize ทั้งคู่แล้วเทียบ</td><td>Polynomial</td></tr>
+      <tr><td>NFA₁ ≡ NFA₂ ? / RegEx ≡ RegEx ?</td><td>แปลงเป็น DFA ก่อน</td><td><b>Exponential</b> (ไม่รู้ว่าทำดีกว่านี้ได้ไหม — Ch.7)</td></tr>
+      <tr><td>ω ∈ L(DFA) ?</td><td>รันตรง ๆ (Thm 2.6.2)</td><td>O(|ω|)</td></tr>
+      <tr><td>ω ∈ L(NFA) ?</td><td>Active-set simulation (Thm 2.6.3) — พื้นฐานของ grep</td><td>O(|K|²·|ω|)</td></tr>
+    </table></div></div>
+    <div class="card"><h3>Glossary</h3><dl class="kv">
+      <dt><code>K, Σ, s, F</code></dt><dd>states, alphabet, start, finals</dd>
+      <dt><code>δ</code> vs <code>Δ</code></dt><dd>δ ฟังก์ชัน (DFA) — Δ ความสัมพันธ์ (NFA) มี e ได้</dd>
+      <dt><code>e</code></dt><dd>empty string (หนังสือใช้ e ไม่ใช่ ε)</dd>
+      <dt><code>(q, ω)</code></dt><dd>configuration = (state, input ที่เหลือ)</dd>
+      <dt><code>⊢ / ⊢*</code></dt><dd>yields in one step / ในศูนย์หรือหลาย step</dd>
+      <dt><code>E(q)</code></dt><dd>e-Closure ของ q</dd>
+      <dt><code>2<sup>K</sup></code></dt><dd>power set — เซตของทุก subset ของ K</dd>
+      <dt><code>≡ / ≡ₙ</code></dt><dd>state equivalence (ทุก string / ยาว ≤ n)</dd>
+      <dt><code>≈<sub>L</sub></code></dt><dd>string equivalence w.r.t. L (Myhill–Nerode)</dd>
+      <dt><code>R(i,j,k)</code></dt><dd>strings จาก qᵢ → qⱼ ผ่าน state หมายเลข ≤ k</dd>
+      <dt>trap / dead state</dt><dd>state ที่เข้าแล้วออกไม่ได้และไม่ใช่ final</dd>
+      <dt>reachable</dt><dd>มี ω ที่ (s, ω) ⊢* (q, e)</dd>
+    </dl></div>
+    <div class="card"><h3>อยู่ใน textbook แต่ไม่อยู่ในสไลด์ <span class="badge red">ระวังออกสอบ</span></h3><ul style="margin:0;padding-left:18px;display:grid;gap:6px">
+      <li><b>Myhill–Nerode Theorem</b> (§2.5) — lower bound จำนวน state + วิธีพิสูจน์ non-regular อีกแบบ</li>
+      <li><b>Direct NFA simulation</b> O(|K|²|ω|) (Thm 2.6.3, Example 2.6.1 รัน aaaba)</li>
+      <li><b>String matching</b> อัตโนมัติจาก pattern x (Fig 2-25) → KMP (Problem 2.6.3)</li>
+      <li>Finite-state transducer, 2-tape FA, 2-way FA (Problems 2.1.4, 2.1.5, 2.5.4) — 2-way ไม่เพิ่มพลัง</li>
+      <li>Regular language ที่ density ต้องเป็น polynomial หรือ exponential เท่านั้น (Problem 2.4.13)</li>
+      <li>สไลด์เขียน "For each NFA there exists an equivalent DFA" — textbook ย้ำว่า construction เป็น <b>constructive</b> (ได้ algorithm จริง)</li>
+    </ul></div>
+    <div class="card"><h3>แบบฝึกหัดที่อาจารย์สั่ง</h3><div class="parts" id="ref-ex"></div></div>
+    <div class="card tests"><h3>Self-test ของเว็บนี้ <button class="btn sm" id="btn-tests">รัน runTests()</button></h3><p class="note">เทียบทุก algorithm กับ worked example ในสไลด์/textbook (Figure 2-9, 2-20, 2-15, trace aababa ฯลฯ)</p><pre id="tests-out" style="margin-top:8px"></pre></div>
+  </div>
+</section>
+
+</main>
+</div>
+
+<dialog id="dlg-library"><div class="dh"><h3>📚 Library — automata จากสไลด์และ textbook</h3><button class="btn sm" id="dlg-lib-close">ปิด</button></div><div class="db" id="dlg-lib-body"></div></dialog>
+<dialog id="dlg-sym"><div class="dh"><h3 id="dlg-sym-title">สัญลักษณ์บนเส้น</h3></div><div class="db"><p class="note">พิมพ์สัญลักษณ์ คั่นด้วยจุลภาค เช่น <code>a, b</code> — ใช้ <code>e</code> สำหรับ empty transition</p><input type="text" class="mono" id="dlg-sym-in" value="a"><div class="row"><button class="btn primary" id="dlg-sym-ok">ตกลง</button><button class="btn" id="dlg-sym-cancel">ยกเลิก</button></div></div></dialog>
+<div class="toast" id="toast"></div>

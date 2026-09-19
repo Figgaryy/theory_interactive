@@ -1,0 +1,2099 @@
+<title>Finite Automata Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&display=swap">
+<style>
+:root{
+  --paper:#F3F5F7; --paper-2:#FFFFFF; --paper-3:#E9EDF2; --line:#D3DAE3; --line-2:#B9C3CF;
+  --ink:#1B2430; --ink-2:#4A5668; --ink-3:#7A8797;
+  --blue:#1F5FBF; --blue-ink:#154A99; --blue-soft:#DCE8FA;
+  --red:#C8322B; --red-soft:#FADCDA;
+  --green:#1E8A4C; --green-soft:#D8F0E2;
+  --mark:#F5D44A; --mark-soft:#FBF0B8;
+  --grid:rgba(31,95,191,.10);
+  --shadow:0 1px 2px rgba(27,36,48,.06),0 8px 24px rgba(27,36,48,.06);
+  --r:10px; --font:'IBM Plex Sans Thai',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#0F151C; --paper-2:#172029; --paper-3:#1F2A35; --line:#2A3542; --line-2:#3A4757;
+  --ink:#E6EBF0; --ink-2:#A7B3C2; --ink-3:#7D8A9A;
+  --blue:#7FB0F5; --blue-ink:#A9CBFA; --blue-soft:#1E3352;
+  --red:#F08A83; --red-soft:#4A2323;
+  --green:#5CCB8A; --green-soft:#1D3A2A;
+  --mark:#E2C24A; --mark-soft:#4A3F14;
+  --grid:rgba(127,176,245,.09);
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+}}
+:root[data-theme="dark"]{
+  --paper:#0F151C; --paper-2:#172029; --paper-3:#1F2A35; --line:#2A3542; --line-2:#3A4757;
+  --ink:#E6EBF0; --ink-2:#A7B3C2; --ink-3:#7D8A9A;
+  --blue:#7FB0F5; --blue-ink:#A9CBFA; --blue-soft:#1E3352;
+  --red:#F08A83; --red-soft:#4A2323;
+  --green:#5CCB8A; --green-soft:#1D3A2A;
+  --mark:#E2C24A; --mark-soft:#4A3F14;
+  --grid:rgba(127,176,245,.09);
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+code,.mono,kbd{font-family:var(--mono);font-size:.93em}
+h1,h2,h3{margin:0;line-height:1.25;text-wrap:balance;font-weight:600}
+h2{font-size:1.35rem}h3{font-size:1.02rem}
+p{margin:0}
+a{color:var(--blue)}
+.app{display:grid;grid-template-columns:232px 1fr;grid-template-rows:auto 1fr;min-height:100%}
+.topbar{grid-column:1/-1;position:sticky;top:env(safe-area-inset-top,0px);z-index:20;display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--paper-2);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:baseline;gap:8px;white-space:nowrap}
+.brand b{font-size:1.05rem;letter-spacing:-.01em}
+.brand span{color:var(--ink-3);font-size:.8rem}
+.topbar .grow{flex:1}
+.chips{display:none;gap:6px;overflow-x:auto;scrollbar-width:none;flex:1}
+.chips::-webkit-scrollbar{display:none}
+.side{border-right:1px solid var(--line);padding:16px 12px;background:var(--paper-2);position:sticky;top:56px;align-self:start;height:calc(100vh - 56px);overflow:auto}
+.side .eyebrow{font-size:.7rem;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-3);padding:0 8px 8px}
+.navbtn{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;border:0;background:none;padding:9px 8px;border-radius:8px;cursor:pointer;color:var(--ink-2)}
+.navbtn .n{font-family:var(--mono);font-size:.75rem;color:var(--ink-3);min-width:14px;padding-top:3px}
+.navbtn .t{font-weight:500;color:var(--ink)}
+.navbtn .s{display:block;font-size:.76rem;color:var(--ink-3);line-height:1.35}
+.navbtn:hover{background:var(--paper-3)}
+.navbtn.active{background:var(--blue-soft)}
+.navbtn.active .t,.navbtn.active .n{color:var(--blue-ink)}
+main{padding:20px 20px 60px;min-width:0}
+.module{display:none;max-width:1400px}
+.module.active{display:block}
+.mod-head{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 20px;margin-bottom:14px}
+.mod-head .gist{color:var(--ink-2);max-width:62ch}
+.theory{margin:0 0 14px;border:1px solid var(--line);border-radius:var(--r);background:var(--paper-2)}
+.theory summary{cursor:pointer;padding:10px 14px;font-weight:500;color:var(--blue-ink);list-style:none;display:flex;gap:8px;align-items:center}
+.theory summary::before{content:"▸";font-size:.8em;transition:transform .15s}
+.theory[open] summary::before{transform:rotate(90deg)}
+.theory .body{padding:0 16px 14px;color:var(--ink-2);display:grid;gap:8px;max-width:80ch}
+.theory .body p{max-width:75ch}
+.def{border-left:3px solid var(--mark);background:var(--mark-soft);padding:8px 12px;border-radius:0 6px 6px 0;color:var(--ink)}
+.workspace{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(300px,.85fr);gap:16px;align-items:start}
+.workspace.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.stage{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;min-width:0}
+.stage .bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line);background:var(--paper-2)}
+.stage .bar .sp{flex:1}
+.stage .cap{font-size:.78rem;color:var(--ink-3);padding:6px 12px;border-top:1px solid var(--line)}
+.canvas{position:relative;background-color:var(--paper-2);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:24px 24px;height:420px;touch-action:none;user-select:none}
+.canvas.short{height:300px}.canvas.tall{height:520px}
+.canvas svg{width:100%;height:100%;display:block;cursor:default}
+.canvas .hint{position:absolute;left:12px;bottom:10px;font-size:.75rem;color:var(--ink-3);pointer-events:none;background:var(--paper-2);padding:2px 8px;border-radius:6px;border:1px solid var(--line)}
+.panel{display:grid;gap:12px;min-width:0}
+.card{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;min-width:0}
+.card h3{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.card h3 .badge{margin-left:auto}
+.btn{border:1px solid var(--line-2);background:var(--paper-2);border-radius:8px;padding:6px 11px;cursor:pointer;font-weight:500;font-size:.88rem;display:inline-flex;align-items:center;gap:6px;color:var(--ink);white-space:nowrap}
+.btn:hover{background:var(--paper-3)}
+.btn:focus-visible,.navbtn:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.primary:hover{background:var(--blue-ink)}
+:root[data-theme="dark"] .btn.primary,:root:not([data-theme="light"]) .btn.primary{color:#0F151C}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]) .btn.primary{color:#fff}}
+:root[data-theme="light"] .btn.primary{color:#fff}
+.btn.on{background:var(--blue-soft);border-color:var(--blue);color:var(--blue-ink)}
+.btn.sm{padding:3px 8px;font-size:.8rem}
+.btn.danger{color:var(--red);border-color:var(--red)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.field{display:grid;gap:4px}
+.field label{font-size:.78rem;color:var(--ink-3)}
+input[type=text],select,textarea{border:1px solid var(--line-2);background:var(--paper);border-radius:8px;padding:6px 10px;min-width:0;width:100%}
+input.mono{font-family:var(--mono)}
+.badge{font-size:.72rem;padding:2px 8px;border-radius:999px;border:1px solid var(--line-2);color:var(--ink-2);font-weight:500;white-space:nowrap}
+.badge.blue{background:var(--blue-soft);color:var(--blue-ink);border-color:transparent}
+.badge.red{background:var(--red-soft);color:var(--red);border-color:transparent}
+.badge.green{background:var(--green-soft);color:var(--green);border-color:transparent}
+.badge.mark{background:var(--mark-soft);color:var(--ink);border-color:transparent}
+.tuple{font-family:var(--mono);font-size:.85rem;line-height:1.7;overflow-x:auto;white-space:nowrap}
+.tuple .k{color:var(--blue-ink)}
+table.tt{border-collapse:collapse;font-family:var(--mono);font-size:.85rem;width:100%}
+table.tt th,table.tt td{border:1px solid var(--line);padding:4px 8px;text-align:left;vertical-align:top}
+table.tt th{background:var(--paper-3);font-weight:500;color:var(--ink-2)}
+table.tt td.st{font-weight:500}
+table.tt tr.hl td{background:var(--mark-soft)}
+table.tt tr.cur td{background:var(--blue-soft)}
+table.tt td.mk{background:var(--mark-soft)}
+table.tt td.ok{background:var(--green-soft)}
+table.tt td.bad{background:var(--red-soft)}
+table.tt td.dim{color:var(--ink-3)}
+table.tt input{width:100%;border:0;background:transparent;padding:2px 0;font-family:var(--mono)}
+.tblwrap{overflow-x:auto}
+.tape{display:flex;align-items:flex-end;gap:2px;padding:10px 12px 14px;background:var(--paper-2);border-bottom:1px solid var(--line);overflow-x:auto;min-height:74px}
+.tape .cell{width:34px;height:34px;border:1.5px solid var(--line-2);border-radius:4px;display:grid;place-items:center;font-family:var(--mono);font-size:1rem;position:relative;flex:none;background:var(--paper)}
+.tape .cell.read{color:var(--ink-3);border-color:var(--line)}
+.tape .cell.head{border-color:var(--blue);background:var(--blue-soft);box-shadow:0 0 0 2px var(--blue-soft)}
+.tape .cell.head::after{content:"▲";position:absolute;top:100%;font-size:.7rem;color:var(--blue);line-height:1.2}
+.tape .cell.eof{border-style:dashed;color:var(--ink-3);font-size:.7rem}
+.tape .ctl{margin-left:auto;display:flex;gap:6px;align-items:center;flex:none;padding-left:12px}
+.trace{font-family:var(--mono);font-size:.86rem;line-height:1.65;display:grid;gap:2px;max-height:360px;overflow:auto}
+.trace .ln{display:grid;grid-template-columns:auto 1fr;gap:10px;padding:2px 6px;border-radius:6px;align-items:baseline}
+.trace .ln.cur{background:var(--blue-soft)}
+.trace .ln.dead{color:var(--ink-3)}
+.trace .ln .why{font-family:var(--font);font-size:.8rem;color:var(--ink-2)}
+.trace .cfg{white-space:nowrap}
+.verdict{margin-top:8px;padding:8px 12px;border-radius:8px;font-weight:600;display:flex;gap:8px;align-items:center}
+.verdict.ok{background:var(--green-soft);color:var(--green)}
+.verdict.bad{background:var(--red-soft);color:var(--red)}
+.verdict.wait{background:var(--paper-3);color:var(--ink-2);font-weight:500}
+.stepper{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 10px;border-top:1px solid var(--line);background:var(--paper-3)}
+.stepper .cnt{font-family:var(--mono);font-size:.8rem;color:var(--ink-2);min-width:60px;text-align:center}
+.explain{padding:10px 14px;border-top:1px solid var(--line);color:var(--ink);font-size:.92rem;min-height:56px}
+.explain .f{font-family:var(--mono);font-size:.86rem;display:block;margin-top:4px;color:var(--blue-ink);white-space:pre-wrap}
+.setpill{display:inline-block;font-family:var(--mono);font-size:.82rem;padding:1px 7px;border-radius:6px;background:var(--paper-3);border:1px solid var(--line);margin:1px}
+.setpill.final{border-color:var(--green);background:var(--green-soft)}
+.setpill.start{border-color:var(--blue)}
+.setpill.hl{background:var(--mark-soft);border-color:var(--mark)}
+.tree{font-family:var(--mono);font-size:.82rem;line-height:1.5;overflow:auto;max-height:360px}
+.tree .node{white-space:nowrap}
+.tree .acc{color:var(--green);font-weight:600}.tree .dead{color:var(--ink-3)}.tree .e{color:var(--blue-ink)}
+.tabs2{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.tabs2 button{border:0;background:none;padding:8px 12px;cursor:pointer;color:var(--ink-2);border-bottom:2px solid transparent;font-weight:500}
+.tabs2 button.on{color:var(--blue-ink);border-bottom-color:var(--blue)}
+.subpane{display:none}.subpane.on{display:block}
+.quant{font-family:var(--mono);font-size:.86rem;display:grid;gap:4px}
+.quant .q{padding:6px 10px;border-radius:6px;border-left:3px solid var(--line-2);background:var(--paper)}
+.quant .q.you{border-left-color:var(--green)}.quant .q.adv{border-left-color:var(--red)}
+.quant .q.cur{background:var(--mark-soft)}
+.quant .who{font-family:var(--font);font-size:.75rem;color:var(--ink-3);margin-left:8px}
+.xyz{font-family:var(--mono);font-size:1.3rem;letter-spacing:.06em;word-break:break-all}
+.xyz .x{background:var(--blue-soft);color:var(--blue-ink)}.xyz .y{background:var(--mark-soft);border-bottom:2px solid var(--mark)}.xyz .z{background:var(--green-soft);color:var(--green)}
+.log{display:grid;gap:6px;font-size:.9rem}
+.log .item{padding:8px 10px;border-radius:8px;background:var(--paper);border:1px solid var(--line)}
+.log .item.win{background:var(--green-soft);border-color:var(--green)}
+.log .item.lose{background:var(--red-soft);border-color:var(--red)}
+.parts{display:grid;gap:6px}
+.parts label{display:flex;gap:8px;align-items:center;font-family:var(--mono);font-size:.85rem}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:.9rem}
+.kv dt{color:var(--ink-3)}.kv dd{margin:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.ref table.tt{font-family:var(--font)}
+.ref table.tt code{font-size:.82rem}
+.gap{border-left:3px solid var(--red);padding-left:10px}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--paper-2);color:var(--ink);padding:0;max-width:min(720px,94vw);box-shadow:var(--shadow)}
+dialog::backdrop{background:rgba(15,21,28,.45)}
+dialog .dh{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line)}
+dialog .dh h3{flex:1}
+dialog .db{padding:12px 16px;max-height:70vh;overflow:auto;display:grid;gap:8px}
+.preset{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;cursor:pointer;background:var(--paper)}
+.preset:hover{border-color:var(--blue)}
+.preset .t{font-weight:500}.preset .s{font-size:.8rem;color:var(--ink-3);grid-column:1/-1}
+.preset .src{font-size:.75rem;color:var(--blue-ink)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:8px 14px;border-radius:8px;font-size:.88rem;z-index:50;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+kbd{border:1px solid var(--line-2);border-bottom-width:2px;border-radius:4px;padding:0 5px;font-size:.78em;background:var(--paper)}
+.tests pre{font-family:var(--mono);font-size:.8rem;white-space:pre-wrap;margin:0;max-height:300px;overflow:auto}
+.ok-t{color:var(--green)}.bad-t{color:var(--red)}
+.note{font-size:.82rem;color:var(--ink-3)}
+svg .st circle.body{fill:var(--paper-2);stroke:var(--ink);stroke-width:1.8}
+svg .st.final circle.ring{fill:none;stroke:var(--ink);stroke-width:1.4}
+svg .st text{font-family:var(--mono);font-size:13px;fill:var(--ink);text-anchor:middle;dominant-baseline:central;pointer-events:none}
+svg .st.hl circle.body{fill:var(--mark-soft);stroke:var(--blue);stroke-width:2.6}
+svg .st.acc circle.body{fill:var(--green-soft);stroke:var(--green);stroke-width:2.6}
+svg .st.rej circle.body{fill:var(--red-soft);stroke:var(--red);stroke-width:2.6}
+svg .st.dim circle.body,svg .st.dim circle.ring{stroke:var(--line-2);stroke-dasharray:3 3}
+svg .st.dim text{fill:var(--ink-3)}
+svg .st.sel circle.body{stroke:var(--blue);stroke-width:3}
+svg .st.g0 circle.body{fill:var(--blue-soft)}svg .st.g1 circle.body{fill:var(--green-soft)}svg .st.g2 circle.body{fill:var(--mark-soft)}svg .st.g3 circle.body{fill:var(--red-soft)}svg .st.g4 circle.body{fill:var(--paper-3)}svg .st.g5 circle.body{fill:#E7D8F5}
+svg .startmark{fill:none;stroke:var(--ink);stroke-width:1.8}
+svg .ed path{fill:none;stroke:var(--ink-2);stroke-width:1.6}
+svg .ed text{font-family:var(--mono);font-size:12.5px;fill:var(--ink);text-anchor:middle;paint-order:stroke;stroke:var(--paper-2);stroke-width:4px;stroke-linejoin:round}
+svg .ed.hl path{stroke:var(--blue);stroke-width:2.8}
+svg .ed.hl text{fill:var(--blue-ink);font-weight:600}
+svg .ed.eps path{stroke-dasharray:5 4}
+svg .ed.dim path{stroke:var(--line-2)}svg .ed.dim text{fill:var(--ink-3)}
+svg .ed.hit path{stroke:transparent;stroke-width:14;marker-end:none;cursor:pointer}
+svg .st{cursor:grab}
+svg .ghost{stroke:var(--blue);stroke-dasharray:4 4;fill:none;stroke-width:1.5}
+@media (max-width:900px){
+  .app{grid-template-columns:1fr}
+  .side{display:none}
+  .chips{display:flex}
+  .brand span{display:none}
+  main{padding:14px 16px 60px}
+  .workspace,.workspace.three{grid-template-columns:1fr}
+  .canvas{height:340px}
+}
+.chip{border:1px solid var(--line-2);background:var(--paper-2);border-radius:999px;padding:4px 11px;font-size:.82rem;white-space:nowrap;cursor:pointer;color:var(--ink-2)}
+.chip.active{background:var(--blue-soft);border-color:var(--blue);color:var(--blue-ink)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="app">
+<header class="topbar">
+  <div class="brand"><b>Finite Automata Lab</b><span>Theory of Computation · Chapter 2</span></div>
+  <div class="chips" id="chips"></div>
+  <div class="grow"></div>
+  <button class="btn sm" id="btn-library">📚 Library</button>
+  <button class="btn sm" id="btn-import">นำเข้า</button>
+  <button class="btn sm" id="btn-export">ส่งออก</button>
+  <button class="btn sm" id="btn-theme" title="สลับธีม">◐</button>
+</header>
+<nav class="side" id="sidenav"><div class="eyebrow">Learning path</div></nav>
+<main id="main">
+
+<!-- ================= M1 EDITOR + SIMULATOR ================= -->
+<section class="module" id="m-editor" data-title="Editor + Simulator" data-sub="วาด automaton แล้วดู string วิ่งทีละ step">
+  <div class="mod-head"><h2>1 · วาด automaton แล้วป้อน string</h2><p class="gist">Automaton คือ "เครื่องอ่านเทป" ที่จำได้แค่ว่าตอนนี้อยู่ state ไหน อ่านสัญลักษณ์ทีละตัวจากซ้ายไปขวา แล้วเปลี่ยน state ตามลูกศร — จบเทปแล้วอยู่ state วงคู่ = <b>accept</b></p></div>
+  <details class="theory"><summary>ทฤษฎี · DFA / NFA / configuration / ⊢</summary><div class="body">
+    <div class="def"><b>DFA</b> M = (K, Σ, δ, s, F) — K = เซตของ state (จำกัด), Σ = alphabet, δ : K × Σ → K <i>ฟังก์ชัน</i> (ทุก state + ทุกสัญลักษณ์ มีทางไปทางเดียวเป๊ะ), s = start, F ⊆ K = final states</div>
+    <div class="def"><b>NFA</b> M = (K, Σ, Δ, s, F) — Δ ⊆ K × (Σ ∪ {e}) × K <i>ความสัมพันธ์</i>: จาก (state, สัญลักษณ์) ไปได้หลายทาง หรือไม่มีทางเลย และมี <b>e-transition</b> = เปลี่ยน state โดยไม่อ่านอะไร</div>
+    <p><b>Configuration</b> (q, ω) = (state ปัจจุบัน, input ที่ยังไม่ได้อ่าน). <b>(q, σω′) ⊢<sub>M</sub> (q′, ω′)</b> เมื่อ δ(q, σ) = q′ ("yields in one step"). ⊢* = ศูนย์ step หรือมากกว่า.</p>
+    <p>ω ถูก <b>accept</b> iff (s, ω) ⊢* (q, e) สำหรับบาง q ∈ F. L(M) = เซตของ string ที่ accept ทั้งหมด. <b>NFA accept ถ้ามี "อย่างน้อยหนึ่ง" เส้นทางที่ไปถึง F</b> — เครื่องเดาถูกเสมอ.</p>
+    <p>ข้อสอบชอบถาม: e ∈ L(M) iff s ∈ F (Problem 2.1.1). DFA ที่ไม่มีทางออกสำหรับบางสัญลักษณ์ = ไม่ complete → เพิ่ม <b>trap/dead state</b> (Example 2.1.2 q₃).</p>
+  </div></details>
+  <div class="workspace">
+    <div class="stage">
+      <div class="bar" id="ed-tools">
+        <button class="btn sm on" data-mode="select" title="ลาก state / คลิกเพื่อเลือก">↖ เลือก/ลาก</button>
+        <button class="btn sm" data-mode="state" title="คลิกพื้นที่ว่างเพื่อเพิ่ม state">＋ State</button>
+        <button class="btn sm" data-mode="trans" title="คลิก state ต้นทาง → state ปลายทาง">→ Transition</button>
+        <button class="btn sm" data-mode="start" title="คลิก state เพื่อตั้งเป็น start">▷ Start</button>
+        <button class="btn sm" data-mode="final" title="คลิก state เพื่อสลับ final">◎ Final</button>
+        <button class="btn sm" data-mode="delete" title="คลิก state/เส้น เพื่อลบ">✕ ลบ</button>
+        <span class="sp"></span>
+        <button class="btn sm" id="ed-layout">จัดวงกลม</button>
+        <button class="btn sm" id="ed-clear">ล้าง</button>
+      </div>
+      <div class="tape" id="ed-tape"></div>
+      <div class="canvas" id="ed-canvas"><div class="hint" id="ed-hint">ลาก state เพื่อจัดวาง · ดับเบิลคลิก state เพื่อเปลี่ยนชื่อ · <kbd>Del</kbd> ลบที่เลือก</div></div>
+      <div class="stepper" id="ed-step"></div>
+      <div class="explain" id="ed-explain">เลือก preset จาก 📚 Library หรือวาดเอง แล้วกด ▶</div>
+    </div>
+    <div class="panel">
+      <div class="card">
+        <h3>นิยาม M <span class="badge" id="ed-badge">—</span></h3>
+        <div class="tuple" id="ed-tuple"></div>
+        <div class="row" style="margin-top:8px">
+          <div class="field" style="flex:1"><label>Σ (คั่นด้วยช่องว่างหรือจุลภาค)</label><input type="text" class="mono" id="ed-alpha" value="a b"></div>
+          <button class="btn sm" id="ed-complete" title="เพิ่ม trap state ให้ทุก (q,σ) มีทางไป">+ trap state</button>
+        </div>
+        <div class="tblwrap" style="margin-top:8px"><table class="tt" id="ed-table"></table></div>
+        <p class="note" style="margin-top:6px">แก้ในตารางได้เลย: พิมพ์ชื่อ state ปลายทาง (NFA คั่นหลายตัวด้วย , ว่าง = ไม่มีทางไป)</p>
+      </div>
+      <div class="card">
+        <h3>Input string</h3>
+        <div class="row">
+          <input type="text" class="mono" id="ed-input" value="aababa" style="flex:1" spellcheck="false">
+          <button class="btn primary" id="ed-run">▶ Run</button>
+        </div>
+        <div class="row" style="margin-top:8px" id="ed-nfaview">
+          <span class="note">มุมมอง NFA:</span>
+          <button class="btn sm on" data-view="set">Active set</button>
+          <button class="btn sm" data-view="tree">Computation tree</button>
+        </div>
+        <div id="ed-verdict" class="verdict wait">ยังไม่ได้รัน</div>
+      </div>
+      <div class="card">
+        <h3>Trace <span class="note">(q, ω) ⊢ (q′, ω′)</span></h3>
+        <div class="trace" id="ed-trace"></div>
+        <div class="tree" id="ed-tree" hidden></div>
+      </div>
+      <div class="card">
+        <h3>ทดสอบหลาย string</h3>
+        <div class="row"><input type="text" class="mono" id="ed-multi-in" placeholder="e, a, ab, aab, ba (คั่นด้วย ,)" style="flex:1"><button class="btn sm" id="ed-multi-run">ทดสอบ</button></div>
+        <div class="tblwrap" style="margin-top:8px"><table class="tt" id="ed-multi"></table></div>
+      </div>
+      <div class="card">
+        <h3>ตรวจกับ RegEx <span class="note">brute-force ทุก string ยาว ≤ 7</span></h3>
+        <div class="row"><input type="text" class="mono" id="ed-cmp-in" placeholder="เช่น (a ∪ b*a)*  หรือพิมพ์ | แทน ∪" style="flex:1"><button class="btn sm" id="ed-cmp-run">ตรวจ</button></div>
+        <div id="ed-cmp-out" class="note" style="margin-top:6px"></div>
+      </div>
+      <div class="card">
+        <h3>ส่งไปทำต่อ</h3>
+        <div class="row">
+          <button class="btn sm" data-send="powerset">→ NFA→DFA</button>
+          <button class="btn sm" data-send="minimize">→ Minimize</button>
+          <button class="btn sm" data-send="regex">→ FA→RegEx</button>
+          <button class="btn sm" data-send="pumping">→ Pumping</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= M2 POWERSET ================= -->
+<section class="module" id="m-powerset" data-title="NFA → DFA" data-sub="Powerset construction ทีละ cell">
+  <div class="mod-head"><h2>2 · NFA → DFA (Powerset construction)</h2><p class="gist">NFA "อยู่หลาย state พร้อมกัน" ได้ — งั้นก็ให้ <b>เซตของ state</b> ทั้งเซตนั้นเป็น state ใหม่ตัวเดียวของ DFA ("superstate") แล้วคำนวณว่าเมื่ออ่านสัญลักษณ์ เซตนั้นย้ายไปเป็นเซตไหน</p></div>
+  <details class="theory"><summary>ทฤษฎี · Theorem 2.2.1 (Rabin–Scott 1959)</summary><div class="body">
+    <div class="def"><b>E(q)</b> (e-Closure) = {p | (q, e) ⊢* (p, e)} = ทุก state ที่ไปถึงจาก q โดยไม่อ่านอะไรเลย (รวม q เอง). คำนวณโดยวนเพิ่ม r ที่มี (p, e, r) ∈ Δ กับ p ∈ E(q) จนไม่มีอะไรเพิ่ม (≤ |K| รอบ)</div>
+    <div class="def">M′ = (K′, Σ, δ′, s′, F′): K′ = 2<sup>K</sup>, s′ = E(s), F′ = {Q ⊆ K | Q ∩ F ≠ ∅}, <b>δ′(Q, σ) = ⋃{ E(p) | q ∈ Q, (q, σ, p) ∈ Δ }</b></div>
+    <p>แนวคิดพิสูจน์ (induction on |ω|): (q, ω) ⊢*<sub>M</sub> (p, e) iff (E(q), ω) ⊢*<sub>M′</sub> (P, e) โดย p ∈ P. ดังนั้น ω ∈ L(M) iff s′ ไปถึง P ∈ F′ iff ω ∈ L(M′).</p>
+    <p>สร้างเฉพาะ superstate ที่ <b>ไปถึงได้จาก s′</b> (worklist) — ไม่ต้องสร้างทั้ง 2<sup>|K|</sup>. แต่ worst case ยังเป็น exponential จริง (Example 2.2.5: ภาษา "มีสัญลักษณ์บางตัวไม่ปรากฏ" NFA n+1 state → DFA ต้องมี 2<sup>n</sup> state).</p>
+  </div></details>
+  <div class="workspace">
+    <div class="panel">
+      <div class="stage"><div class="bar"><b>NFA ต้นทาง</b><span class="sp"></span><button class="btn sm" id="ps-from-editor">ใช้จาก Editor</button><button class="btn sm" id="ps-lib">📚</button></div><div class="canvas short" id="ps-src"></div></div>
+      <div class="card"><h3>ขั้น A · ตาราง e-Closure <span class="badge mark" id="ps-conv"></span></h3><div class="tblwrap"><table class="tt" id="ps-closure"></table></div></div>
+      <div class="card"><h3>ขั้น B · Powerset transition table</h3><div class="tblwrap"><table class="tt" id="ps-table"></table></div></div>
+    </div>
+    <div class="stage">
+      <div class="bar"><b>ขั้น C · DFA ผลลัพธ์</b><span class="sp"></span><button class="btn sm" id="ps-to-editor">→ Editor</button><button class="btn sm" id="ps-to-min">→ Minimize</button></div>
+      <div class="canvas tall" id="ps-out"></div>
+      <div class="stepper" id="ps-step"></div>
+      <div class="explain" id="ps-explain"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= M3 MINIMIZE ================= -->
+<section class="module" id="m-minimize" data-title="DFA Minimization" data-sub="รวม state ที่แยกกันไม่ออก">
+  <div class="mod-head"><h2>3 · ย่อ DFA ให้เล็กที่สุด</h2><p class="gist">สอง state "เหมือนกัน" ถ้าไม่ว่าจะป้อน string อะไรต่อจากนี้ ผลลัพธ์ accept/reject เหมือนกันเสมอ — เริ่มจากแบ่งเป็น 2 กลุ่ม (final / ไม่ final) แล้วค่อย ๆ <b>แยกกลุ่ม</b> เมื่อเจอสัญลักษณ์ที่พาไปคนละกลุ่ม จนแยกไม่ได้อีก</p></div>
+  <details class="theory"><summary>ทฤษฎี · ≡ₙ, Lemma 2.5.1, Myhill–Nerode</summary><div class="body">
+    <div class="def">L′<sub>p</sub> = ภาษาที่ accept ถ้าเริ่มจาก p. <b>p ≡ q</b> iff L′<sub>p</sub> = L′<sub>q</sub>. <b>p ≡<sub>n</sub> q</b> iff เหมือนกันสำหรับทุก string ยาว ≤ n. ≡₀ ⊇ ≡₁ ⊇ … ⊇ ≡ และเพราะ K จำกัด จึงหยุดนิ่งภายใน |K|−1 รอบ</div>
+    <div class="def"><b>Lemma 2.5.1</b> p ≡<sub>n+1</sub> q iff (a) p ≡<sub>n</sub> q และ (b) ทุก a ∈ Σ: δ(p,a) ≡<sub>n</sub> δ(q,a) — นี่คือกฎที่ใช้ "แยกกลุ่ม" แต่ละรอบ</div>
+    <p><b>Myhill–Nerode (Theorem 2.5.2)</b>: x ≈<sub>L</sub> y iff ทุก z: xz ∈ L ⇔ yz ∈ L. จำนวน class ของ ≈<sub>L</sub> = จำนวน state ต่ำสุดที่เป็นไปได้ และ L regular iff class มีจำกัด — ใช้พิสูจน์ว่า aⁿbⁿ ไม่ regular ได้อีกทาง ([e],[a],[aa],… ไม่ซ้ำกันเลย). <span class="gap">ไม่มีในสไลด์ แต่มีใน textbook หน้า 96–98</span></p>
+    <p>ก่อน minimize ต้อง (1) ลบ state ที่ไปไม่ถึงจาก s และ (2) ทำให้ complete (มี trap) เพราะ algorithm ใช้ δ(q,a) ทุกคู่. Algorithm นี้ polynomial: O(|K|²·|Σ|·|K|).</p>
+  </div></details>
+  <div class="workspace">
+    <div class="panel">
+      <div class="stage"><div class="bar"><b>DFA ต้นทาง</b><span class="sp"></span><button class="btn sm" id="mn-from-editor">ใช้จาก Editor</button><button class="btn sm" id="mn-lib">📚</button></div><div class="canvas short" id="mn-src"></div></div>
+      <div class="card"><h3>ขั้น 1 · ลบ state ที่ไปไม่ถึง</h3><div id="mn-unreach" class="note"></div></div>
+      <div class="card"><h3>ขั้น 2–3 · แบ่งกลุ่ม ≡₀ แล้ว refine</h3><div class="tblwrap"><table class="tt" id="mn-part"></table></div></div>
+    </div>
+    <div class="stage">
+      <div class="bar"><b>ขั้น 4 · DFA ที่ย่อแล้ว</b><span class="sp"></span><button class="btn sm" id="mn-to-editor">→ Editor</button></div>
+      <div class="canvas tall" id="mn-out"></div>
+      <div class="stepper" id="mn-step"></div>
+      <div class="explain" id="mn-explain"></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:14px"><h3>ตรวจว่า 2 DFA equivalent ไหม</h3>
+    <div class="row"><select id="eq-a" style="max-width:260px"></select><span>vs</span><select id="eq-b" style="max-width:260px"></select><button class="btn sm" id="eq-run">เปรียบเทียบ</button></div>
+    <div id="eq-out" class="note" style="margin-top:6px">ย่อทั้งคู่แล้วเทียบโครงสร้างจาก start (textbook หน้า 104) — ถ้าไม่เท่ากันจะบอก string ที่แยกได้</div>
+  </div>
+</section>
+
+<!-- ================= M4 REGEX ================= -->
+<section class="module" id="m-regex" data-title="RegEx ↔ FA" data-sub="Thompson construction / State elimination">
+  <div class="mod-head"><h2>4 · Regular expression ↔ Finite automaton</h2><p class="gist">Theorem 2.3.2: ภาษาเป็น regular <b>iff</b> มี FA accept — สองทิศ: RegEx → NFA สร้างจากชิ้นเล็กประกอบใหญ่ (union/concat/star) และ FA → RegEx โดย "ลบ state ทีละตัว" แล้วเขียนฉลากเส้นเป็น regex แทน</p></div>
+  <details class="theory"><summary>ทฤษฎี · Theorem 2.3.1 (closure) · R(i,j,k) · state elimination</summary><div class="body">
+    <div class="def"><b>RegEx → NFA</b> (Figure 2-14): สัญลักษณ์เดี่ยว = 2 state; <b>concat</b> M₁M₂ = e จากทุก F₁ → s₂; <b>union</b> = s ใหม่ + e → s₁, s₂; <b>star</b> = s ใหม่ (เป็น final ด้วย ให้ accept e) + e → s₁ + e จากทุก F₁ กลับไป s₁</div>
+    <div class="def"><b>FA → RegEx</b>: R(i,j,k) = string ทั้งหมดที่พาจาก qᵢ ไป qⱼ โดยผ่านเฉพาะ state หมายเลข ≤ k. <b>R(i,j,k) = R(i,j,k−1) ∪ R(i,k,k−1)·R(k,k,k−1)*·R(k,j,k−1)</b> (ไปตรง ๆ หรือ แวะ qₖ กี่รอบก็ได้). L(M) = ⋃ R(1,j,n) สำหรับ qⱼ ∈ F</p></div>
+    <p>ในทางปฏิบัติใช้ <b>state elimination</b> (Example 2.3.2): ทำ "special form" (s ใหม่ที่ไม่มีลูกศรเข้า, f ใหม่ตัวเดียวที่ไม่มีลูกศรออก) แล้วลบ state q ทีละตัว: ทุกคู่ qᵢ →α q →β qⱼ (γ = loop ที่ q) เพิ่มเส้น qᵢ → qⱼ ฉลาก <b>δ ∪ αγ*β</b> (Figure 2-17). เหลือ s → f เส้นเดียว = คำตอบ. ลำดับการลบต่างกัน → regex หน้าตาต่างแต่ภาษาเดียวกัน.</p>
+    <p>ทำไม complement ต้องเป็น DFA? (Problem 2.3.1) เพราะสลับ F ↔ K−F ใน NFA ผิด: string ที่มีทั้ง path accept และ path reject จะถูก accept ทั้งก่อนและหลังสลับ.</p>
+  </div></details>
+  <div class="tabs2"><button class="on" data-sub="rx">RegEx → NFA</button><button data-sub="se">FA → RegEx (state elimination)</button></div>
+  <div class="subpane on" id="sub-rx">
+    <div class="workspace">
+      <div class="panel">
+        <div class="card"><h3>Regular expression</h3>
+          <div class="row"><input type="text" class="mono" id="rx-in" value="(ab ∪ aab)*" style="flex:1" spellcheck="false"><button class="btn primary" id="rx-build">สร้าง</button></div>
+          <p class="note" style="margin-top:6px">ใช้ได้: สัญลักษณ์ตัวเดียว, <code>e</code> (empty string), <code>∅</code>, <code>∪</code> หรือ <code>|</code> หรือ <code>U</code>, <code>*</code>, วงเล็บ. ตัวอย่าง: <code>a*ba*b</code>, <code>(a ∪ b*a)*</code></p>
+          <div id="rx-ast" class="tree" style="margin-top:8px"></div>
+        </div>
+        <div class="card"><h3>ขั้นตอนประกอบ (stage)</h3><div id="rx-stages" class="log"></div></div>
+      </div>
+      <div class="stage"><div class="bar"><b>NFA ที่สร้าง</b><span class="sp"></span><button class="btn sm" id="rx-to-editor">→ Editor</button><button class="btn sm" id="rx-to-ps">→ NFA→DFA</button></div><div class="canvas tall" id="rx-canvas"></div><div class="stepper" id="rx-step"></div><div class="explain" id="rx-explain"></div></div>
+    </div>
+  </div>
+  <div class="subpane" id="sub-se">
+    <div class="workspace">
+      <div class="stage">
+        <div class="bar"><b>Generalized automaton</b> <span class="note">คลิก state เพื่อลบ</span><span class="sp"></span><button class="btn sm" id="se-from-editor">ใช้จาก Editor</button><button class="btn sm" id="se-lib">📚</button><button class="btn sm" id="se-auto">ลบอัตโนมัติทั้งหมด</button><button class="btn sm" id="se-reset">เริ่มใหม่</button></div>
+        <div class="canvas tall" id="se-canvas"></div>
+        <div class="explain" id="se-explain"></div>
+      </div>
+      <div class="panel">
+        <div class="card"><h3>บันทึกการลบ</h3><div id="se-log" class="log"></div></div>
+        <div class="card"><h3>ผลลัพธ์</h3><div class="mono" id="se-result" style="font-size:1.05rem;word-break:break-all">—</div><div class="row" style="margin-top:8px"><button class="btn sm" id="se-check">ตรวจว่า L(regex) = L(M)</button></div><div id="se-check-out" class="note" style="margin-top:6px"></div></div>
+        <div class="card"><h3>ตาราง R(i, j, k) <span class="note">สำหรับดูสูตร recursion</span></h3>
+          <div class="row"><label class="note">k =</label><input type="text" class="mono" id="rk-k" value="0" style="width:60px"><button class="btn sm" id="rk-show">แสดง</button></div>
+          <div class="tblwrap" style="margin-top:8px"><table class="tt" id="rk-table"></table></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= M5 CLOSURE ================= -->
+<section class="module" id="m-closure" data-title="Closure properties" data-sub="union · concat · star · complement · ∩">
+  <div class="mod-head"><h2>5 · Closure properties</h2><p class="gist">Theorem 2.3.1: เอาภาษา regular มา union / ต่อกัน / star / complement / intersect ก็ยังได้ภาษา regular — พิสูจน์ด้วยการ <b>ประกอบเครื่องใหม่จากเครื่องเดิม</b> ทุกข้อ</p></div>
+  <details class="theory"><summary>ทฤษฎี · การสร้างแต่ละ op</summary><div class="body">
+    <p><b>Union</b> (Fig 2-11): s ใหม่, Δ = Δ₁ ∪ Δ₂ ∪ {(s,e,s₁),(s,e,s₂)}, F = F₁ ∪ F₂ — เครื่อง "เดา" ว่า input อยู่ใน L₁ หรือ L₂. <b>Concat</b> (Fig 2-12): e จากทุก f ∈ F₁ → s₂, F = F₂. <b>Star</b> (Fig 2-13): s ใหม่ ∈ F, (s,e,s₁), e จาก F₁ → s₁ — ทำไมต้องมี s ใหม่? ถ้าแค่ทำ s₁ เป็น final อาจรับ string ผิด (Problem 2.3.2).</p>
+    <p><b>Complement</b>: ต้องเป็น DFA <i>complete</i> แล้วสลับ F ↔ K−F. <b>Intersection</b>: L₁ ∩ L₂ = <span class="mono">¬(¬L₁ ∪ ¬L₂)</span> (De Morgan) หรือสร้างตรง ๆ ด้วย product K₁ × K₂ (Problem 2.3.3) ซึ่งเห็นภาพกว่า: เครื่องรันสองเครื่องพร้อมกัน accept เมื่อทั้งคู่ accept.</p>
+  </div></details>
+  <div class="row" style="margin-bottom:12px">
+    <div class="field"><label>M₁</label><select id="cl-a" style="min-width:220px"></select></div>
+    <div class="field"><label>M₂</label><select id="cl-b" style="min-width:220px"></select></div>
+    <div class="field"><label>Operation</label><div class="row" id="cl-ops">
+      <button class="btn sm on" data-op="union">L₁ ∪ L₂</button><button class="btn sm" data-op="concat">L₁ · L₂</button><button class="btn sm" data-op="star">L₁*</button><button class="btn sm" data-op="complement">¬L₁</button><button class="btn sm" data-op="product">L₁ ∩ L₂ (product)</button><button class="btn sm" data-op="demorgan">L₁ ∩ L₂ (De Morgan)</button>
+    </div></div>
+  </div>
+  <div class="workspace three">
+    <div class="stage"><div class="bar"><b>M₁</b></div><div class="canvas short" id="cl-ca"></div></div>
+    <div class="stage"><div class="bar"><b>M₂</b></div><div class="canvas short" id="cl-cb"></div></div>
+    <div class="stage"><div class="bar"><b>M</b><span class="sp"></span><button class="btn sm" id="cl-to-editor">→ Editor</button></div><div class="canvas short" id="cl-out"></div></div>
+  </div>
+  <div class="card" style="margin-top:14px"><h3>อธิบายการสร้าง</h3><div id="cl-explain"></div>
+    <div class="row" style="margin-top:10px"><input type="text" class="mono" id="cl-test" placeholder="ทดสอบ string (คั่นด้วย ,) เช่น e, ab, ba, abab" style="flex:1"><button class="btn sm" id="cl-test-run">ทดสอบทั้ง 3 เครื่อง</button></div>
+    <div class="tblwrap" style="margin-top:8px"><table class="tt" id="cl-test-out"></table></div>
+  </div>
+</section>
+
+<!-- ================= M6 PUMPING ================= -->
+<section class="module" id="m-pumping" data-title="Pumping Theorem" data-sub="เกมพิสูจน์ว่า L ไม่ regular">
+  <div class="mod-head"><h2>6 · Pumping Theorem — เล่นเป็นเกม</h2><p class="gist">DFA มี state จำกัด n ตัว ดังนั้น string ยาว ≥ n ต้อง "วนกลับมา state เดิม" (pigeonhole) — ส่วนที่วน (y) จะปั๊มซ้ำกี่รอบก็ยัง accept. ถ้าหา string ที่ปั๊มแล้วหลุดจากภาษาได้ → ภาษานั้น<b>ไม่ regular</b></p></div>
+  <details class="theory"><summary>ทฤษฎี · Theorem 2.4.1 + วิธีใช้</summary><div class="body">
+    <div class="def">L regular ⇒ ∃ n ≥ 1 ที่ ทุก ω ∈ L, |ω| ≥ n เขียนได้เป็น ω = xyz โดย y ≠ e, |xy| ≤ n และ xy<sup>i</sup>z ∈ L ทุก i ≥ 0</div>
+    <p>พิสูจน์: n = |K|. อ่าน n ตัวแรกของ ω ผ่าน n+1 configuration แต่มีแค่ n state → มี i &lt; j ที่ qᵢ = qⱼ. y = ωᵢ₊₁…ωⱼ พา qᵢ กลับมา qᵢ จึงตัดออก/ซ้ำได้ไม่จำกัด.</p>
+    <p><b>ใช้พิสูจน์ "ไม่ regular" เท่านั้น</b> (contrapositive). เป็นเกม: คู่แข่งให้ n → คุณเลือก ω → คู่แข่งแบ่ง xyz (ตามกติกา) → คุณเลือก i → ชนะถ้า xy<sup>i</sup>z ∉ L. ต้องชนะได้ <i>ทุก</i> วิธีแบ่งของคู่แข่ง.</p>
+    <p>ตัวอย่างสไลด์: aⁿbⁿ → y = a<sup>n−k</sup> อยู่ในกลุ่ม a ล้วน (เพราะ |xy| ≤ n) → xy<sup>p</sup>z = a<sup>k+p(n−k)</sup>bⁿ จำนวน a ≠ n. Example 2.4.4: "จำนวน a = b" ใช้ closure ช่วย: ถ้า regular แล้ว L ∩ a*b* = aⁿbⁿ ต้อง regular ด้วย — ขัดแย้ง.</p>
+  </div></details>
+  <div class="workspace">
+    <div class="panel">
+      <div class="card"><h3>เลือกภาษา</h3><select id="pg-lang"></select><p class="note" id="pg-lang-note" style="margin-top:6px"></p>
+        <div class="row" style="margin-top:8px"><span class="note">บทบาทของคุณ:</span><button class="btn sm on" data-role="prover">Prover (พิสูจน์ว่าไม่ regular)</button><button class="btn sm" data-role="adversary">Adversary (แบ่ง xyz เอง)</button></div></div>
+      <div class="card"><h3>Theorem อ่านเป็น 5 บรรทัด</h3><div class="quant" id="pg-quant"></div></div>
+    </div>
+    <div class="panel">
+      <div class="card"><h3>กระดานเกม</h3><div id="pg-game" class="log"></div></div>
+      <div class="card"><h3>Pigeonhole บน DFA จริง</h3><p class="note">เลือก DFA แล้วป้อน string ยาว ≥ |K| — จะชี้ configuration ที่ state ซ้ำ = y ที่ปั๊มได้</p>
+        <div class="row" style="margin-top:8px"><select id="pg-dfa" style="flex:1"></select><input type="text" class="mono" id="pg-w" placeholder="string" style="width:140px"><button class="btn sm" id="pg-find">หา cycle</button></div>
+        <div id="pg-pigeon" class="trace" style="margin-top:8px"></div>
+      </div>
+    </div>
+  </div>
+  <div class="stage" style="margin-top:14px"><div class="bar"><b>DFA สำหรับ pigeonhole</b></div><div class="canvas short" id="pg-canvas"></div></div>
+</section>
+
+<!-- ================= M7 REFERENCE ================= -->
+<section class="module ref" id="m-ref" data-title="Reference" data-sub="สรุป · complexity · glossary · exercises">
+  <div class="mod-head"><h2>7 · Reference</h2><p class="gist">สรุปทุกอย่างที่ต้องจำ + สิ่งที่อยู่ใน textbook แต่ไม่อยู่ในสไลด์</p></div>
+  <div class="grid2">
+    <div class="card"><h3>Theorem 2.6.1 · Algorithms & complexity</h3><div class="tblwrap"><table class="tt">
+      <tr><th>ปัญหา</th><th>Algorithm</th><th>Complexity</th></tr>
+      <tr><td>NFA → DFA</td><td>Powerset (module 2)</td><td><b>Exponential</b> O(2<sup>|K|</sup>·|Δ|·|K|²) — จำเป็น (Ex 2.2.5)</td></tr>
+      <tr><td>RegEx → NFA</td><td>Thompson (module 4a)</td><td>Polynomial: ≤ 2|R| states, ≤ 4|R|² transitions</td></tr>
+      <tr><td>NFA → RegEx</td><td>R(i,j,k) / state elimination (4b)</td><td><b>Exponential</b> (regex ยาวถึง 3<sup>|K|</sup>)</td></tr>
+      <tr><td>DFA → minimal DFA</td><td>Partition refinement (module 3)</td><td>Polynomial (≤ |K|−1 รอบ)</td></tr>
+      <tr><td>DFA₁ ≡ DFA₂ ?</td><td>Minimize ทั้งคู่แล้วเทียบ</td><td>Polynomial</td></tr>
+      <tr><td>NFA₁ ≡ NFA₂ ? / RegEx ≡ RegEx ?</td><td>แปลงเป็น DFA ก่อน</td><td><b>Exponential</b> (ไม่รู้ว่าทำดีกว่านี้ได้ไหม — Ch.7)</td></tr>
+      <tr><td>ω ∈ L(DFA) ?</td><td>รันตรง ๆ (Thm 2.6.2)</td><td>O(|ω|)</td></tr>
+      <tr><td>ω ∈ L(NFA) ?</td><td>Active-set simulation (Thm 2.6.3) — พื้นฐานของ grep</td><td>O(|K|²·|ω|)</td></tr>
+    </table></div></div>
+    <div class="card"><h3>Glossary</h3><dl class="kv">
+      <dt><code>K, Σ, s, F</code></dt><dd>states, alphabet, start, finals</dd>
+      <dt><code>δ</code> vs <code>Δ</code></dt><dd>δ ฟังก์ชัน (DFA) — Δ ความสัมพันธ์ (NFA) มี e ได้</dd>
+      <dt><code>e</code></dt><dd>empty string (หนังสือใช้ e ไม่ใช่ ε)</dd>
+      <dt><code>(q, ω)</code></dt><dd>configuration = (state, input ที่เหลือ)</dd>
+      <dt><code>⊢ / ⊢*</code></dt><dd>yields in one step / ในศูนย์หรือหลาย step</dd>
+      <dt><code>E(q)</code></dt><dd>e-Closure ของ q</dd>
+      <dt><code>2<sup>K</sup></code></dt><dd>power set — เซตของทุก subset ของ K</dd>
+      <dt><code>≡ / ≡ₙ</code></dt><dd>state equivalence (ทุก string / ยาว ≤ n)</dd>
+      <dt><code>≈<sub>L</sub></code></dt><dd>string equivalence w.r.t. L (Myhill–Nerode)</dd>
+      <dt><code>R(i,j,k)</code></dt><dd>strings จาก qᵢ → qⱼ ผ่าน state หมายเลข ≤ k</dd>
+      <dt>trap / dead state</dt><dd>state ที่เข้าแล้วออกไม่ได้และไม่ใช่ final</dd>
+      <dt>reachable</dt><dd>มี ω ที่ (s, ω) ⊢* (q, e)</dd>
+    </dl></div>
+    <div class="card"><h3>อยู่ใน textbook แต่ไม่อยู่ในสไลด์ <span class="badge red">ระวังออกสอบ</span></h3><ul style="margin:0;padding-left:18px;display:grid;gap:6px">
+      <li><b>Myhill–Nerode Theorem</b> (§2.5) — lower bound จำนวน state + วิธีพิสูจน์ non-regular อีกแบบ</li>
+      <li><b>Direct NFA simulation</b> O(|K|²|ω|) (Thm 2.6.3, Example 2.6.1 รัน aaaba)</li>
+      <li><b>String matching</b> อัตโนมัติจาก pattern x (Fig 2-25) → KMP (Problem 2.6.3)</li>
+      <li>Finite-state transducer, 2-tape FA, 2-way FA (Problems 2.1.4, 2.1.5, 2.5.4) — 2-way ไม่เพิ่มพลัง</li>
+      <li>Regular language ที่ density ต้องเป็น polynomial หรือ exponential เท่านั้น (Problem 2.4.13)</li>
+      <li>สไลด์เขียน "For each NFA there exists an equivalent DFA" — textbook ย้ำว่า construction เป็น <b>constructive</b> (ได้ algorithm จริง)</li>
+    </ul></div>
+    <div class="card"><h3>แบบฝึกหัดที่อาจารย์สั่ง</h3><div class="parts" id="ref-ex"></div></div>
+    <div class="card tests"><h3>Self-test ของเว็บนี้ <button class="btn sm" id="btn-tests">รัน runTests()</button></h3><p class="note">เทียบทุก algorithm กับ worked example ในสไลด์/textbook (Figure 2-9, 2-20, 2-15, trace aababa ฯลฯ)</p><pre id="tests-out" style="margin-top:8px"></pre></div>
+  </div>
+</section>
+
+</main>
+</div>
+
+<dialog id="dlg-library"><div class="dh"><h3>📚 Library — automata จากสไลด์และ textbook</h3><button class="btn sm" id="dlg-lib-close">ปิด</button></div><div class="db" id="dlg-lib-body"></div></dialog>
+<dialog id="dlg-sym"><div class="dh"><h3 id="dlg-sym-title">สัญลักษณ์บนเส้น</h3></div><div class="db"><p class="note">พิมพ์สัญลักษณ์ คั่นด้วยจุลภาค เช่น <code>a, b</code> — ใช้ <code>e</code> สำหรับ empty transition</p><input type="text" class="mono" id="dlg-sym-in" value="a"><div class="row"><button class="btn primary" id="dlg-sym-ok">ตกลง</button><button class="btn" id="dlg-sym-cancel">ยกเลิก</button></div></div></dialog>
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== [1] core/model =====
+const FA = {};
+FA.E = 'e';
+FA.setKey = (set) => [...set].sort(FA.cmpId).join(',');
+FA.cmpId = (a, b) => {
+  const na = a.match(/^([a-zA-Z]*)(\d+)$/), nb = b.match(/^([a-zA-Z]*)(\d+)$/);
+  if (na && nb && na[1] === nb[1]) return (+na[2]) - (+nb[2]);
+  return a < b ? -1 : a > b ? 1 : 0;
+};
+FA.sortIds = (arr) => [...arr].sort(FA.cmpId);
+FA.setLabel = (set) => '{' + FA.sortIds(set).join(',') + '}';
+
+class Automaton {
+  constructor(o = {}) {
+    this.name = o.name || 'M';
+    this.alphabet = o.alphabet ? [...o.alphabet] : ['a', 'b'];
+    this.states = (o.states || []).map(s => ({ id: s.id, label: s.label ?? s.id, x: s.x ?? 0, y: s.y ?? 0, isStart: !!s.isStart, isFinal: !!s.isFinal }));
+    this.transitions = (o.transitions || []).map(t => ({ from: t.from, symbol: t.symbol, to: t.to }));
+    this.meta = o.meta || {};
+  }
+  static fromJSON(j) { return new Automaton(typeof j === 'string' ? JSON.parse(j) : j); }
+  toJSON() { return { name: this.name, alphabet: this.alphabet, states: this.states, transitions: this.transitions, meta: this.meta }; }
+  clone() { return Automaton.fromJSON(JSON.parse(JSON.stringify(this.toJSON()))); }
+  get start() { const s = this.states.find(s => s.isStart); return s ? s.id : null; }
+  ids() { return this.states.map(s => s.id); }
+  state(id) { return this.states.find(s => s.id === id); }
+  finals() { return new Set(this.states.filter(s => s.isFinal).map(s => s.id)); }
+  isFinal(id) { const s = this.state(id); return !!(s && s.isFinal); }
+  trans(q, sym) { return this.transitions.filter(t => t.from === q && t.symbol === sym).map(t => t.to); }
+  hasEpsilon() { return this.transitions.some(t => t.symbol === FA.E); }
+  isDeterministic() {
+    if (this.hasEpsilon()) return false;
+    for (const q of this.ids()) for (const a of this.alphabet) if (this.trans(q, a).length !== 1) return false;
+    return true;
+  }
+  isComplete() { for (const q of this.ids()) for (const a of this.alphabet) if (this.trans(q, a).length === 0) return false; return true; }
+  isNondetChoice() { for (const q of this.ids()) for (const a of this.alphabet) if (this.trans(q, a).length > 1) return true; return false; }
+  kind() {
+    if (!this.states.length) return 'empty';
+    if (this.isDeterministic()) return 'DFA';
+    if (this.hasEpsilon()) return 'NFA-e';
+    if (this.isNondetChoice()) return 'NFA';
+    return 'DFA-incomplete';
+  }
+  freshId(prefix = 'q') {
+    let i = 0; while (this.state(prefix + i)) i++; return prefix + i;
+  }
+  addState(o = {}) {
+    const id = o.id || this.freshId();
+    const st = { id, label: o.label ?? id, x: o.x ?? 100, y: o.y ?? 100, isStart: !!o.isStart || this.states.length === 0, isFinal: !!o.isFinal };
+    if (st.isStart) this.states.forEach(s => s.isStart = false);
+    this.states.push(st); return st;
+  }
+  removeState(id) {
+    this.states = this.states.filter(s => s.id !== id);
+    this.transitions = this.transitions.filter(t => t.from !== id && t.to !== id);
+  }
+  renameState(id, label) { const s = this.state(id); if (s) s.label = label; }
+  setStart(id) { this.states.forEach(s => s.isStart = s.id === id); }
+  toggleFinal(id) { const s = this.state(id); if (s) s.isFinal = !s.isFinal; }
+  addTransition(from, symbol, to) {
+    if (!this.transitions.some(t => t.from === from && t.symbol === symbol && t.to === to)) this.transitions.push({ from, symbol, to });
+  }
+  removeTransition(from, symbol, to) { this.transitions = this.transitions.filter(t => !(t.from === from && t.symbol === symbol && t.to === to)); }
+  removeEdge(from, to) { this.transitions = this.transitions.filter(t => !(t.from === from && t.to === to)); }
+  setAlphabet(list) {
+    this.alphabet = [...new Set(list.filter(s => s && s !== FA.E))];
+    this.transitions = this.transitions.filter(t => t.symbol === FA.E || this.alphabet.includes(t.symbol));
+  }
+  // label helpers
+  labelOf(id) { const s = this.state(id); return s ? s.label : id; }
+  edgeLabel(from, to) {
+    const syms = this.transitions.filter(t => t.from === from && t.to === to).map(t => t.symbol);
+    const order = [...this.alphabet, FA.E];
+    return syms.sort((a, b) => order.indexOf(a) - order.indexOf(b)).join(', ');
+  }
+  validate() {
+    const w = [];
+    if (!this.states.length) w.push('ยังไม่มี state');
+    if (this.states.length && !this.start) w.push('ยังไม่มี start state');
+    if (this.states.length && !this.states.some(s => s.isFinal)) w.push('ไม่มี final state — จะ reject ทุก string');
+    return w;
+  }
+  tupleHTML() {
+    const det = this.isDeterministic();
+    const K = this.ids().map(id => this.labelOf(id)).join(', ');
+    const F = [...this.finals()].map(id => this.labelOf(id)).join(', ');
+    const d = det ? 'δ' : 'Δ';
+    const trs = this.transitions.map(t => det ? `((${this.labelOf(t.from)}, ${t.symbol}), ${this.labelOf(t.to)})` : `(${this.labelOf(t.from)}, ${t.symbol}, ${this.labelOf(t.to)})`);
+    return `<span class="k">M</span> = (K, Σ, ${d}, s, F)<br>` +
+      `<span class="k">K</span> = {${K}}<br><span class="k">Σ</span> = {${this.alphabet.join(', ')}}<br>` +
+      `<span class="k">s</span> = ${this.start ? this.labelOf(this.start) : '?'}<br><span class="k">F</span> = {${F}}<br>` +
+      `<span class="k">${d}</span> = {${trs.join(', ') || ' '}}`;
+  }
+  static fromTable(spec) {
+    // spec: { alphabet, start, finals:[], rows:{q:{a:'q1'|'q1,q2'|''}}, eps:{q:[...]}, pos:{q:[x,y]} }
+    const A = new Automaton({ alphabet: spec.alphabet, name: spec.name });
+    const ids = Object.keys(spec.rows);
+    ids.forEach((id, i) => {
+      const p = spec.pos && spec.pos[id];
+      A.states.push({ id, label: spec.labels && spec.labels[id] || id, x: p ? p[0] : 0, y: p ? p[1] : 0, isStart: id === spec.start, isFinal: (spec.finals || []).includes(id) });
+    });
+    for (const id of ids) {
+      for (const a of spec.alphabet) {
+        const tgt = spec.rows[id][a];
+        if (tgt) String(tgt).split(',').map(s => s.trim()).filter(Boolean).forEach(t => A.addTransition(id, a, t));
+      }
+      if (spec.eps && spec.eps[id]) spec.eps[id].forEach(t => A.addTransition(id, FA.E, t));
+    }
+    if (!spec.pos) FA.layoutCircle(A);
+    return A;
+  }
+}
+FA.Automaton = Automaton;
+
+FA.layoutCircle = (A, cx = 300, cy = 200, r = null) => {
+  const n = A.states.length; if (!n) return;
+  r = r ?? Math.min(150, 40 + n * 22);
+  const start = A.states.findIndex(s => s.isStart);
+  A.states.forEach((s, i) => {
+    const k = (i - (start < 0 ? 0 : start) + n) % n;
+    const ang = Math.PI + (2 * Math.PI * k) / n;
+    s.x = Math.round(cx + r * Math.cos(ang)); s.y = Math.round(cy + r * Math.sin(ang));
+  });
+};
+FA.layoutLayers = (A, x0 = 80, y0 = 200, dx = 130, dy = 90) => {
+  const s = A.start; if (!s) return FA.layoutCircle(A);
+  const depth = { [s]: 0 }; const q = [s];
+  while (q.length) { const u = q.shift(); for (const t of A.transitions.filter(t => t.from === u)) if (!(t.to in depth)) { depth[t.to] = depth[u] + 1; q.push(t.to); } }
+  let maxd = 0; for (const id of A.ids()) { if (!(id in depth)) depth[id] = ++maxd + 100; }
+  const cols = {}; for (const id of A.ids()) (cols[depth[id]] ||= []).push(id);
+  const keys = Object.keys(cols).map(Number).sort((a, b) => a - b);
+  keys.forEach((d, ci) => { const col = cols[d]; col.forEach((id, ri) => { const st = A.state(id); st.x = x0 + ci * dx; st.y = y0 + (ri - (col.length - 1) / 2) * dy; }); });
+};
+</script>
+
+<script>
+// ===== [2] core/algorithms — pure functions, no DOM =====
+(() => {
+const E = FA.E;
+const setEq = (a, b) => a.size === b.size && [...a].every(x => b.has(x));
+const union = (...sets) => { const r = new Set(); for (const s of sets) for (const x of s) r.add(x); return r; };
+FA.setEq = setEq; FA.setUnion = union;
+
+// ---- e-Closure ----
+// E1(q) = {q} ∪ {p | (q,e,p) ∈ Δ}
+const E1 = (A, q) => new Set([q, ...A.trans(q, E)]);
+// Synchronous iteration exactly like the lecturer's table: Iter(k+1)[q] = ⋃_{p ∈ Iter(k)[q]} Iter(k)[p]
+FA.closureTable = (A) => {
+  const ids = A.ids();
+  const columns = [];
+  let cur = {}; ids.forEach(q => cur[q] = E1(A, q));
+  columns.push(cur);
+  for (let k = 0; k < ids.length + 2; k++) {
+    const next = {};
+    for (const q of ids) next[q] = union(...[...cur[q]].map(p => cur[p]));
+    columns.push(next);
+    if (ids.every(q => setEq(next[q], cur[q]))) break;
+    cur = next;
+  }
+  const E_ = columns[columns.length - 1];
+  return { states: ids, columns, E: E_, convergedAt: columns.length };
+};
+FA.eClosure = (A, q) => FA.closureTable(A).E[q];
+FA.closureOfSet = (A, set) => { const t = FA.closureTable(A).E; return union(...[...set].map(q => t[q] || new Set([q]))); };
+
+// ---- DFA run ----
+FA.runDFA = (A, w) => {
+  const s = A.start; const steps = [];
+  if (!s) return { accepted: false, reason: 'ไม่มี start state', steps };
+  let q = s;
+  steps.push({ state: q, remaining: w, pos: 0 });
+  for (let i = 0; i < w.length; i++) {
+    const a = w[i];
+    if (!A.alphabet.includes(a)) return { accepted: false, reason: `สัญลักษณ์ '${a}' ไม่อยู่ใน Σ`, steps, stuckAt: i };
+    const tg = A.trans(q, a);
+    if (tg.length === 0) { steps[steps.length - 1].stuck = a; return { accepted: false, reason: `δ(${A.labelOf(q)}, ${a}) ไม่นิยาม — เครื่องติด (reject)`, steps, stuckAt: i }; }
+    const nq = tg[0];
+    steps[steps.length - 1].read = a; steps[steps.length - 1].next = nq;
+    q = nq; steps.push({ state: q, remaining: w.slice(i + 1), pos: i + 1 });
+  }
+  const acc = A.isFinal(q);
+  return { accepted: acc, final: q, reason: acc ? `อ่านหมดแล้วอยู่ที่ ${A.labelOf(q)} ∈ F` : `อ่านหมดแล้วอยู่ที่ ${A.labelOf(q)} ∉ F`, steps };
+};
+
+// ---- NFA run: active-set (Theorem 2.6.3) + computation tree ----
+FA.runNFA = (A, w, opts = {}) => {
+  const s = A.start;
+  if (!s) return { accepted: false, reason: 'ไม่มี start state', sets: [], tree: null };
+  const Et = FA.closureTable(A).E;
+  const cl = (set) => union(...[...set].map(q => Et[q]));
+  const sets = [];
+  let S = cl(new Set([s]));
+  sets.push({ set: S, pos: 0, formula: `S₀ = E(${A.labelOf(s)})` });
+  for (let i = 0; i < w.length; i++) {
+    const a = w[i];
+    const contrib = [];
+    for (const q of S) for (const p of A.trans(q, a)) contrib.push({ q, p });
+    const moved = new Set(contrib.map(c => c.p));
+    S = cl(moved);
+    sets.push({ set: S, pos: i + 1, sym: a, contrib, moved, formula: `S${sub(i + 1)} = ⋃ E(p) สำหรับ (q, ${a}, p) ∈ Δ, q ∈ S${sub(i)}` });
+    if (!A.alphabet.includes(a)) break;
+  }
+  const F = A.finals();
+  const accepted = [...S].some(q => F.has(q));
+  // tree
+  const maxNodes = opts.maxNodes || 600; let count = 0;
+  const build = (state, pos, via, onPath) => {
+    const node = { state, pos, via, children: [], status: 'cont' };
+    count++;
+    const key = state + '@' + pos;
+    if (onPath.has(key)) { node.status = 'dup'; return node; }
+    const np = new Set(onPath); np.add(key);
+    if (count > maxNodes) { node.status = 'cut'; return node; }
+    const nexts = [];
+    for (const p of A.trans(state, E)) nexts.push({ p, sym: E, npos: pos });
+    if (pos < w.length) for (const p of A.trans(state, w[pos])) nexts.push({ p, sym: w[pos], npos: pos + 1 });
+    if (pos === w.length && F.has(state)) node.status = 'acc';
+    if (!nexts.length) { if (node.status !== 'acc') node.status = 'dead'; return node; }
+    for (const n of nexts) node.children.push(build(n.p, n.npos, n.sym, np));
+    if (node.status !== 'acc') node.status = node.children.some(c => c.status === 'acc' || c.status === 'subacc') ? 'subacc' : 'dead';
+    return node;
+  };
+  const tree = build(s, 0, null, new Set());
+  return { accepted, sets, tree, final: S, reason: accepted ? `S${sub(w.length)} ∩ F ≠ ∅` : `S${sub(w.length)} ∩ F = ∅` };
+};
+const sub = (n) => String(n).replace(/\d/g, d => '₀₁₂₃₄₅₆₇₈₉'[d]);
+FA.sub = sub;
+FA.accepts = (A, w) => (A.isDeterministic() ? FA.runDFA(A, w) : FA.runNFA(A, w)).accepted;
+
+// ---- Powerset construction ----
+FA.powerset = (A) => {
+  const s = A.start;
+  const table = FA.closureTable(A);
+  const Et = table.E;
+  const F = A.finals();
+  const keyOf = (set) => set.size ? FA.setKey(set) : '∅';
+  const rows = []; const rowByKey = {};
+  const steps = [];
+  const addRow = (set) => {
+    const key = keyOf(set);
+    if (rowByKey[key]) return { row: rowByKey[key], isNew: false };
+    const row = { Q: set, key, cells: {}, isFinal: [...set].some(q => F.has(q)), isStart: rows.length === 0, index: rows.length };
+    rows.push(row); rowByKey[key] = row; return { row, isNew: true };
+  };
+  const S0 = Et[s];
+  addRow(S0);
+  steps.push({ kind: 'start', Q: S0, text: `s′ = E(${A.labelOf(s)}) = ${FA.setLabel(S0)}` });
+  for (let r = 0; r < rows.length; r++) {
+    const row = rows[r];
+    for (const a of A.alphabet) {
+      const contrib = [];
+      for (const q of FA.sortIds(row.Q)) for (const p of A.trans(q, a)) contrib.push({ q, p });
+      const result = union(...contrib.map(c => Et[c.p]));
+      const { row: target, isNew } = addRow(result);
+      row.cells[a] = { contrib, result, targetKey: target.key, isNew };
+      steps.push({ kind: 'cell', row: r, sym: a, contrib, result, isNew, targetKey: target.key });
+    }
+  }
+  steps.push({ kind: 'done' });
+  // build DFA
+  const D = new FA.Automaton({ alphabet: A.alphabet, name: A.name + "′" });
+  rows.forEach((row) => {
+    D.states.push({ id: row.key, label: row.key === '∅' ? '∅' : FA.setLabel(row.Q), x: 0, y: 0, isStart: row.isStart, isFinal: row.isFinal });
+  });
+  rows.forEach(row => { for (const a of A.alphabet) D.addTransition(row.key, a, row.cells[a].targetKey); });
+  FA.layoutLayers(D, 110, 230, 190, 110);
+  return { dfa: D, table, rows, steps };
+};
+
+// ---- reachability / completion ----
+FA.reachable = (A) => {
+  const s = A.start; const R = new Set(); const steps = [];
+  if (!s) return { set: R, steps };
+  R.add(s); steps.push({ added: s, via: null });
+  const q = [s];
+  while (q.length) {
+    const u = q.shift();
+    for (const a of [...A.alphabet, E]) for (const v of A.trans(u, a)) if (!R.has(v)) { R.add(v); steps.push({ added: v, via: { from: u, sym: a } }); q.push(v); }
+  }
+  return { set: R, steps };
+};
+FA.removeUnreachable = (A) => {
+  const { set, steps } = FA.reachable(A);
+  const B = A.clone();
+  const removed = B.ids().filter(id => !set.has(id));
+  removed.forEach(id => B.removeState(id));
+  return { dfa: B, removed, steps };
+};
+FA.complete = (A) => {
+  const B = A.clone();
+  const missing = [];
+  for (const q of B.ids()) for (const a of B.alphabet) if (B.trans(q, a).length === 0) missing.push([q, a]);
+  if (!missing.length) return { dfa: B, added: false, trapId: null, missing };
+  const trap = B.addState({ id: B.state('trap') ? B.freshId('trap') : 'trap', label: 'trap', x: 520, y: 340, isStart: false, isFinal: false });
+  for (const [q, a] of missing) B.addTransition(q, a, trap.id);
+  for (const a of B.alphabet) B.addTransition(trap.id, a, trap.id);
+  return { dfa: B, added: true, trapId: trap.id, missing };
+};
+
+// ---- Minimization (partition refinement, Lemma 2.5.1) ----
+FA.minimize = (A0) => {
+  if (A0.hasEpsilon() || A0.isNondetChoice()) return { error: 'ต้องเป็น DFA ก่อน — ใช้ module NFA→DFA แปลงก่อน' };
+  const ru = FA.removeUnreachable(A0);
+  const cp = FA.complete(ru.dfa);
+  const A = cp.dfa;
+  const ids = A.ids(); const F = A.finals();
+  const finals = ids.filter(q => F.has(q)), nonf = ids.filter(q => !F.has(q));
+  let P = [finals, nonf].filter(b => b.length).map(b => FA.sortIds(b));
+  const iterations = [];
+  const blockOf = (P) => { const m = {}; P.forEach((b, i) => b.forEach(q => m[q] = i)); return m; };
+  iterations.push({ n: 0, partition: P.map(b => [...b]), splits: [], table: null, note: '≡₀: แยกตาม final / ไม่ final' });
+  for (let n = 1; n <= ids.length + 1; n++) {
+    const bo = blockOf(P);
+    const table = ids.map(q => ({ q, block: bo[q], sig: Object.fromEntries(A.alphabet.map(a => [a, bo[A.trans(q, a)[0]]])) }));
+    const sigStr = (q) => A.alphabet.map(a => bo[A.trans(q, a)[0]]).join('|');
+    const newP = []; const splits = [];
+    for (const b of P) {
+      const groups = {}; for (const q of b) (groups[sigStr(q)] ||= []).push(q);
+      const gs = Object.values(groups);
+      if (gs.length > 1) {
+        const reason = [];
+        const [g1, g2] = gs;
+        const a = A.alphabet.find(a => bo[A.trans(g1[0], a)[0]] !== bo[A.trans(g2[0], a)[0]]);
+        reason.push(`${A.labelOf(g1[0])} กับ ${A.labelOf(g2[0])} แยกกัน เพราะ δ(${A.labelOf(g1[0])},${a}) อยู่กลุ่ม ${bo[A.trans(g1[0], a)[0]] + 1} แต่ δ(${A.labelOf(g2[0])},${a}) อยู่กลุ่ม ${bo[A.trans(g2[0], a)[0]] + 1}`);
+        splits.push({ block: [...b], into: gs.map(g => [...g]), reason: reason.join('; ') });
+      }
+      gs.forEach(g => newP.push(FA.sortIds(g)));
+    }
+    const changed = newP.length !== P.length;
+    iterations.push({ n, partition: newP.map(b => [...b]), splits, table, note: changed ? `≡${sub(n)}: แยกได้ ${splits.length} กลุ่ม` : `≡${sub(n)} = ≡${sub(n - 1)} → CONVERGED` });
+    P = newP;
+    if (!changed) break;
+  }
+  // build minimized DFA
+  const bo = blockOf(P);
+  const M = new FA.Automaton({ alphabet: A.alphabet, name: A0.name + ' (min)' });
+  const s = A.start;
+  const blockLabel = (b) => b.length === 1 ? A.labelOf(b[0]) : FA.setLabel(b.map(q => A.labelOf(q)));
+  P.forEach((b, i) => M.states.push({ id: 'B' + i, label: blockLabel(b), x: 0, y: 0, isStart: b.includes(s), isFinal: F.has(b[0]) }));
+  P.forEach((b, i) => { for (const a of A.alphabet) M.addTransition('B' + i, a, 'B' + bo[A.trans(b[0], a)[0]]); });
+  // drop trap block if it was added and stays a lone non-final sink → keep (so DFA stays complete). Mark meta.
+  FA.layoutLayers(M, 110, 220, 170, 100);
+  return { dfa: M, prep: { removed: ru.removed, reachSteps: ru.steps, trapAdded: cp.added, trapId: cp.trapId, completed: A }, iterations, partition: P, mapping: bo };
+};
+
+// ---- closure constructions ----
+const relabel = (A, prefix, primes) => {
+  const B = new FA.Automaton({ alphabet: A.alphabet, name: A.name });
+  const map = {};
+  A.states.forEach(s => { map[s.id] = prefix + s.id; B.states.push({ ...s, id: prefix + s.id, label: s.label + (primes ? '′' : '') }); });
+  A.transitions.forEach(t => B.transitions.push({ from: map[t.from], symbol: t.symbol, to: map[t.to] }));
+  return { B, map };
+};
+const shift = (A, dx, dy) => A.states.forEach(s => { s.x += dx; s.y += dy; });
+FA.union = (A1, A2) => {
+  const a = relabel(A1, 'a:', false), b = relabel(A2, 'b:', true);
+  const M = new FA.Automaton({ alphabet: [...new Set([...A1.alphabet, ...A2.alphabet])], name: 'M₁ ∪ M₂' });
+  shift(a.B, 120, -110); shift(b.B, 120, 110);
+  M.states = [{ id: 's', label: 's', x: 40, y: 200, isStart: true, isFinal: false }, ...a.B.states.map(s => ({ ...s, isStart: false })), ...b.B.states.map(s => ({ ...s, isStart: false }))];
+  M.transitions = [...a.B.transitions, ...b.B.transitions];
+  M.addTransition('s', E, a.map[A1.start]); M.addTransition('s', E, b.map[A2.start]);
+  return { M, added: ['s'], note: 's ใหม่ + (s, e, s₁), (s, e, s₂); F = F₁ ∪ F₂' };
+};
+FA.concat = (A1, A2) => {
+  const a = relabel(A1, 'a:', false), b = relabel(A2, 'b:', true);
+  const M = new FA.Automaton({ alphabet: [...new Set([...A1.alphabet, ...A2.alphabet])], name: 'M₁M₂' });
+  const w = Math.max(...A1.states.map(s => s.x)) + 120;
+  shift(b.B, w, 0);
+  M.states = [...a.B.states.map(s => ({ ...s, isFinal: false })), ...b.B.states.map(s => ({ ...s, isStart: false }))];
+  M.transitions = [...a.B.transitions, ...b.B.transitions];
+  for (const f of A1.finals()) M.addTransition(a.map[f], E, b.map[A2.start]);
+  return { M, note: 'e จากทุก f ∈ F₁ → s₂; F = F₂ (state ของ M₁ เลิกเป็น final)' };
+};
+FA.star = (A1) => {
+  const a = relabel(A1, 'a:', false);
+  const M = new FA.Automaton({ alphabet: A1.alphabet, name: 'M₁*' });
+  shift(a.B, 110, 0);
+  M.states = [{ id: 's', label: 's', x: 40, y: a.B.state(a.map[A1.start]).y, isStart: true, isFinal: true }, ...a.B.states.map(s => ({ ...s, isStart: false }))];
+  M.transitions = [...a.B.transitions];
+  M.addTransition('s', E, a.map[A1.start]);
+  for (const f of A1.finals()) M.addTransition(a.map[f], E, a.map[A1.start]);
+  return { M, note: 's ใหม่ (เป็น final เพื่อรับ e) + (s, e, s₁) + e จากทุก f ∈ F₁ กลับไป s₁' };
+};
+FA.complement = (A1) => {
+  if (A1.hasEpsilon() || A1.isNondetChoice()) return { error: 'Complement ต้องทำกับ DFA เท่านั้น (Problem 2.3.1) — แปลงเป็น DFA ก่อน' };
+  const c = FA.complete(A1);
+  const M = c.dfa; M.name = '¬M₁';
+  M.states.forEach(s => s.isFinal = !s.isFinal);
+  return { M, note: (c.added ? 'เพิ่ม trap state ให้ complete ก่อน แล้ว' : '') + 'สลับ F ↔ K − F' };
+};
+FA.product = (A1, A2, mode = 'and') => {
+  if (A1.hasEpsilon() || A1.isNondetChoice() || A2.hasEpsilon() || A2.isNondetChoice()) return { error: 'Product construction ต้องใช้ DFA ทั้งคู่' };
+  const alphabet = [...new Set([...A1.alphabet, ...A2.alphabet])];
+  const c1 = FA.complete(new FA.Automaton({ ...A1.toJSON(), alphabet })).dfa, c2 = FA.complete(new FA.Automaton({ ...A2.toJSON(), alphabet })).dfa;
+  const M = new FA.Automaton({ alphabet, name: mode === 'and' ? 'M₁ × M₂ (∩)' : 'M₁ × M₂ (∪)' });
+  const id = (p, q) => p + '|' + q;
+  const seen = new Set(); const queue = [[c1.start, c2.start]];
+  seen.add(id(c1.start, c2.start));
+  while (queue.length) {
+    const [p, q] = queue.shift();
+    const f1 = c1.isFinal(p), f2 = c2.isFinal(q);
+    M.states.push({ id: id(p, q), label: `(${c1.labelOf(p)},${c2.labelOf(q)})`, x: 0, y: 0, isStart: p === c1.start && q === c2.start, isFinal: mode === 'and' ? (f1 && f2) : (f1 || f2) });
+    for (const a of alphabet) {
+      const p2 = c1.trans(p, a)[0], q2 = c2.trans(q, a)[0];
+      M.addTransition(id(p, q), a, id(p2, q2));
+      if (!seen.has(id(p2, q2))) { seen.add(id(p2, q2)); queue.push([p2, q2]); }
+    }
+  }
+  FA.layoutLayers(M, 90, 200, 150, 90);
+  return { M, note: 'state = คู่ (p, q); δ((p,q),a) = (δ₁(p,a), δ₂(q,a)); final เมื่อ' + (mode === 'and' ? 'ทั้งคู่ final' : 'อย่างน้อยหนึ่ง final') };
+};
+
+// ---- language tools ----
+FA.stringsUpTo = function* (alphabet, maxLen) {
+  yield '';
+  let layer = [''];
+  for (let n = 1; n <= maxLen; n++) { const next = []; for (const w of layer) for (const a of alphabet) { next.push(w + a); yield w + a; } layer = next; }
+};
+FA.toDFA = (A) => A.isDeterministic() ? A : FA.powerset(A).dfa;
+FA.languageDiff = (A, B, maxLen = 7) => {
+  const alphabet = [...new Set([...A.alphabet, ...B.alphabet])];
+  const DA = FA.complete(new FA.Automaton({ ...FA.toDFA(A).toJSON(), alphabet })).dfa;
+  const DB = FA.complete(new FA.Automaton({ ...FA.toDFA(B).toJSON(), alphabet })).dfa;
+  for (const w of FA.stringsUpTo(alphabet, maxLen)) { const x = FA.runDFA(DA, w).accepted, y = FA.runDFA(DB, w).accepted; if (x !== y) return { w, inA: x, inB: y }; }
+  return null;
+};
+FA.dfaEquivalent = (A, B) => {
+  const alphabet = [...new Set([...A.alphabet, ...B.alphabet])];
+  const DA = FA.complete(new FA.Automaton({ ...FA.toDFA(A).toJSON(), alphabet })).dfa;
+  const DB = FA.complete(new FA.Automaton({ ...FA.toDFA(B).toJSON(), alphabet })).dfa;
+  const seen = new Set(); const q = [[DA.start, DB.start, '']];
+  while (q.length) {
+    const [p, r, w] = q.shift();
+    if (DA.isFinal(p) !== DB.isFinal(r)) return { equivalent: false, witness: w, inA: DA.isFinal(p), inB: DB.isFinal(r) };
+    for (const a of alphabet) { const p2 = DA.trans(p, a)[0], r2 = DB.trans(r, a)[0]; const k = p2 + '|' + r2; if (!seen.has(k)) { seen.add(k); q.push([p2, r2, w + a]); } }
+  }
+  return { equivalent: true };
+};
+FA.findPumpingCycle = (A, w) => {
+  const D = FA.complete(FA.toDFA(A)).dfa;
+  const n = D.states.length;
+  if (w.length < n) return { error: `|ω| = ${w.length} < |K| = ${n} — theorem ไม่รับประกันอะไร` };
+  const seq = [D.start]; let q = D.start;
+  for (let i = 0; i < n; i++) { q = D.trans(q, w[i])[0]; seq.push(q); }
+  for (let j = 1; j <= n; j++) for (let i = 0; i < j; i++) if (seq[i] === seq[j]) return { i, j, seq, x: w.slice(0, i), y: w.slice(i, j), z: w.slice(j), dfa: D, n };
+  return null;
+};
+})();
+</script>
+
+<script>
+// ===== [3] core/regex — parser, printer, simplifier, Thompson, state elimination, R(i,j,k) =====
+(() => {
+const E = FA.E;
+const RX = {};
+FA.RX = RX;
+const SYM = (c) => ({ t: 'sym', c }), EPS = { t: 'eps' }, EMPTY = { t: 'empty' };
+const CAT = (l, r) => ({ t: 'cat', l, r }), OR = (l, r) => ({ t: 'or', l, r }), STAR = (x) => ({ t: 'star', x });
+RX.SYM = SYM; RX.EPS = EPS; RX.EMPTY = EMPTY; RX.CAT = CAT; RX.OR = OR; RX.STAR = STAR;
+
+RX.tokenize = (s) => {
+  const toks = [];
+  for (const ch of s.replace(/\s+/g, '')) {
+    if (ch === '(' || ch === ')' || ch === '*') toks.push({ k: ch });
+    else if (ch === '∪' || ch === '|' || ch === 'U' || ch === '+') toks.push({ k: 'or' });
+    else if (ch === 'e' || ch === 'ε' || ch === 'ϵ') toks.push({ k: 'eps' });
+    else if (ch === '∅' || ch === 'Ø') toks.push({ k: 'empty' });
+    else toks.push({ k: 'sym', c: ch });
+  }
+  return toks;
+};
+RX.parse = (s) => {
+  const toks = RX.tokenize(s); let i = 0;
+  const peek = () => toks[i], next = () => toks[i++];
+  const atom = () => {
+    const t = next(); if (!t) throw new Error('จบ expression กะทันหัน');
+    if (t.k === '(') { const x = orx(); const c = next(); if (!c || c.k !== ')') throw new Error('ขาด )'); return x; }
+    if (t.k === 'sym') return SYM(t.c);
+    if (t.k === 'eps') return EPS;
+    if (t.k === 'empty') return EMPTY;
+    throw new Error(`ไม่คาดว่าจะเจอ '${t.k}' ที่ตำแหน่ง ${i}`);
+  };
+  const starx = () => { let x = atom(); while (peek() && peek().k === '*') { next(); x = STAR(x); } return x; };
+  const catx = () => { let x = starx(); while (peek() && (peek().k === 'sym' || peek().k === '(' || peek().k === 'eps' || peek().k === 'empty')) x = CAT(x, starx()); return x; };
+  const orx = () => { let x = catx(); while (peek() && peek().k === 'or') { next(); x = OR(x, catx()); } return x; };
+  if (!toks.length) return EPS;
+  const r = orx();
+  if (i < toks.length) throw new Error(`มี token เกินที่ตำแหน่ง ${i}: '${toks[i].k}'`);
+  return r;
+};
+const prec = { or: 0, cat: 1, star: 2, sym: 3, eps: 3, empty: 3 };
+RX.print = (n) => {
+  const p = (x, need) => { const s = RX.print(x); return prec[x.t] < need ? '(' + s + ')' : s; };
+  switch (n.t) {
+    case 'sym': return n.c; case 'eps': return 'e'; case 'empty': return '∅';
+    case 'cat': return p(n.l, 1) + p(n.r, 1);
+    case 'or': return p(n.l, 0) + ' ∪ ' + p(n.r, 0);
+    case 'star': return p(n.x, 3) + '*';
+  }
+};
+RX.eq = (a, b) => RX.print(a) === RX.print(b);
+RX.simplify = (n) => {
+  if (!n) return EMPTY;
+  switch (n.t) {
+    case 'cat': {
+      const l = RX.simplify(n.l), r = RX.simplify(n.r);
+      if (l.t === 'empty' || r.t === 'empty') return EMPTY;
+      if (l.t === 'eps') return r; if (r.t === 'eps') return l;
+      return CAT(l, r);
+    }
+    case 'or': {
+      const l = RX.simplify(n.l), r = RX.simplify(n.r);
+      if (l.t === 'empty') return r; if (r.t === 'empty') return l;
+      if (RX.eq(l, r)) return l;
+      const alts = new Set(RX.alts(l).map(RX.print));
+      if (RX.alts(r).every(x => alts.has(RX.print(x)))) return l;
+      return OR(l, r);
+    }
+    case 'star': {
+      const x = RX.simplify(n.x);
+      if (x.t === 'empty' || x.t === 'eps') return EPS;
+      if (x.t === 'star') return x;
+      return STAR(x);
+    }
+    default: return n;
+  }
+};
+RX.alts = (n) => n.t === 'or' ? [...RX.alts(n.l), ...RX.alts(n.r)] : [n];
+RX.astTree = (n, depth = 0) => {
+  const pad = '  '.repeat(depth);
+  switch (n.t) {
+    case 'sym': return pad + `sym "${n.c}"`; case 'eps': return pad + 'e'; case 'empty': return pad + '∅';
+    case 'cat': return pad + 'concat\n' + RX.astTree(n.l, depth + 1) + '\n' + RX.astTree(n.r, depth + 1);
+    case 'or': return pad + 'union ∪\n' + RX.astTree(n.l, depth + 1) + '\n' + RX.astTree(n.r, depth + 1);
+    case 'star': return pad + 'star *\n' + RX.astTree(n.x, depth + 1);
+  }
+};
+
+// ---- Thompson-style construction following Theorem 2.3.1 ----
+const tidy = (A) => {
+  // relabel states q0..qn in BFS order from start, keep structure
+  const order = []; const seen = new Set(); const q = [A.start]; seen.add(A.start);
+  while (q.length) { const u = q.shift(); order.push(u); for (const t of A.transitions) if (t.from === u && !seen.has(t.to)) { seen.add(t.to); q.push(t.to); } }
+  for (const id of A.ids()) if (!seen.has(id)) order.push(id);
+  const map = {}; order.forEach((id, i) => map[id] = 'q' + i);
+  const B = new FA.Automaton({ alphabet: A.alphabet, name: A.name });
+  B.states = order.map(id => { const s = A.state(id); return { ...s, id: map[id], label: map[id] }; });
+  B.transitions = A.transitions.map(t => ({ from: map[t.from], symbol: t.symbol, to: map[t.to] }));
+  FA.layoutLayers(B, 70, 200, 120, 80);
+  return B;
+};
+RX.toNFA = (ast, alphabet) => {
+  const stages = [];
+  const alpha = alphabet || [...new Set(RX.symbols(ast))];
+  const single = (isFinal, label) => { const A = new FA.Automaton({ alphabet: alpha }); A.states.push({ id: 'q0', label: 'q0', x: 60, y: 200, isStart: true, isFinal }); return A; };
+  const build = (n) => {
+    let A, desc;
+    switch (n.t) {
+      case 'sym': { A = single(false); A.states.push({ id: 'q1', label: 'q1', x: 180, y: 200, isStart: false, isFinal: true }); A.addTransition('q0', n.c, 'q1'); desc = `สัญลักษณ์เดี่ยว "${n.c}": 2 state ต่อด้วยเส้น ${n.c}`; break; }
+      case 'eps': { A = single(true); desc = 'e: state เดียวที่เป็นทั้ง start และ final (รับเฉพาะ string ว่าง)'; break; }
+      case 'empty': { A = single(false); desc = '∅: state เดียวที่ไม่ final (ไม่รับอะไรเลย)'; break; }
+      case 'cat': { const L = build(n.l), R = build(n.r); A = tidy(FA.concat(L, R).M); desc = `concat: e จากทุก final ของ [${RX.print(n.l)}] → start ของ [${RX.print(n.r)}]`; break; }
+      case 'or': { const L = build(n.l), R = build(n.r); A = tidy(FA.union(L, R).M); desc = `union: start ใหม่ + e → start ของ [${RX.print(n.l)}] และ [${RX.print(n.r)}]`; break; }
+      case 'star': { const X = build(n.x); A = tidy(FA.star(X).M); desc = `star: start ใหม่ (final) + e → start ของ [${RX.print(n.x)}] + e จาก final กลับไป start เดิม`; break; }
+    }
+    A.alphabet = alpha;
+    stages.push({ regex: RX.print(n), desc, automaton: A.clone() });
+    return A;
+  };
+  const nfa = build(ast);
+  return { nfa, stages };
+};
+RX.symbols = (n) => n.t === 'sym' ? [n.c] : n.t === 'cat' || n.t === 'or' ? [...RX.symbols(n.l), ...RX.symbols(n.r)] : n.t === 'star' ? RX.symbols(n.x) : [];
+
+// ---- State elimination (generalized automaton) ----
+class GA {
+  constructor(A) {
+    this.A = A; this.alphabet = A.alphabet;
+    this.S = 's*'; this.Fn = 'f*';
+    this.states = [this.S, ...A.ids(), this.Fn];
+    this.labels = { [this.S]: 's', [this.Fn]: 'f' }; A.states.forEach(s => this.labels[s.id] = s.label);
+    this.pos = { [this.S]: { x: 40, y: 200 }, [this.Fn]: { x: Math.max(...A.states.map(s => s.x)) + 120, y: 200 } };
+    A.states.forEach(s => this.pos[s.id] = { x: s.x + 80, y: s.y });
+    this.edges = {}; // key i|j → ast
+    for (const t of A.transitions) this.addEdge(t.from, t.to, t.symbol === E ? EPS : SYM(t.symbol));
+    this.addEdge(this.S, A.start, EPS);
+    for (const f of A.finals()) this.addEdge(f, this.Fn, EPS);
+    this.eliminated = []; this.log = [];
+  }
+  key(i, j) { return i + '|' + j; }
+  edge(i, j) { return this.edges[this.key(i, j)] || null; }
+  addEdge(i, j, ast) { const k = this.key(i, j); this.edges[k] = this.edges[k] ? RX.simplify(OR(this.edges[k], ast)) : ast; }
+  alive() { return this.states.filter(s => !this.eliminated.includes(s)); }
+  eliminate(q) {
+    if (q === this.S || q === this.Fn || this.eliminated.includes(q)) return null;
+    const gamma = this.edge(q, q);
+    const ins = this.alive().filter(i => i !== q && this.edge(i, q));
+    const outs = this.alive().filter(j => j !== q && this.edge(q, j));
+    const pairs = [];
+    for (const i of ins) for (const j of outs) {
+      const alpha = this.edge(i, q), beta = this.edge(q, j), old = this.edge(i, j);
+      const mid = gamma ? CAT(CAT(alpha, STAR(gamma)), beta) : CAT(alpha, beta);
+      const raw = old ? OR(old, mid) : mid;
+      const simp = RX.simplify(raw);
+      pairs.push({ i, j, alpha, beta, gamma, old, raw, simp });
+    }
+    for (const p of pairs) this.edges[this.key(p.i, p.j)] = p.simp;
+    for (const k of Object.keys(this.edges)) { const [i, j] = k.split('|'); if (i === q || j === q) delete this.edges[k]; }
+    this.eliminated.push(q);
+    const step = { q, pairs, gamma, ins, outs };
+    this.log.push(step);
+    return step;
+  }
+  result() { return this.edge(this.S, this.Fn) || EMPTY; }
+  done() { return this.alive().length === 2; }
+  formula(p) {
+    const P = RX.print;
+    const a = P(p.alpha), b = P(p.beta), g = p.gamma ? P(p.gamma) : null;
+    const mid = g ? `(${a})(${g})*(${b})` : `(${a})(${b})`;
+    return (p.old ? `(${P(p.old)}) ∪ ` : '') + mid + `  →  ${P(p.simp)}`;
+  }
+}
+RX.GA = GA;
+
+// ---- R(i,j,k) ----
+RX.Rijk = (A) => {
+  const ids = A.ids(); const n = ids.length; const memo = {};
+  const base = (i, j) => {
+    const syms = A.transitions.filter(t => t.from === ids[i] && t.to === ids[j]).map(t => t.symbol === E ? EPS : SYM(t.symbol));
+    let r = syms.length ? syms.reduce((a, b) => OR(a, b)) : EMPTY;
+    if (i === j) r = OR(EPS, r);
+    return RX.simplify(r);
+  };
+  const R = (i, j, k) => {
+    const key = i + ',' + j + ',' + k; if (memo[key]) return memo[key];
+    let r;
+    if (k === 0) r = base(i, j);
+    else { const kk = k - 1; r = RX.simplify(OR(R(i, j, kk), CAT(CAT(R(i, k - 1, kk), STAR(R(k - 1, k - 1, kk))), R(k - 1, j, kk)))); }
+    return memo[key] = r;
+  };
+  return { R, n, ids, language: () => { const fs = ids.map((id, j) => A.isFinal(id) ? j : -1).filter(j => j >= 0); const si = ids.indexOf(A.start); return RX.simplify(fs.map(j => R(si, j, n)).reduce((a, b) => OR(a, b), EMPTY)); } };
+};
+})();
+</script>
+
+<script>
+// ===== [7] data/presets — automata from the slides, lecturer's notes and the textbook =====
+(() => {
+const T = FA.Automaton.fromTable;
+const P = [];
+const add = (id, title, src, tags, build, extra = {}) => P.push({ id, title, src, tags, build, ...extra });
+
+add('slide4', '(a ∪ b*a)*  —  DFA 2 state {s, q}', 'สไลด์หน้า 3–7 · trace ของ ω = aababa', ['DFA', 'M1'],
+  () => T({ name: 'M (slide 4)', alphabet: ['a', 'b'], start: 's', finals: ['s'], rows: { s: { a: 's', b: 'q' }, q: { a: 's', b: 'q' } }, pos: { s: [200, 200], q: [420, 200] } }),
+  { sample: 'aababa', regex: '(a ∪ b*a)*' });
+
+add('slide10', '(a ∪ ab)*  —  NFA มี e-transition', 'สไลด์หน้า 10 · อาจารย์ trace aababa หน้า 12', ['NFA', 'M1', 'M2'],
+  () => T({ name: 'M (slide 10)', alphabet: ['a', 'b'], start: 's', finals: ['s'], rows: { s: { a: 'q' }, q: { b: 's' } }, eps: { q: ['s'] }, pos: { s: [200, 200], q: [420, 200] } }),
+  { sample: 'aababa', regex: '(a ∪ ab)*' });
+
+add('ex211', 'Even number of b\'s', 'Example 2.1.1 / Figure 2-2 · trace aabba', ['DFA', 'M1'],
+  () => T({ name: 'M (Ex 2.1.1)', alphabet: ['a', 'b'], start: 'q0', finals: ['q0'], rows: { q0: { a: 'q0', b: 'q1' }, q1: { a: 'q1', b: 'q0' } }, pos: { q0: [200, 200], q1: [420, 200] } }),
+  { sample: 'aabba', regex: '(a ∪ ba*b)*' });
+
+add('ex212', 'No three consecutive b\'s (มี dead state)', 'Example 2.1.2 / Figure 2-3', ['DFA', 'M1', 'M3'],
+  () => T({ name: 'M (Ex 2.1.2)', alphabet: ['a', 'b'], start: 'q0', finals: ['q0', 'q1', 'q2'], rows: { q0: { a: 'q0', b: 'q1' }, q1: { a: 'q0', b: 'q2' }, q2: { a: 'q0', b: 'q3' }, q3: { a: 'q3', b: 'q3' } }, pos: { q0: [90, 200], q1: [250, 200], q2: [410, 200], q3: [570, 200] } }),
+  { sample: 'abbabba' });
+
+add('fig24', '(ab ∪ aba)*  —  DFA 5 state (เล็กสุดแล้ว)', 'Figure 2-4 หน้า 64', ['DFA', 'M1', 'M3'],
+  () => T({ name: 'M (Fig 2-4)', alphabet: ['a', 'b'], start: 'q0', finals: ['q0', 'q2', 'q3'], rows: { q0: { a: 'q1', b: 'd' }, q1: { a: 'd', b: 'q2' }, q2: { a: 'q3', b: 'd' }, q3: { a: 'q1', b: 'q2' }, d: { a: 'd', b: 'd' } }, pos: { q0: [80, 200], q1: [240, 120], q2: [400, 200], q3: [240, 290], d: [560, 200] } }),
+  { sample: 'ababa', regex: '(ab ∪ aba)*' });
+
+add('fig25', '(ab ∪ aba)*  —  NFA 3 state', 'Figure 2-5 หน้า 65 · สไลด์หน้า 12 exercise', ['NFA', 'M1', 'M2'],
+  () => T({ name: 'M (Fig 2-5)', alphabet: ['a', 'b'], start: 'q0', finals: ['q0'], rows: { q0: { a: 'q1' }, q1: { b: 'q0,q2' }, q2: { a: 'q0' } }, pos: { q0: [120, 200], q1: [320, 120], q2: [320, 290] } }),
+  { sample: 'aba', regex: '(ab ∪ aba)*' });
+
+add('fig26', '(ab ∪ aba)*  —  NFA มี e', 'Figure 2-6 หน้า 65', ['NFA', 'M1', 'M2'],
+  () => T({ name: 'M (Fig 2-6)', alphabet: ['a', 'b'], start: 'q0', finals: ['q0'], rows: { q0: { a: 'q1' }, q1: { b: 'q2' }, q2: { a: 'q0' } }, eps: { q2: ['q0'] }, pos: { q0: [120, 200], q1: [320, 120], q2: [320, 290] } }),
+  { sample: 'abab', regex: '(ab ∪ aba)*' });
+
+add('fig27', 'มี bb หรือ bab เป็น substring', 'Example 2.2.1 / Figure 2-7 · input bababab', ['NFA', 'M1', 'M2'],
+  () => T({ name: 'M (Fig 2-7)', alphabet: ['a', 'b'], start: 'q0', finals: ['q4'], rows: { q0: { a: 'q0', b: 'q0,q1' }, q1: { a: 'q3', b: 'q2' }, q2: {}, q3: { b: 'q4' }, q4: { a: 'q4', b: 'q4' } }, eps: { q2: ['q4'] }, pos: { q0: [80, 200], q1: [230, 200], q2: [380, 110], q3: [380, 290], q4: [540, 200] } }),
+  { sample: 'bababab', regex: '(a ∪ b)*(bb ∪ bab)(a ∪ b)*' });
+
+add('fig28', 'มีสัญลักษณ์บางตัวไม่ปรากฏ (n = 3)', 'Example 2.2.2 / Figure 2-8 · DFA ต้อง exponential (Ex 2.2.5)', ['NFA', 'M2'],
+  () => T({ name: 'M (Fig 2-8)', alphabet: ['a', 'b', 'c'], start: 's', finals: ['q1', 'q2', 'q3'], rows: { s: {}, q1: { b: 'q1', c: 'q1' }, q2: { a: 'q2', c: 'q2' }, q3: { a: 'q3', b: 'q3' } }, eps: { s: ['q1', 'q2', 'q3'] }, pos: { s: [100, 200], q1: [340, 90], q2: [340, 200], q3: [340, 310] } }),
+  { sample: 'abab' });
+
+add('fig29', 'Figure 2-9  —  ตัวอย่างหลักที่อาจารย์ทำมือ', 'Example 2.2.3–2.2.4 หน้า 70–73 · annotated หน้า 19–23', ['NFA', 'M2', 'star'],
+  () => T({ name: 'M (Fig 2-9)', alphabet: ['a', 'b'], start: 'q0', finals: ['q4'], rows: { q0: { b: 'q2' }, q1: { a: 'q0,q4' }, q2: { b: 'q4' }, q3: { a: 'q4' }, q4: {} }, eps: { q0: ['q1'], q1: ['q2', 'q3'], q4: ['q3'] }, pos: { q0: [90, 310], q1: [270, 110], q2: [270, 310], q3: [470, 110], q4: [470, 310] } }),
+  { sample: 'ab' });
+
+add('fig215', '3k+1 b\'s  —  ตัวอย่าง state elimination', 'Example 2.3.2 / Figure 2-15 หน้า 80–83 · annotated หน้า 26–27', ['DFA', 'M4', 'star'],
+  () => T({ name: 'M (Fig 2-15)', alphabet: ['a', 'b'], start: 'q1', finals: ['q3'], rows: { q1: { a: 'q1', b: 'q3' }, q3: { a: 'q3', b: 'q2' }, q2: { a: 'q2', b: 'q1' } }, pos: { q1: [140, 300], q3: [320, 110], q2: [500, 300] } }),
+  { sample: 'abab', regex: 'a*b(a ∪ ba*ba*b)*' });
+
+add('fig219', '(ab ∪ ba)*  —  7 state มี q7 ไปไม่ถึง', 'Figure 2-19/2-20 หน้า 93–100 · Example 2.5.3 ย่อเหลือ 4 state', ['DFA', 'M3', 'star'],
+  () => T({ name: 'M (Fig 2-19)', alphabet: ['a', 'b'], start: 'q1', finals: ['q1', 'q3'], rows: { q1: { a: 'q2', b: 'q4' }, q2: { a: 'q5', b: 'q3' }, q3: { a: 'q2', b: 'q6' }, q4: { a: 'q1', b: 'q5' }, q5: { a: 'q5', b: 'q5' }, q6: { a: 'q3', b: 'q5' }, q7: { a: 'q1', b: 'q5' } }, pos: { q1: [80, 200], q2: [240, 110], q4: [240, 290], q3: [400, 110], q5: [400, 290], q6: [560, 110], q7: [560, 320] } }),
+  { sample: 'abba', regex: '(ab ∪ ba)*' });
+
+add('profmin', 'ตัวอย่าง minimization ของอาจารย์ (Σ = {0,1})', 'annotated หน้า 33–35 · q2, q4 ไปไม่ถึง → G1, G2, G3', ['DFA', 'M3', 'star'],
+  () => T({ name: 'M (lecturer)', alphabet: ['0', '1'], start: 'q0', finals: ['q3', 'q5'], rows: { q0: { 0: 'q1', 1: 'q3' }, q1: { 0: 'q0', 1: 'q3' }, q2: { 0: 'q1', 1: 'q4' }, q3: { 0: 'q5', 1: 'q5' }, q4: { 0: 'q3', 1: 'q3' }, q5: { 0: 'q5', 1: 'q5' } }, pos: { q0: [80, 130], q1: [260, 130], q2: [420, 130], q4: [580, 130], q3: [340, 280], q5: [520, 340] } }),
+  { sample: '0011' });
+
+add('fig224', 'Example 2.6.1  —  รัน NFA ตรง ๆ ด้วย active set', 'Figure 2-24 หน้า 107 · input aaaba (reconstructed ให้ S₀…S₅ ตรงหนังสือ)', ['NFA', 'M1'],
+  () => T({ name: 'M (Fig 2-24)', alphabet: ['a', 'b'], start: 'q0', finals: ['q4'], rows: { q0: { a: 'q0' }, q1: { a: 'q2', b: 'q1,q2' }, q2: { b: 'q3' }, q3: { a: 'q3' }, q4: { a: 'q4', b: 'q4' } }, eps: { q0: ['q1'], q3: ['q4'] }, pos: { q0: [80, 200], q1: [230, 200], q2: [380, 200], q3: [530, 200], q4: [680, 200] } }),
+  { sample: 'aaaba' });
+
+add('exA', 'เฉลย exercise: a*ba*b', 'สไลด์หน้า 7 exercise', ['DFA', 'M1'],
+  () => T({ name: 'M (a*ba*b)', alphabet: ['a', 'b'], start: 'q0', finals: ['q2'], rows: { q0: { a: 'q0', b: 'q1' }, q1: { a: 'q1', b: 'q2' }, q2: { a: 'd', b: 'd' }, d: { a: 'd', b: 'd' } }, pos: { q0: [90, 200], q1: [250, 200], q2: [410, 200], d: [570, 200] } }),
+  { sample: 'aabab', regex: 'a*ba*b' });
+
+add('exB', '(a ∪ ab)* แบบไม่มี e-transition', 'สไลด์หน้า 12 exercise ข้อ 2', ['NFA', 'M1', 'M2'],
+  () => T({ name: 'M (no e)', alphabet: ['a', 'b'], start: 's', finals: ['s'], rows: { s: { a: 's,q' }, q: { b: 's' } }, pos: { s: [200, 200], q: [420, 200] } }),
+  { sample: 'aab', regex: '(a ∪ ab)*' });
+
+FA.presets = P;
+FA.preset = (id) => { const p = P.find(p => p.id === id); return p ? p.build() : null; };
+})();
+</script>
+
+<script>
+// ===== [8] tests — compare against worked examples in the slides / textbook =====
+FA.runTests = () => {
+  const out = []; let pass = 0, fail = 0;
+  const t = (name, cond, detail = '') => { if (cond) { pass++; out.push('✓ ' + name); } else { fail++; out.push('✗ ' + name + (detail ? '  — ' + detail : '')); } };
+  const S = (arr) => new Set(arr);
+  const eq = FA.setEq;
+  const P = FA.preset;
+
+  // --- slide 4 DFA, trace aababa (annotated p.7): 7 configurations, accepted
+  { const A = P('slide4'); const r = FA.runDFA(A, 'aababa');
+    t('slide4: aababa accepted', r.accepted);
+    t('slide4: trace has 7 configurations', r.steps.length === 7, String(r.steps.length));
+    t('slide4: trace states s,s,s,q,s,q,s', r.steps.map(s => s.state).join('') === 'sssqsqs', r.steps.map(s => s.state).join(''));
+    t('slide4: e accepted (s ∈ F)', FA.runDFA(A, '').accepted);
+    t('slide4: "b" rejected', !FA.runDFA(A, 'b').accepted); }
+  // --- Example 2.1.1 aabba
+  { const r = FA.runDFA(P('ex211'), 'aabba'); t('ex211: aabba accepted, ends q0', r.accepted && r.final === 'q0'); }
+  // --- slide 10 NFA aababa (annotated p.12)
+  { const A = P('slide10'); const r = FA.runNFA(A, 'aababa'); t('slide10: NFA accepts aababa', r.accepted); t('slide10: NFA rejects abb', !FA.runNFA(A, 'abb').accepted); }
+  // --- Fig 2-7 bababab
+  { const r = FA.runNFA(P('fig27'), 'bababab'); t('fig27: bababab ∈ L', r.accepted); t('fig27: "aaa" ∉ L', !FA.runNFA(P('fig27'), 'aaa').accepted); }
+  // --- Fig 2-9 e-closure (Example 2.2.3 + lecturer's table)
+  { const A = P('fig29'); const ct = FA.closureTable(A);
+    t('fig29: E(q0) = {q0,q1,q2,q3}', eq(ct.E.q0, S(['q0', 'q1', 'q2', 'q3'])), FA.setLabel(ct.E.q0));
+    t('fig29: E(q1) = {q1,q2,q3}', eq(ct.E.q1, S(['q1', 'q2', 'q3'])));
+    t('fig29: E(q2) = {q2}', eq(ct.E.q2, S(['q2'])));
+    t('fig29: E(q4) = {q3,q4}', eq(ct.E.q4, S(['q3', 'q4'])));
+    t('fig29: closure converges at Iter-3 (3 columns)', ct.columns.length === 3, String(ct.columns.length));
+    t('fig29: Iter-1 E(q0) = {q0,q1}', eq(ct.columns[0].q0, S(['q0', 'q1'])));
+    // powerset (Example 2.2.4 / Fig 2-10)
+    const ps = FA.powerset(A); const D = ps.dfa;
+    const keys = ps.rows.map(r => r.key);
+    t('fig29→DFA: 4 superstates + ∅ = 5 (Figure 2-10)', keys.length === 5, keys.join(' | '));
+    t('fig29→DFA: s′ = {q0,q1,q2,q3}', ps.rows[0].key === 'q0,q1,q2,q3');
+    t("fig29→DFA: δ′(s′,a) = {q0,q1,q2,q3,q4}", ps.rows[0].cells.a.targetKey === 'q0,q1,q2,q3,q4');
+    t("fig29→DFA: δ′(s′,b) = {q2,q3,q4}", ps.rows[0].cells.b.targetKey === 'q2,q3,q4');
+    t("fig29→DFA: δ′({q2,q3,q4},a) = {q3,q4}", D.trans('q2,q3,q4', 'a')[0] === 'q3,q4');
+    t("fig29→DFA: δ′({q3,q4},b) = ∅", D.trans('q3,q4', 'b')[0] === '∅');
+    t('fig29→DFA: exactly 3 final superstates', D.states.filter(s => s.isFinal).length === 3);
+    t('fig29→DFA: equivalent to NFA (exact)', FA.dfaEquivalent(A, D).equivalent);
+    t('fig29→DFA: is deterministic & complete', D.isDeterministic()); }
+  // --- Problem 2.2.10: powerset of a DFA gives an equivalent DFA with same #states (reachable)
+  { const A = P('slide4'); const D = FA.powerset(A).dfa; t('powerset(DFA) same size & equivalent', D.states.length === 2 && FA.dfaEquivalent(A, D).equivalent); }
+  // --- Fig 2-8 exponential: n=3 → 2^3 = 8 reachable superstates
+  { const D = FA.powerset(P('fig28')).dfa; t('fig28: powerset has 8 reachable states (2^n)', D.states.length === 8, String(D.states.length)); }
+  // --- Minimization Fig 2-20 (Example 2.5.3)
+  { const A = P('fig219'); const m = FA.minimize(A);
+    t('fig219: q7 removed as unreachable', m.prep.removed.join() === 'q7');
+    const p1 = m.iterations[1].partition.map(b => b.join(',')).sort().join(' | ');
+    t('fig219: ≡₁ = {q1,q3},{q2},{q4,q6},{q5}', p1 === 'q1,q3 | q2 | q4,q6 | q5', p1);
+    t('fig219: converged after 2nd iteration', m.iterations.length === 3, String(m.iterations.length));
+    t('fig219: minimal DFA has 4 states', m.dfa.states.length === 4, String(m.dfa.states.length));
+    t('fig219: minimal DFA equivalent', FA.dfaEquivalent(A, m.dfa).equivalent); }
+  // --- lecturer's minimization example
+  { const A = P('profmin'); const m = FA.minimize(A);
+    t('profmin: q2,q4 unreachable', m.prep.removed.sort().join() === 'q2,q4', m.prep.removed.join());
+    const fin = m.partition.map(b => b.join(',')).sort().join(' | ');
+    // NOTE: the web example the lecturer pasted claims {q0},{q1},{q3,q5}; Lemma 2.5.1 shows q0 ≡ q1 (both accept 0*1Σ*)
+    t('profmin: correct groups {q0,q1},{q3,q5} (lecturer\'s pasted example is not minimal)', fin === 'q0,q1 | q3,q5', fin);
+    t('profmin: L(q0)=L(q1) confirmed by exact equivalence', (() => { const B = A.clone(); B.setStart('q1'); return FA.dfaEquivalent(A, B).equivalent; })());
+    t('profmin: equivalent', FA.dfaEquivalent(A, m.dfa).equivalent); }
+  // --- Fig 2-4 already minimal
+  { const m = FA.minimize(P('fig24')); t('fig24: 5-state DFA stays 5 states', m.dfa.states.length === 5, String(m.dfa.states.length)); }
+  // --- regex parse/print
+  { const RX = FA.RX; const r = RX.parse('(ab ∪ aab)*');
+    t('regex: print roundtrip', RX.print(r) === '(ab ∪ aab)*', RX.print(r));
+    t('regex: | and U accepted', RX.print(RX.parse('a|b')) === 'a ∪ b' && RX.print(RX.parse('aUb')) === 'a ∪ b');
+    t('regex: simplify e·a = a', RX.print(RX.simplify(RX.CAT(RX.EPS, RX.SYM('a')))) === 'a');
+    t('regex: simplify ∅* = e', RX.print(RX.simplify(RX.STAR(RX.EMPTY))) === 'e');
+    // Thompson
+    const { nfa, stages } = RX.toNFA(r);
+    t('regex→NFA: (ab∪aab)* accepts e, ab, aab, abaab', ['', 'ab', 'aab', 'abaab'].every(w => FA.runNFA(nfa, w).accepted));
+    t('regex→NFA: rejects a, ba, aa', ['a', 'ba', 'aa'].every(w => !FA.runNFA(nfa, w).accepted));
+    t('regex→NFA: 10 build stages for (ab ∪ aab)*', stages.length === 10, String(stages.length));
+    const n2 = RX.toNFA(RX.parse('a*ba*b')).nfa; t('regex a*ba*b ≡ exercise DFA', FA.dfaEquivalent(n2, P('exA')).equivalent);
+    const n3 = RX.toNFA(RX.parse('(a ∪ b*a)*')).nfa; t('regex (a∪b*a)* ≡ slide4 DFA', FA.dfaEquivalent(n3, P('slide4')).equivalent);
+    const n4 = RX.toNFA(RX.parse('(ab ∪ aba)*')).nfa; t('regex (ab∪aba)* ≡ Fig 2-4 ≡ Fig 2-5 ≡ Fig 2-6', FA.dfaEquivalent(n4, P('fig24')).equivalent && FA.dfaEquivalent(P('fig25'), P('fig26')).equivalent && FA.dfaEquivalent(n4, P('fig25')).equivalent);
+    const n5 = RX.toNFA(RX.parse('(a ∪ b)*(bb ∪ bab)(a ∪ b)*')).nfa; t('fig27 ≡ regex (a∪b)*(bb∪bab)(a∪b)*', FA.dfaEquivalent(n5, P('fig27')).equivalent); }
+  // --- State elimination Fig 2-15 (Example 2.3.2)
+  { const RX = FA.RX; const A = P('fig215'); const g = new RX.GA(A);
+    g.eliminate('q1'); g.eliminate('q2'); g.eliminate('q3');
+    const rx = g.result();
+    const target = RX.toNFA(RX.parse('a*b(a ∪ ba*ba*b)*')).nfa;
+    t('fig215 elimination q1,q2,q3 → regex equivalent to a*b(a∪ba*ba*b)*', FA.dfaEquivalent(RX.toNFA(rx, A.alphabet).nfa, target).equivalent, RX.print(rx));
+    const g2 = new RX.GA(A); g2.eliminate('q3'); g2.eliminate('q2'); g2.eliminate('q1');
+    t('fig215 other order still equivalent', FA.dfaEquivalent(RX.toNFA(g2.result(), A.alphabet).nfa, A).equivalent, RX.print(g2.result()));
+    const rk = RX.Rijk(A); t('fig215 R(i,j,k) language equivalent', FA.dfaEquivalent(RX.toNFA(rk.language(), A.alphabet).nfa, A).equivalent, RX.print(rk.language())); }
+  // --- closure constructions
+  { const A = P('ex211'), B = P('exA');
+    const U = FA.union(A, B).M; t('union: accepts strings of either', FA.accepts(U, 'aa') && FA.accepts(U, 'bab') && !FA.accepts(U, 'b'));
+    const C = FA.concat(P('exA'), P('exA')).M; t('concat: a*ba*b · a*ba*b accepts bbbb, rejects bb', FA.accepts(C, 'bbbb') && !FA.accepts(C, 'bb'));
+    const K = FA.star(P('exA')).M; t('star: (a*ba*b)* accepts e, bb, bbabab', ['', 'bb', 'bbabab'].every(w => FA.accepts(K, w)));
+    const N = FA.complement(A).M; t('complement: odd b\'s', FA.accepts(N, 'b') && !FA.accepts(N, 'bb'));
+    const I = FA.product(A, P('ex212'), 'and').M; t('product ∩: even b & no bbb', FA.accepts(I, 'bb') && !FA.accepts(I, 'bbb') && !FA.accepts(I, 'bbbb') && FA.accepts(I, 'bbabb'));
+    t('complement of NFA refused', !!FA.complement(P('slide10')).error); }
+  // --- language tools
+  { t('languageDiff finds witness', FA.languageDiff(P('ex211'), P('exA'), 5)?.w !== undefined);
+    t('dfaEquivalent witness for slide4 vs exB', FA.dfaEquivalent(P('slide4'), P('exB')).equivalent === false); }
+  // --- pumping cycle
+  { const r = FA.findPumpingCycle(P('slide4'), 'aababa'); t('pumping: cycle found with |xy| ≤ n', r && r.y.length > 0 && (r.x + r.y).length <= r.n); }
+  // --- Example 2.6.1 active sets
+  { const r = FA.runNFA(P('fig224'), 'aaaba'); const ks = r.sets.map(s => FA.setKey(s.set));
+    t('fig224: S0={q0,q1}', ks[0] === 'q0,q1', ks[0]); t('fig224: S1..S3={q0,q1,q2}', ks[1] === 'q0,q1,q2' && ks[3] === 'q0,q1,q2', ks.join(' ; '));
+    t('fig224: S4={q1,q2,q3,q4}', ks[4] === 'q1,q2,q3,q4', ks[4]); t('fig224: S5={q2,q3,q4} accepted', ks[5] === 'q2,q3,q4' && r.accepted, ks[5]); }
+  out.unshift(`${pass} passed, ${fail} failed`);
+  return { pass, fail, text: out.join('\n') };
+};
+</script>
+
+<script>
+// ===== [4] render/svg — AutomatonView =====
+(() => {
+const NS = 'http://www.w3.org/2000/svg';
+const R = 24;
+const el = (tag, attrs = {}, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+
+class AutomatonView {
+  constructor(container, opts = {}) {
+    this.c = typeof container === 'string' ? document.getElementById(container) : container;
+    this.opts = opts; this.A = null; this.hl = {};
+    this.vb = { x: 0, y: 0, w: 720, h: 420 };
+    this.svg = el('svg', { viewBox: '0 0 720 420' }, this.c);
+    const defs = el('defs', {}, this.svg);
+    // marker ids must be unique per SVG: url(#id) resolves document-wide, and a marker inside a hidden (display:none) SVG does not render
+    this.uid = 'v' + (AutomatonView._n = (AutomatonView._n || 0) + 1);
+    const mk = (id, cls) => { const m = el('marker', { id, viewBox: '0 0 10 10', refX: '9', refY: '5', markerWidth: '7', markerHeight: '7', orient: 'auto-start-reverse' }, defs); el('path', { d: 'M0,0 L10,5 L0,10 z', class: cls }, m); };
+    mk('arr-' + this.uid, 'arrow'); mk('arrhl-' + this.uid, 'arrowhl');
+    const st = el('style', {}, defs); st.textContent = '.arrow{fill:var(--ink-2)} .arrowhl{fill:var(--blue)}';
+    this.gE = el('g', { class: 'edges' }, this.svg); this.gS = el('g', { class: 'states' }, this.svg); this.gO = el('g', { class: 'overlay' }, this.svg);
+    this.mode = 'select'; this.drag = null; this.pan = null; this.pending = null;
+    this.bind();
+  }
+  setAutomaton(A) { this.A = A; this.render(); return this; }
+  pt(ev) { const p = this.svg.createSVGPoint(); p.x = ev.clientX; p.y = ev.clientY; const m = this.svg.getScreenCTM(); return m ? p.matrixTransform(m.inverse()) : { x: 0, y: 0 }; }
+  setViewBox() { const v = this.vb; this.svg.setAttribute('viewBox', `${v.x} ${v.y} ${v.w} ${v.h}`); }
+  fit(pad = 70) {
+    if (!this.A || !this.A.states.length) { this.vb = { x: 0, y: 0, w: 720, h: 420 }; this.setViewBox(); return; }
+    const xs = this.A.states.map(s => s.x), ys = this.A.states.map(s => s.y);
+    let x0 = Math.min(...xs) - pad - 20, x1 = Math.max(...xs) + pad, y0 = Math.min(...ys) - pad - 30, y1 = Math.max(...ys) + pad;
+    const cw = this.c.clientWidth || 720, ch = this.c.clientHeight || 420, ar = cw / ch;
+    let w = Math.max(x1 - x0, 300), h = Math.max(y1 - y0, 200);
+    if (w / h < ar) { const nw = h * ar; x0 -= (nw - w) / 2; w = nw; } else { const nh = w / ar; y0 -= (nh - h) / 2; h = nh; }
+    this.vb = { x: x0, y: y0, w, h }; this.setViewBox();
+  }
+  bind() {
+    const svg = this.svg;
+    svg.addEventListener('pointerdown', (ev) => {
+      const p = this.pt(ev); const hit = this.hitState(p);
+      if (hit && this.mode === 'select') { this.drag = { id: hit.id, dx: hit.x - p.x, dy: hit.y - p.y, moved: false, sx: p.x, sy: p.y }; svg.setPointerCapture(ev.pointerId); return; }
+      if (!hit && (this.mode === 'select' || !this.opts.editable)) { this.pan = { x: ev.clientX, y: ev.clientY, vx: this.vb.x, vy: this.vb.y, moved: false }; svg.setPointerCapture(ev.pointerId); }
+    });
+    svg.addEventListener('pointermove', (ev) => {
+      const p = this.pt(ev);
+      if (this.drag) { const s = this.A.state(this.drag.id); if (!s) return; if (Math.hypot(p.x - this.drag.sx, p.y - this.drag.sy) > 3) this.drag.moved = true; if (this.drag.moved) { s.x = Math.round(p.x + this.drag.dx); s.y = Math.round(p.y + this.drag.dy); this.render(); } return; }
+      if (this.pan) { const k = this.vb.w / (this.c.clientWidth || 720); const dx = (ev.clientX - this.pan.x) * k, dy = (ev.clientY - this.pan.y) * k; if (Math.hypot(dx, dy) > 3) this.pan.moved = true; this.vb.x = this.pan.vx - dx; this.vb.y = this.pan.vy - dy; this.setViewBox(); return; }
+      if (this.pending) { this.ghost(this.pending, p); }
+    });
+    svg.addEventListener('pointerup', (ev) => {
+      const p = this.pt(ev);
+      if (this.drag) { const d = this.drag; this.drag = null; if (d.moved) { this.opts.onChange && this.opts.onChange('move'); } else { this.opts.onStateClick && this.opts.onStateClick(d.id, ev); } return; }
+      if (this.pan) { const pn = this.pan; this.pan = null; if (!pn.moved) this.clickAt(p, ev); return; }
+      this.clickAt(p, ev);
+    });
+    svg.addEventListener('dblclick', (ev) => { const p = this.pt(ev); const hit = this.hitState(p); if (hit && this.opts.onStateDblClick) this.opts.onStateDblClick(hit.id, ev); });
+    svg.addEventListener('wheel', (ev) => { ev.preventDefault(); const p = this.pt(ev); const f = ev.deltaY > 0 ? 1.12 : 1 / 1.12; const v = this.vb; v.x = p.x - (p.x - v.x) * f; v.y = p.y - (p.y - v.y) * f; v.w *= f; v.h *= f; this.setViewBox(); }, { passive: false });
+  }
+  clickAt(p, ev) {
+    const hit = this.hitState(p);
+    if (hit) { this.opts.onStateClick && this.opts.onStateClick(hit.id, ev); return; }
+    const e = this.hitEdge(ev);
+    if (e) { this.opts.onEdgeClick && this.opts.onEdgeClick(e.from, e.to, ev); return; }
+    this.opts.onCanvasClick && this.opts.onCanvasClick(p, ev);
+  }
+  hitState(p) { if (!this.A) return null; for (let i = this.A.states.length - 1; i >= 0; i--) { const s = this.A.states[i]; if (Math.hypot(s.x - p.x, s.y - p.y) <= R + 4) return s; } return null; }
+  hitEdge(ev) { const t = ev.target; const g = t && t.closest ? t.closest('g.ed') : null; return g ? { from: g.dataset.from, to: g.dataset.to } : null; }
+  ghost(fromId, p) { this.gO.innerHTML = ''; const s = this.A.state(fromId); if (!s) return; el('line', { x1: s.x, y1: s.y, x2: p.x, y2: p.y, class: 'ghost' }, this.gO); }
+  clearGhost() { this.gO.innerHTML = ''; }
+  highlight(h) { this.hl = h || {}; this.render(); }
+  edgePath(u, v, bidir) {
+    if (u.id === v.id) {
+      const x = u.x, y = u.y - R;
+      return { d: `M ${x - 10} ${y + 3} C ${x - 34} ${y - 40}, ${x + 34} ${y - 40}, ${x + 10} ${y + 3}`, lx: x, ly: y - 36 };
+    }
+    const dx = v.x - u.x, dy = v.y - u.y, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L, nx = -uy, ny = ux;
+    if (!bidir) {
+      const x1 = u.x + ux * R, y1 = u.y + uy * R, x2 = v.x - ux * (R + 3), y2 = v.y - uy * (R + 3);
+      return { d: `M ${x1} ${y1} L ${x2} ${y2}`, lx: (x1 + x2) / 2 + nx * 13, ly: (y1 + y2) / 2 + ny * 13 };
+    }
+    const off = 30;
+    const cx = (u.x + v.x) / 2 + nx * off, cy = (u.y + v.y) / 2 + ny * off;
+    const a1 = Math.atan2(cy - u.y, cx - u.x), a2 = Math.atan2(cy - v.y, cx - v.x);
+    const x1 = u.x + Math.cos(a1) * R, y1 = u.y + Math.sin(a1) * R, x2 = v.x + Math.cos(a2) * (R + 3), y2 = v.y + Math.sin(a2) * (R + 3);
+    const mx = 0.25 * x1 + 0.5 * cx + 0.25 * x2, my = 0.25 * y1 + 0.5 * cy + 0.25 * y2;
+    return { d: `M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`, lx: mx + nx * 12, ly: my + ny * 12 };
+  }
+  render() {
+    const A = this.A; this.gE.innerHTML = ''; this.gS.innerHTML = '';
+    if (!A) return;
+    const H = this.hl; const hs = new Set(H.states || []), acc = new Set(H.accept || []), rej = new Set(H.reject || []), dim = new Set(H.dim || []);
+    const hlE = new Set((H.transitions || []).map(t => typeof t === 'string' ? t : t.from + '|' + t.to));
+    const dimE = new Set((H.dimTransitions || []).map(t => typeof t === 'string' ? t : t.from + '|' + t.to));
+    const pairs = {};
+    for (const t of A.transitions) (pairs[t.from + '|' + t.to] ||= []).push(t.symbol);
+    const labelFn = this.opts.edgeLabel || ((from, to) => A.edgeLabel(from, to));
+    for (const key in pairs) {
+      const [f, to] = key.split('|'); const u = A.state(f), v = A.state(to); if (!u || !v) continue;
+      const bidir = f !== to && !!pairs[to + '|' + f];
+      const { d, lx, ly } = this.edgePath(u, v, bidir);
+      const isHl = hlE.has(key);
+      const g = el('g', { class: 'ed' + (isHl ? ' hl' : '') + (dimE.has(key) || dim.has(f) || dim.has(to) ? ' dim' : '') + (pairs[key].every(s => s === FA.E) ? ' eps' : ''), 'data-from': f, 'data-to': to }, this.gE);
+      el('path', { d, style: `marker-end:url(#${isHl ? 'arrhl' : 'arr'}-${this.uid})` }, g);
+      const hit = el('g', { class: 'ed hit' }, g); el('path', { d }, hit);
+      const tx = el('text', { x: lx, y: ly }, g); tx.textContent = labelFn(f, to);
+    }
+    for (const s of A.states) {
+      const cls = ['st']; if (s.isFinal) cls.push('final');
+      if (acc.has(s.id)) cls.push('acc'); else if (rej.has(s.id)) cls.push('rej'); else if (hs.has(s.id)) cls.push('hl');
+      if (dim.has(s.id)) cls.push('dim'); if (H.selected === s.id) cls.push('sel');
+      if (H.groups && s.id in H.groups) cls.push('g' + (H.groups[s.id] % 6));
+      const g = el('g', { class: cls.join(' '), transform: `translate(${s.x},${s.y})`, 'data-id': s.id }, this.gS);
+      if (s.isStart) el('path', { d: `M ${-R - 26} -10 L ${-R - 26} 10 L ${-R - 6} 0 z`, class: 'startmark' }, g);
+      el('circle', { r: R, class: 'body' }, g);
+      if (s.isFinal) el('circle', { r: R - 4.5, class: 'ring' }, g);
+      const t = el('text', {}, g);
+      if (s.label.length <= 6) t.textContent = s.label;
+      else {
+        const br = s.label.startsWith('{');
+        const toks = s.label.replace(/[{}]/g, '').split(','); const lines = []; let cur = '';
+        for (const tk of toks) { if (cur && (cur + ',' + tk).length > 7) { lines.push(cur + ','); cur = tk; } else cur = cur ? cur + ',' + tk : tk; }
+        lines.push(cur);
+        const fs = lines.length > 2 ? 8.5 : 9.5; t.setAttribute('font-size', fs);
+        lines.forEach((ln, i) => { const ts = el('tspan', { x: 0, y: (i - (lines.length - 1) / 2) * (fs + 1.5) }, t); ts.textContent = (br && i === 0 ? '{' : '') + ln + (br && i === lines.length - 1 ? '}' : ''); });
+      }
+    }
+  }
+}
+FA.AutomatonView = AutomatonView;
+})();
+</script>
+
+<script>
+// ===== [5] ui helpers + M1 editor/simulator =====
+(() => {
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const UI = { $, esc };
+FA.ui = UI;
+const App = FA.App = { current: null, views: {} };
+
+UI.toast = (msg) => { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 2200); };
+UI.pill = (txt, cls = '') => `<span class="setpill ${cls}">${esc(txt)}</span>`;
+UI.setPills = (set, A, cls = '') => { const arr = FA.sortIds(set); return arr.length ? arr.map(q => UI.pill(A ? A.labelOf(q) : q, (A && A.isFinal(q) ? 'final ' : '') + cls)).join('') : '<span class="setpill">∅</span>'; };
+UI.cfg = (A, q, w) => `(${A.labelOf(q)}, ${w === '' ? 'e' : w})`;
+
+// stepper: ⏮ ◀ ▶ ⏭ auto + counter
+UI.stepper = (container, onStep) => {
+  const c = typeof container === 'string' ? $(container) : container;
+  c.innerHTML = `<button class="btn sm" data-a="first" title="ไปต้น">⏮</button><button class="btn sm" data-a="prev" title="ย้อน 1 step">◀</button><button class="btn sm primary" data-a="next" title="ถัดไป 1 step">▶ Step</button><button class="btn sm" data-a="last" title="ไปจบ">⏭</button><button class="btn sm" data-a="auto" title="เล่นอัตโนมัติ">▶▶ Auto</button><span class="cnt">0 / 0</span>`;
+  const st = { i: 0, n: 0, timer: null };
+  const paint = () => { c.querySelector('.cnt').textContent = `${st.i} / ${Math.max(st.n - 1, 0)}`; c.querySelector('[data-a=prev]').disabled = st.i <= 0; c.querySelector('[data-a=next]').disabled = st.i >= st.n - 1; };
+  const go = (i) => { if (!st.n) return; st.i = Math.max(0, Math.min(st.n - 1, i)); paint(); onStep(st.i); };
+  const stopAuto = () => { if (st.timer) { clearInterval(st.timer); st.timer = null; c.querySelector('[data-a=auto]').classList.remove('on'); } };
+  c.addEventListener('click', (ev) => {
+    const b = ev.target.closest('button'); if (!b) return; const a = b.dataset.a;
+    if (a === 'first') { stopAuto(); go(0); } else if (a === 'prev') { stopAuto(); go(st.i - 1); } else if (a === 'next') { stopAuto(); go(st.i + 1); } else if (a === 'last') { stopAuto(); go(st.n - 1); }
+    else if (a === 'auto') { if (st.timer) stopAuto(); else { b.classList.add('on'); if (st.i >= st.n - 1) go(0); st.timer = setInterval(() => { if (st.i >= st.n - 1) stopAuto(); else go(st.i + 1); }, 900); } }
+  });
+  return { setCount: (n, start = 0) => { stopAuto(); st.n = n; go(start); }, go, get i() { return st.i; }, get n() { return st.n; }, stop: stopAuto };
+};
+
+// library dialog
+UI.library = (tags, onPick) => {
+  const body = $('dlg-lib-body'); body.innerHTML = '';
+  const list = FA.presets.filter(p => !tags || tags.some(t => p.tags.includes(t)));
+  for (const p of list) {
+    const d = document.createElement('div'); d.className = 'preset';
+    d.innerHTML = `<span class="t">${esc(p.title)}${p.tags.includes('star') ? ' <span class="badge mark">worked example</span>' : ''}</span><span class="src">${p.tags.filter(t => t === 'DFA' || t === 'NFA').join('')}</span><span class="s">${esc(p.src)}</span>`;
+    d.onclick = () => { $('dlg-library').close(); onPick(p.build(), p); };
+    body.appendChild(d);
+  }
+  $('dlg-library').showModal();
+};
+$('dlg-lib-close').onclick = () => $('dlg-library').close();
+UI.askSymbols = (title, def = 'a') => new Promise((res) => {
+  const d = $('dlg-sym'); $('dlg-sym-title').textContent = title; const inp = $('dlg-sym-in'); inp.value = def;
+  const done = (v) => { d.close(); $('dlg-sym-ok').onclick = null; $('dlg-sym-cancel').onclick = null; res(v); };
+  $('dlg-sym-ok').onclick = () => done(inp.value); $('dlg-sym-cancel').onclick = () => done(null);
+  inp.onkeydown = (e) => { if (e.key === 'Enter') done(inp.value); if (e.key === 'Escape') done(null); };
+  d.showModal(); inp.focus(); inp.select();
+});
+UI.parseSyms = (s) => s.split(/[,\s]+/).map(x => x.trim()).filter(Boolean).map(x => (x === 'ε' || x === 'ϵ') ? FA.E : x);
+UI.stringList = (s) => s.split(',').map(x => x.trim()).map(x => (x === 'e' || x === 'ε' || x === '""') ? '' : x).filter((x, i, a) => x !== '' || s.includes('e') || s.includes('""') || i === 0 && a.length === 1);
+
+// ---------- M1 Editor + Simulator ----------
+const ED = App.editor = { mode: 'select', pending: null, selected: null, run: null, nfaView: 'set' };
+const view = App.views.editor = new FA.AutomatonView('ed-canvas', {
+  editable: true,
+  onChange: () => { ED.dirty(); },
+  onStateClick: (id) => ED.stateClick(id),
+  onStateDblClick: async (id) => { const A = App.current; const v = await UI.askSymbols('ชื่อ state ใหม่', A.labelOf(id)); if (v && v.trim()) { A.renameState(id, v.trim()); ED.dirty(); } },
+  onEdgeClick: (from, to) => ED.edgeClick(from, to),
+  onCanvasClick: (p) => ED.canvasClick(p),
+});
+const stepper = UI.stepper('ed-step', (i) => ED.showStep(i));
+
+ED.setCurrent = (A, opts = {}) => {
+  App.current = A; view.setAutomaton(A); view.fit(); ED.pending = null; ED.selected = null; view.clearGhost();
+  $('ed-alpha').value = A.alphabet.join(' ');
+  if (opts.sample !== undefined) $('ed-input').value = opts.sample;
+  ED.refreshDef(); ED.resetRun(); App.save && App.save();
+  if (opts.run) ED.runInput();
+};
+ED.dirty = () => { view.render(); ED.refreshDef(); ED.resetRun(); App.save && App.save(); };
+ED.refreshDef = () => {
+  const A = App.current; if (!A) return;
+  const kind = A.kind();
+  const badge = $('ed-badge'); badge.className = 'badge ' + (kind === 'DFA' ? 'green' : kind.startsWith('NFA') ? 'blue' : 'red');
+  badge.textContent = { 'DFA': 'DFA', 'NFA-e': 'NFA (มี e)', 'NFA': 'NFA (หลายทาง)', 'DFA-incomplete': 'ไม่ complete', 'empty': 'ว่าง' }[kind];
+  $('ed-complete').hidden = kind !== 'DFA-incomplete';
+  $('ed-tuple').innerHTML = A.tupleHTML();
+  $('ed-nfaview').hidden = kind === 'DFA' || kind === 'DFA-incomplete';
+  const w = A.validate(); $('ed-hint').textContent = w.length ? '⚠ ' + w.join(' · ') : 'ลาก state เพื่อจัดวาง · ดับเบิลคลิก state เพื่อเปลี่ยนชื่อ · เลื่อนล้อเมาส์เพื่อซูม';
+  // table
+  const cols = [...A.alphabet, FA.E];
+  let h = `<tr><th>state</th>${cols.map(a => `<th>${a === FA.E ? 'e' : esc(a)}</th>`).join('')}</tr>`;
+  for (const s of A.states) {
+    h += `<tr><td class="st">${s.isStart ? '▷ ' : ''}${s.isFinal ? '◎ ' : ''}${esc(s.label)}</td>` + cols.map(a => `<td><input data-q="${s.id}" data-a="${a}" value="${esc(A.trans(s.id, a).map(t => A.labelOf(t)).join(','))}" spellcheck="false"></td>`).join('') + '</tr>';
+  }
+  $('ed-table').innerHTML = h;
+};
+$('ed-table').addEventListener('change', (ev) => {
+  const inp = ev.target; if (inp.tagName !== 'INPUT') return;
+  const A = App.current; const q = inp.dataset.q, a = inp.dataset.a;
+  const labels = inp.value.split(/[,\s]+/).map(x => x.trim()).filter(Boolean);
+  const ids = []; for (const lb of labels) { const st = A.states.find(s => s.label === lb || s.id === lb); if (!st) { UI.toast(`ไม่มี state ชื่อ "${lb}"`); ED.refreshDef(); return; } ids.push(st.id); }
+  A.transitions = A.transitions.filter(t => !(t.from === q && t.symbol === a));
+  ids.forEach(to => A.addTransition(q, a, to));
+  ED.dirty();
+});
+$('ed-alpha').addEventListener('change', () => { App.current.setAlphabet(UI.parseSyms($('ed-alpha').value)); ED.dirty(); });
+$('ed-complete').onclick = () => { const r = FA.complete(App.current); if (r.added) { ED.setCurrent(r.dfa); UI.toast('เพิ่ม trap state แล้ว: ทุก (q,σ) ที่ไม่มีทางไป → trap'); } };
+$('ed-tools').addEventListener('click', (ev) => { const b = ev.target.closest('button[data-mode]'); if (!b) return; ED.setMode(b.dataset.mode); });
+ED.setMode = (m) => { ED.mode = m; view.mode = m; ED.pending = null; view.clearGhost(); document.querySelectorAll('#ed-tools [data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === m)); view.highlight({ selected: ED.selected });
+  $('ed-hint').textContent = { select: 'ลาก state เพื่อจัดวาง · ดับเบิลคลิกเพื่อเปลี่ยนชื่อ', state: 'คลิกพื้นที่ว่างเพื่อวาง state ใหม่', trans: 'คลิก state ต้นทาง แล้วคลิก state ปลายทาง (คลิกตัวเดิม = self-loop)', start: 'คลิก state ที่จะให้เป็น start', final: 'คลิก state เพื่อสลับ final / ไม่ final', delete: 'คลิก state หรือเส้น เพื่อลบ' }[m]; };
+ED.stateClick = async (id) => {
+  const A = App.current;
+  switch (ED.mode) {
+    case 'select': ED.selected = id; view.highlight({ selected: id }); break;
+    case 'start': A.setStart(id); ED.dirty(); break;
+    case 'final': A.toggleFinal(id); ED.dirty(); break;
+    case 'delete': A.removeState(id); ED.dirty(); break;
+    case 'trans': {
+      if (!ED.pending) { ED.pending = id; view.pending = id; view.highlight({ selected: id }); break; }
+      const from = ED.pending; ED.pending = null; view.pending = null; view.clearGhost();
+      const v = await UI.askSymbols(`เส้น ${A.labelOf(from)} → ${A.labelOf(id)}`, A.alphabet[0] || 'a');
+      if (v !== null) { for (const s of UI.parseSyms(v)) { if (s !== FA.E && !A.alphabet.includes(s)) { A.alphabet.push(s); $('ed-alpha').value = A.alphabet.join(' '); } A.addTransition(from, s, id); } }
+      ED.dirty(); break;
+    }
+  }
+};
+ED.edgeClick = async (from, to) => {
+  const A = App.current;
+  if (ED.mode === 'delete') { A.removeEdge(from, to); ED.dirty(); return; }
+  if (ED.mode === 'select' || ED.mode === 'trans') {
+    const v = await UI.askSymbols(`แก้เส้น ${A.labelOf(from)} → ${A.labelOf(to)} (ว่าง = ลบ)`, A.edgeLabel(from, to));
+    if (v === null) return; A.removeEdge(from, to); for (const s of UI.parseSyms(v)) { if (s !== FA.E && !A.alphabet.includes(s)) A.alphabet.push(s); A.addTransition(from, s, to); } ED.dirty();
+  }
+};
+ED.canvasClick = (p) => {
+  const A = App.current;
+  if (ED.mode === 'state') { A.addState({ x: Math.round(p.x), y: Math.round(p.y) }); ED.dirty(); }
+  else if (ED.mode === 'select') { ED.selected = null; view.highlight({}); }
+  else if (ED.mode === 'trans') { ED.pending = null; view.pending = null; view.clearGhost(); view.highlight({}); }
+};
+document.addEventListener('keydown', (ev) => {
+  if (ev.target.matches('input,textarea,select')) return;
+  if (!$('m-editor').classList.contains('active')) return;
+  if ((ev.key === 'Delete' || ev.key === 'Backspace') && ED.selected) { App.current.removeState(ED.selected); ED.selected = null; ED.dirty(); }
+  if (ev.key === 'Escape') ED.setMode('select');
+  const km = { s: 'select', a: 'state', t: 'trans', f: 'final', d: 'delete' }; if (km[ev.key]) ED.setMode(km[ev.key]);
+  if (ev.key === 'ArrowRight') stepper.go(stepper.i + 1); if (ev.key === 'ArrowLeft') stepper.go(stepper.i - 1);
+});
+$('ed-layout').onclick = () => { FA.layoutCircle(App.current); view.fit(); ED.dirty(); };
+$('ed-clear').onclick = () => { ED.setCurrent(new FA.Automaton({ alphabet: UI.parseSyms($('ed-alpha').value) || ['a', 'b'] })); };
+
+// ---- simulation ----
+ED.resetRun = () => { ED.run = null; stepper.setCount(0); $('ed-trace').innerHTML = ''; $('ed-tree').innerHTML = ''; $('ed-verdict').className = 'verdict wait'; $('ed-verdict').textContent = 'ยังไม่ได้รัน'; $('ed-explain').textContent = 'กด ▶ Run แล้วใช้ ◀ ▶ เดินทีละ step'; ED.tape($('ed-input').value, -1); view.highlight({}); };
+ED.tape = (w, pos, opts = {}) => {
+  const t = $('ed-tape'); let h = '';
+  for (let i = 0; i < w.length; i++) h += `<div class="cell ${i < pos ? 'read' : ''} ${i === pos ? 'head' : ''}">${esc(w[i])}</div>`;
+  h += `<div class="cell eof ${pos === w.length ? 'head' : ''}">EOF</div>`;
+  h += `<div class="ctl"><span class="note">${opts.note || (pos < 0 ? 'input tape' : `อ่านแล้ว ${pos} / ${w.length}`)}</span></div>`;
+  t.innerHTML = h;
+};
+$('ed-input').addEventListener('input', () => ED.resetRun());
+$('ed-run').onclick = () => ED.runInput();
+$('ed-nfaview').addEventListener('click', (ev) => { const b = ev.target.closest('button[data-view]'); if (!b) return; ED.nfaView = b.dataset.view; document.querySelectorAll('#ed-nfaview button').forEach(x => x.classList.toggle('on', x === b)); $('ed-trace').hidden = ED.nfaView === 'tree'; $('ed-tree').hidden = ED.nfaView !== 'tree'; if (ED.run) ED.showStep(stepper.i); });
+ED.runInput = () => {
+  const A = App.current; const w = $('ed-input').value.trim();
+  const bad = [...w].find(c => !A.alphabet.includes(c)); if (bad) { UI.toast(`'${bad}' ไม่อยู่ใน Σ = {${A.alphabet.join(', ')}}`); return; }
+  const det = !A.hasEpsilon() && !A.isNondetChoice();
+  ED.run = det ? { kind: 'dfa', w, r: FA.runDFA(A, w) } : { kind: 'nfa', w, r: FA.runNFA(A, w) };
+  const n = det ? ED.run.r.steps.length : ED.run.r.sets.length;
+  const v = $('ed-verdict'); v.className = 'verdict ' + (ED.run.r.accepted ? 'ok' : 'bad'); v.innerHTML = (ED.run.r.accepted ? '✔ ACCEPTED' : '✘ REJECTED') + ` <span class="note" style="font-weight:400">${esc(ED.run.r.reason)}</span>`;
+  $('ed-trace').hidden = !det && ED.nfaView === 'tree'; $('ed-tree').hidden = det || ED.nfaView !== 'tree';
+  if (!det) ED.renderTree();
+  stepper.setCount(n, 0);
+};
+ED.showStep = (i) => {
+  const A = App.current, R = ED.run; if (!R) return; const w = R.w;
+  if (R.kind === 'dfa') {
+    const steps = R.r.steps; const s = steps[i]; const prev = steps[i - 1];
+    ED.tape(w, s.pos);
+    const hl = { states: [s.state] }; if (prev) hl.transitions = [{ from: prev.state, to: s.state }];
+    if (i === steps.length - 1) { if (R.r.accepted) hl.accept = [s.state]; else hl.reject = [s.state]; }
+    view.highlight(hl);
+    let h = ''; steps.forEach((st, k) => {
+      const why = k === 0 ? 'start configuration' : `อ่าน ${steps[k - 1].read}: δ(${A.labelOf(steps[k - 1].state)}, ${steps[k - 1].read}) = ${A.labelOf(st.state)}`;
+      h += `<div class="ln ${k === i ? 'cur' : ''} ${k > i ? 'dead' : ''}"><span class="cfg">${k ? '⊢' : '&nbsp;'} ${esc(UI.cfg(A, st.state, st.remaining))}${st.stuck ? ' ✗' : ''}</span><span class="why">${esc(why)}</span></div>`;
+    });
+    $('ed-trace').innerHTML = h;
+    const last = i === steps.length - 1;
+    $('ed-explain').innerHTML = last ? (R.r.accepted ? `<b>อ่านครบแล้ว</b> (${A.labelOf(s.state)}, e) — ${A.labelOf(s.state)} ∈ F → <b>accept</b>` : `<b>${esc(R.r.reason)}</b> → reject`) : `ตอนนี้อยู่ที่ <b>${A.labelOf(s.state)}</b> เหลือ input "${esc(s.remaining)}" — อ่าน <b>${esc(s.read)}</b> แล้วไป δ(${A.labelOf(s.state)}, ${esc(s.read)}) = <b>${A.labelOf(s.next)}</b><span class="f">${esc(UI.cfg(A, s.state, s.remaining))} ⊢ ${esc(UI.cfg(A, s.next, s.remaining.slice(1)))}</span>`;
+  } else {
+    const sets = R.r.sets; const S = sets[i];
+    ED.tape(w, S.pos);
+    const hl = { states: [...S.set] };
+    if (S.contrib) hl.transitions = S.contrib.map(c => ({ from: c.q, to: c.p }));
+    if (i === sets.length - 1) { const F = A.finals(); hl.accept = [...S.set].filter(q => F.has(q)); if (!hl.accept.length) hl.reject = [...S.set]; }
+    view.highlight(hl);
+    let h = ''; sets.forEach((st, k) => {
+      h += `<div class="ln ${k === i ? 'cur' : ''} ${k > i ? 'dead' : ''}"><span class="cfg">${k ? '⊢ ' + esc(st.sym) + ':' : '&nbsp;&nbsp;'} S${FA.sub(k)} = ${esc(FA.setLabel([...st.set].map(q => A.labelOf(q))))}</span><span class="why">${k ? esc(st.contrib.map(c => `(${A.labelOf(c.q)},${st.sym},${A.labelOf(c.p)})`).join(' ') || 'ไม่มี transition — set ว่าง') : 'E(start)'}</span></div>`;
+    });
+    $('ed-trace').innerHTML = h;
+    const last = i === sets.length - 1;
+    const contribTxt = S.contrib ? (S.contrib.length ? S.contrib.map(c => `${A.labelOf(c.q)},${S.sym} ↦ ${A.labelOf(c.p)}`).join(' · ') : 'ไม่มี transition ใด ๆ') : '';
+    $('ed-explain').innerHTML = last ? `<b>อ่านครบแล้ว</b> S${FA.sub(i)} ∩ F ${R.r.accepted ? '≠ ∅ → <b>accept</b> (มีอย่างน้อยหนึ่งเส้นทางถึง final)' : '= ∅ → <b>reject</b> (ไม่มีเส้นทางไหนถึง final เลย)'}` : (i === 0 ? `เริ่มที่ E(${A.labelOf(A.start)}) = ${esc(FA.setLabel([...S.set].map(q => A.labelOf(q))))} — ทุก state ที่ไปถึงได้ด้วย e ก่อนอ่านอะไร` : `อ่าน <b>${esc(S.sym)}</b>: ${esc(contribTxt)} ⇒ ${esc(S.formula)}<span class="f">S${FA.sub(i)} = ${esc(FA.setLabel([...S.set].map(q => A.labelOf(q))))}</span>`);
+    if (ED.nfaView === 'tree') ED.renderTree(i);
+  }
+};
+ED.renderTree = (cur = null) => {
+  const A = App.current, R = ED.run; if (!R || R.kind !== 'nfa') return;
+  const w = R.w; const lines = [];
+  const walk = (n, depth, last) => {
+    const pad = '&nbsp;'.repeat(depth * 3);
+    const via = n.via === null ? '' : (n.via === FA.E ? '<span class="e">e</span>→' : esc(n.via) + '→');
+    const stat = n.status === 'acc' ? ' <span class="acc">✔ accept</span>' : n.status === 'dead' ? ' <span class="dead">✗</span>' : n.status === 'dup' ? ' <span class="dead">(วนซ้ำ)</span>' : n.status === 'cut' ? ' …' : '';
+    const cls = n.status === 'dead' || n.status === 'dup' ? 'dead' : (n.status === 'acc' || n.status === 'subacc') ? '' : '';
+    const hlc = cur !== null && n.pos === cur ? 'style="background:var(--blue-soft)"' : '';
+    lines.push(`<div class="node ${cls}" ${hlc}>${pad}${via}${esc(UI.cfg(A, n.state, w.slice(n.pos)))}${stat}</div>`);
+    n.children.forEach((c, k) => walk(c, depth + 1, k === n.children.length - 1));
+  };
+  walk(R.r.tree, 0, true);
+  $('ed-tree').innerHTML = `<div class="note" style="font-family:var(--font)">ทุกเส้นทางที่เป็นไปได้ (e = ไม่อ่าน input) — accept ถ้ามี ✔ อย่างน้อยหนึ่งใบ</div>` + lines.join('');
+};
+$('ed-multi-run').onclick = () => {
+  const A = App.current; const ws = $('ed-multi-in').value.split(',').map(x => x.trim()).filter((x, i, a) => a.length).map(x => x === 'e' ? '' : x);
+  let h = '<tr><th>ω</th><th>ผล</th><th>state สุดท้าย / S<sub>n</sub></th></tr>';
+  for (const w of ws) { const det = !A.hasEpsilon() && !A.isNondetChoice(); const r = det ? FA.runDFA(A, w) : FA.runNFA(A, w); const fin = det ? (r.final ? A.labelOf(r.final) : '—') : FA.setLabel([...r.final].map(q => A.labelOf(q))); h += `<tr><td>${w === '' ? 'e' : esc(w)}</td><td class="${r.accepted ? 'ok' : 'bad'}">${r.accepted ? 'accept' : 'reject'}</td><td>${esc(fin)}</td></tr>`; }
+  $('ed-multi').innerHTML = h;
+};
+$('ed-cmp-run').onclick = () => {
+  const A = App.current; const out = $('ed-cmp-out');
+  try {
+    const ast = FA.RX.parse($('ed-cmp-in').value); const N = FA.RX.toNFA(ast, A.alphabet);
+    const d = FA.dfaEquivalent(A, N);
+    out.innerHTML = d.equivalent ? `<span class="ok-t">✔ L(M) = L(${esc(FA.RX.print(ast))}) — ตรวจแบบ exact ด้วย product DFA</span>` : `<span class="bad-t">✘ ต่างกัน: string "${d.witness === '' ? 'e' : esc(d.witness)}" ${d.inA ? 'ถูก M accept แต่ไม่อยู่ใน regex' : 'อยู่ใน regex แต่ M reject'}</span>`;
+  } catch (e) { out.innerHTML = `<span class="bad-t">regex ผิดรูปแบบ: ${esc(e.message)}</span>`; }
+};
+document.querySelectorAll('[data-send]').forEach(b => b.onclick = () => App.goto(b.dataset.send, App.current.clone()));
+})();
+</script>
+
+<script>
+// ===== [6] modules M2–M7 =====
+(() => {
+const { $, esc } = FA.ui; const UI = FA.ui; const App = FA.App; const RX = FA.RX;
+const lbl = (A, set) => FA.setLabel([...set].map(q => A.labelOf(q)));
+const fillSelect = (sel, tags, extra = []) => { sel.innerHTML = extra.map(e => `<option value="${e.v}">${esc(e.t)}</option>`).join('') + FA.presets.filter(p => !tags || tags.some(t => p.tags.includes(t))).map(p => `<option value="${p.id}">${esc(p.title)}</option>`).join(''); };
+const pick = (v) => v === '__editor' ? App.current.clone() : FA.preset(v);
+
+// ---------- M2 Powerset ----------
+const PS = App.powerset = {};
+PS.src = new FA.AutomatonView('ps-src'); PS.out = new FA.AutomatonView('ps-out');
+PS.step = UI.stepper('ps-step', (i) => PS.show(i));
+PS.load = (A) => {
+  PS.A = A; PS.src.setAutomaton(A); PS.src.fit();
+  if (!A.start) { $('ps-explain').textContent = 'automaton ยังไม่มี start state'; return; }
+  PS.res = FA.powerset(A); PS.ncol = PS.res.table.columns.length;
+  PS.step.setCount(PS.ncol + PS.res.steps.length, 0);
+};
+PS.show = (i) => {
+  const A = PS.A, R = PS.res, T = R.table; const ncol = PS.ncol;
+  // --- closure table
+  const shownCols = Math.min(i + 1, ncol);
+  let h = `<tr><th>q</th>${Array.from({ length: shownCols }, (_, k) => `<th>Iter-${k + 1}${k === ncol - 1 ? ' = E(q)' : ''}</th>`).join('')}</tr>`;
+  for (const q of T.states) h += `<tr><td class="st">${esc(A.labelOf(q))}</td>${Array.from({ length: shownCols }, (_, k) => `<td class="${k === shownCols - 1 && i < ncol ? 'mk' : ''}">${esc(lbl(A, T.columns[k][q]))}</td>`).join('')}</tr>`;
+  $('ps-closure').innerHTML = h;
+  $('ps-conv').textContent = i >= ncol - 1 ? `converged ที่ Iter-${ncol}` : '';
+  if (i < ncol) {
+    const k = i;
+    const epsEdges = A.transitions.filter(t => t.symbol === FA.E).map(t => ({ from: t.from, to: t.to }));
+    PS.src.highlight({ transitions: epsEdges });
+    $('ps-table').innerHTML = ''; PS.out.setAutomaton(new FA.Automaton({ alphabet: A.alphabet })); PS.out.fit();
+    $('ps-explain').innerHTML = k === 0 ? `<b>Iter-1:</b> E(q) เริ่มจาก {q} ∪ state ที่ไปถึงด้วย e เส้นเดียว (เส้นประ)<span class="f">E₁(q) = {q} ∪ {p | (q, e, p) ∈ Δ}</span>` : k === ncol - 1 ? `<b>Iter-${k + 1} = Iter-${k}</b> → ไม่มีอะไรเพิ่ม → <b>CONVERGENCE</b> ได้ e-Closure E(q) ของทุก state แล้ว` : `<b>Iter-${k + 1}:</b> รวม E ของสมาชิกทุกตัวในคอลัมน์ก่อนหน้า<span class="f">${T.states.map(q => `E(${A.labelOf(q)}) = ⋃ ${FA.sortIds(T.columns[k - 1][q]).map(p => 'E(' + A.labelOf(p) + ')').join(' ∪ ')} = ${lbl(A, T.columns[k][q])}`).join('\n')}</span>`;
+    return;
+  }
+  // --- powerset steps
+  const j = i - ncol; const steps = R.steps; const st = steps[j];
+  const revealedRows = new Set(); const revealedCells = new Set();
+  for (let k = 0; k <= j; k++) { const s = steps[k]; if (s.kind === 'start') revealedRows.add(R.rows[0].key); if (s.kind === 'cell') { revealedCells.add(s.row + '|' + s.sym); revealedRows.add(s.targetKey); } }
+  let th = `<tr><th>superstate Q</th>${A.alphabet.map(a => `<th>δ′(Q, ${esc(a)})</th>`).join('')}</tr>`;
+  R.rows.forEach((row, ri) => {
+    if (!revealedRows.has(row.key)) return;
+    const cur = st.kind === 'cell' && st.row === ri;
+    th += `<tr class="${cur ? 'cur' : ''}"><td class="st">${row.isStart ? '▷ ' : ''}${row.isFinal ? '◎ ' : ''}${esc(row.key === '∅' ? '∅' : lbl(A, row.Q))}</td>` + A.alphabet.map(a => { const c = row.cells[a]; const on = revealedCells.has(ri + '|' + a); const mk = cur && st.sym === a; return `<td class="${mk ? 'mk' : ''} ${on ? '' : 'dim'}">${on ? esc(c.result.size ? lbl(A, c.result) : '∅') : '·'}</td>`; }).join('') + '</tr>';
+  });
+  $('ps-table').innerHTML = th;
+  // partial DFA
+  const D = R.dfa; const part = new FA.Automaton({ alphabet: A.alphabet });
+  part.states = D.states.filter(s => revealedRows.has(s.id)).map(s => ({ ...s }));
+  part.transitions = D.transitions.filter(t => { const ri = R.rows.findIndex(r => r.key === t.from); return revealedCells.has(ri + '|' + t.symbol); });
+  PS.out.setAutomaton(part); PS.out.fit();
+  if (st.kind === 'start') {
+    PS.src.highlight({ states: [...st.Q] }); PS.out.highlight({ states: [R.rows[0].key] });
+    $('ps-explain').innerHTML = `<b>เริ่ม:</b> start ของ DFA = E(start ของ NFA) ทั้งก้อน<span class="f">${esc(st.text)}</span>`;
+  } else if (st.kind === 'cell') {
+    const row = R.rows[st.row];
+    PS.src.highlight({ states: [...row.Q], transitions: st.contrib.map(c => ({ from: c.q, to: c.p })), accept: [...st.result] });
+    PS.out.highlight({ states: [row.key], accept: [st.targetKey], transitions: [{ from: row.key, to: st.targetKey }] });
+    const parts = FA.sortIds(row.Q).map(q => { const ps = st.contrib.filter(c => c.q === q).map(c => A.labelOf(c.p)); return `${A.labelOf(q)},${st.sym} ↦ ${ps.length ? ps.join(' ') : '✗'}`; });
+    const un = st.contrib.length ? [...new Set(st.contrib.map(c => c.p))].map(p => `E(${A.labelOf(p)})`).join(' ∪ ') : '∅';
+    $('ps-explain').innerHTML = `<b>δ′(${esc(lbl(A, row.Q))}, ${esc(st.sym)})</b>: ดูทุก q ใน Q ว่าอ่าน ${esc(st.sym)} แล้วไปไหน แล้วเอา e-Closure ของปลายทางมารวมกัน${st.isNew ? ' — ได้ superstate <b>ใหม่</b> เพิ่มเป็นแถวใหม่' : ' — superstate นี้มีอยู่แล้ว'}<span class="f">${esc(parts.join(' · '))}\n⇒ ${esc(un)} = ${esc(st.result.size ? lbl(A, st.result) : '∅  (trap state)')}${st.result.size && row.isFinal !== undefined && [...st.result].some(q => A.isFinal(q)) ? '   ∋ final → superstate นี้เป็น final' : ''}</span>`;
+  } else {
+    PS.src.highlight({}); PS.out.highlight({ accept: D.states.filter(s => s.isFinal).map(s => s.id) });
+    $('ps-explain').innerHTML = `<b>เสร็จ:</b> DFA มี ${D.states.length} state (จากที่เป็นไปได้ 2<sup>${A.states.length}</sup> = ${2 ** A.states.length}) — final = superstate ที่มี state ใน F = {${[...A.finals()].map(q => A.labelOf(q)).join(', ')}} อยู่ด้วย: ${D.states.filter(s => s.isFinal).map(s => esc(s.label)).join(', ')}`;
+  }
+};
+$('ps-from-editor').onclick = () => PS.load(App.current.clone());
+$('ps-lib').onclick = () => UI.library(['M2'], (A) => PS.load(A));
+$('ps-to-editor').onclick = () => { if (PS.res) App.goto('editor', PS.res.dfa.clone()); };
+$('ps-to-min').onclick = () => { if (PS.res) App.goto('minimize', PS.res.dfa.clone()); };
+
+// ---------- M3 Minimization ----------
+const MN = App.minimize = {};
+MN.src = new FA.AutomatonView('mn-src'); MN.out = new FA.AutomatonView('mn-out');
+MN.step = UI.stepper('mn-step', (i) => MN.show(i));
+MN.load = (A) => {
+  MN.A = A; MN.src.setAutomaton(A); MN.src.fit(); $('mn-part').innerHTML = ''; $('mn-unreach').innerHTML = '';
+  const r = FA.minimize(A);
+  if (r.error) { $('mn-explain').innerHTML = `<span class="bad-t">${esc(r.error)}</span>`; MN.res = null; MN.step.setCount(0); MN.out.setAutomaton(new FA.Automaton()); return; }
+  MN.res = r;
+  // steps: reach steps (each adds a state) + removal + trap + iterations + result
+  MN.steps = [];
+  r.prep.reachSteps.forEach((s, k) => MN.steps.push({ kind: 'reach', k }));
+  MN.steps.push({ kind: 'remove' });
+  if (r.prep.trapAdded) MN.steps.push({ kind: 'trap' });
+  r.iterations.forEach((it, k) => MN.steps.push({ kind: 'iter', k }));
+  MN.steps.push({ kind: 'result' });
+  MN.step.setCount(MN.steps.length, 0);
+};
+MN.show = (i) => {
+  const A = MN.A, R = MN.res, st = MN.steps[i]; const C = R.prep.completed;
+  const reach = R.prep.reachSteps;
+  if (st.kind === 'reach') {
+    const got = reach.slice(0, st.k + 1).map(s => s.added); const cur = reach[st.k];
+    MN.src.highlight({ states: got, accept: [cur.added], transitions: cur.via ? [{ from: cur.via.from, to: cur.added }] : [], dim: A.ids().filter(q => !got.includes(q)) });
+    $('mn-unreach').innerHTML = `R = ${esc(lbl(A, got))}`;
+    $('mn-explain').innerHTML = st.k === 0 ? `<b>ขั้น 1:</b> เริ่ม R := {s} แล้ววนเพิ่ม δ(p, a) ทุกตัวที่ p ∈ R<span class="f">R := {${esc(A.labelOf(cur.added))}}</span>` : `เพิ่ม <b>${esc(A.labelOf(cur.added))}</b> เพราะ δ(${esc(A.labelOf(cur.via.from))}, ${esc(cur.via.sym)}) = ${esc(A.labelOf(cur.added))}<span class="f">R = ${esc(lbl(A, got))}</span>`;
+    MN.out.setAutomaton(new FA.Automaton()); $('mn-part').innerHTML = ''; return;
+  }
+  if (st.kind === 'remove') {
+    MN.src.highlight({ dim: R.prep.removed, reject: R.prep.removed });
+    $('mn-unreach').innerHTML = R.prep.removed.length ? `ลบ ${R.prep.removed.map(q => UI.pill(A.labelOf(q))).join('')} (ไม่มี string ไหนพามาถึง จึงไม่มีผลต่อ L(M))` : 'ทุก state ไปถึงได้ — ไม่ต้องลบอะไร';
+    $('mn-explain').innerHTML = R.prep.removed.length ? `<b>ลบ state ที่ไม่อยู่ใน R:</b> ${esc(R.prep.removed.map(q => A.labelOf(q)).join(', '))} — Problem 2.1.7: ลบแล้ว L(M) ไม่เปลี่ยน` : `<b>ทุก state reachable</b> — ไปขั้นแบ่งกลุ่มได้เลย`;
+    return;
+  }
+  if (st.kind === 'trap') {
+    MN.src.setAutomaton(C); MN.src.fit(); MN.src.highlight({ states: [R.prep.trapId] });
+    $('mn-explain').innerHTML = `<b>ทำให้ complete:</b> DFA เดิมมี (q, σ) ที่ไม่มีทางไป ${R.prep.missing ? '' : ''}— เพิ่ม trap state เพื่อให้ Lemma 2.5.1 ใช้ δ(q,a) ได้ทุกคู่`;
+    return;
+  }
+  if (st.kind === 'iter') {
+    const it = R.iterations[st.k]; const src = R.prep.trapAdded ? C : A; MN.src.setAutomaton(src); MN.src.fit();
+    const groups = {}; it.partition.forEach((b, gi) => b.forEach(q => groups[q] = gi));
+    MN.src.highlight({ groups });
+    // table
+    const prev = R.iterations[st.k - 1];
+    const bo = {}; (prev ? prev.partition : it.partition).forEach((b, gi) => b.forEach(q => bo[q] = gi));
+    let h = `<tr><th>state</th><th>กลุ่ม ≡${FA.sub(Math.max(st.k - 1, 0))}</th>${st.k > 0 ? src.alphabet.map(a => `<th>δ(q,${esc(a)}) อยู่กลุ่ม</th>`).join('') + `<th>กลุ่ม ≡${FA.sub(st.k)}</th>` : ''}</tr>`;
+    for (const b of (prev ? prev.partition : it.partition)) for (const q of b) {
+      h += `<tr><td class="st">${src.isFinal(q) ? '◎ ' : ''}${esc(src.labelOf(q))}</td><td>${bo[q] + 1}</td>`;
+      if (st.k > 0) { h += src.alphabet.map(a => { const t = src.trans(q, a)[0]; return `<td>${esc(src.labelOf(t))} → <b>${bo[t] + 1}</b></td>`; }).join(''); const ng = groups[q] + 1; const split = it.splits.some(s => s.block.includes(q)); h += `<td class="${split ? 'mk' : ''}">${ng}</td>`; }
+      h += '</tr>';
+    }
+    $('mn-part').innerHTML = h;
+    const pstr = it.partition.map(b => '{' + b.map(q => src.labelOf(q)).join(',') + '}').join('  ');
+    $('mn-explain').innerHTML = st.k === 0 ? `<b>≡₀:</b> แบ่งเป็น 2 กลุ่มตาม final / ไม่ final (string ยาว 0 = e แยกได้แค่นี้)<span class="f">${esc(pstr)}</span>` : (it.splits.length ? `<b>≡${FA.sub(st.k)}:</b> ใช้ Lemma 2.5.1 — p ≡${FA.sub(st.k)} q ต้องมี δ(p,a) กับ δ(q,a) อยู่กลุ่มเดียวกัน (ของรอบก่อน) ทุก a<br>${it.splits.map(s => '• ' + esc(s.reason)).join('<br>')}<span class="f">${esc(pstr)}</span>` : `<b>≡${FA.sub(st.k)} = ≡${FA.sub(st.k - 1)}</b> — ไม่มีกลุ่มไหนแยกได้อีก → <b>CONVERGED</b> (Lemma รับประกันว่า ≡${FA.sub(st.k + 1)}, ≡${FA.sub(st.k + 2)}, … ก็เท่ากันหมด)<span class="f">${esc(pstr)}</span>`);
+    MN.out.setAutomaton(new FA.Automaton()); return;
+  }
+  if (st.kind === 'result') {
+    const groups = {}; R.partition.forEach((b, gi) => b.forEach(q => groups[q] = gi));
+    MN.src.highlight({ groups }); MN.out.setAutomaton(R.dfa); MN.out.fit();
+    const g2 = {}; R.dfa.states.forEach((s, gi) => g2[s.id] = gi); MN.out.highlight({ groups: g2 });
+    $('mn-explain').innerHTML = `<b>ขั้น 4:</b> รวมแต่ละกลุ่มเป็น state เดียว: ${R.dfa.states.length} state (จาก ${A.states.length}) — start = กลุ่มที่มี s, final = กลุ่มที่เป็น final, δ(G,a) = กลุ่มของ δ(สมาชิกใดก็ได้, a)${A.meta && A.meta.note ? `<br><span class="bad-t">${esc(A.meta.note)}</span>` : ''}`;
+  }
+};
+$('mn-from-editor').onclick = () => MN.load(App.current.clone());
+$('mn-lib').onclick = () => UI.library(['M3'], (A) => MN.load(A));
+$('mn-to-editor').onclick = () => { if (MN.res) App.goto('editor', MN.res.dfa.clone()); };
+fillSelect($('eq-a'), ['DFA', 'NFA'], [{ v: '__editor', t: '(automaton ใน Editor)' }]); fillSelect($('eq-b'), ['DFA', 'NFA'], [{ v: '__editor', t: '(automaton ใน Editor)' }]);
+$('eq-run').onclick = () => { const A = pick($('eq-a').value), B = pick($('eq-b').value); const r = FA.dfaEquivalent(A, B); $('eq-out').innerHTML = r.equivalent ? `<span class="ok-t">✔ equivalent — L(M₁) = L(M₂)</span> (minimal DFA ของทั้งคู่มี ${FA.minimize(FA.toDFA(A)).dfa.states.length} state)` : `<span class="bad-t">✘ ไม่ equivalent</span> — string "${r.witness === '' ? 'e' : esc(r.witness)}" ${r.inA ? 'อยู่ใน L(M₁) แต่ไม่อยู่ใน L(M₂)' : 'อยู่ใน L(M₂) แต่ไม่อยู่ใน L(M₁)'}`; };
+
+// ---------- M4a RegEx → NFA ----------
+const RXM = App.regex = {};
+RXM.view = new FA.AutomatonView('rx-canvas');
+RXM.step = UI.stepper('rx-step', (i) => RXM.show(i));
+RXM.build = () => {
+  const s = $('rx-in').value;
+  try {
+    const ast = RX.parse(s); RXM.ast = ast; $('rx-ast').innerHTML = `<div class="note" style="font-family:var(--font)">โครงสร้าง (parse tree) — สร้างจากใบขึ้นไปราก</div><pre style="margin:0">${esc(RX.astTree(ast))}</pre>`;
+    const r = RX.toNFA(ast); RXM.res = r;
+    $('rx-stages').innerHTML = r.stages.map((sg, k) => `<div class="item" data-k="${k}"><b class="mono">${esc(sg.regex)}</b><div class="note">${esc(sg.desc)}</div></div>`).join('');
+    RXM.step.setCount(r.stages.length, r.stages.length - 1);
+  } catch (e) { $('rx-ast').innerHTML = `<span class="bad-t">${esc(e.message)}</span>`; }
+};
+RXM.show = (i) => { const sg = RXM.res.stages[i]; RXM.view.setAutomaton(sg.automaton); RXM.view.fit(); document.querySelectorAll('#rx-stages .item').forEach(d => d.style.background = +d.dataset.k === i ? 'var(--mark-soft)' : ''); $('rx-explain').innerHTML = `<b>Stage ${i + 1}/${RXM.res.stages.length} · ${esc(sg.regex)}</b><br>${esc(sg.desc)}<span class="f">state: ${sg.automaton.states.length} · transitions: ${sg.automaton.transitions.length} (มี e ${sg.automaton.transitions.filter(t => t.symbol === FA.E).length})</span>`; };
+$('rx-build').onclick = RXM.build; $('rx-in').addEventListener('keydown', e => { if (e.key === 'Enter') RXM.build(); });
+$('rx-to-editor').onclick = () => { if (RXM.res) App.goto('editor', RXM.res.nfa.clone()); };
+$('rx-to-ps').onclick = () => { if (RXM.res) App.goto('powerset', RXM.res.nfa.clone()); };
+document.querySelector('#m-regex .tabs2').addEventListener('click', (ev) => { const b = ev.target.closest('button[data-sub]'); if (!b) return; document.querySelectorAll('#m-regex .tabs2 button').forEach(x => x.classList.toggle('on', x === b)); $('sub-rx').classList.toggle('on', b.dataset.sub === 'rx'); $('sub-se').classList.toggle('on', b.dataset.sub === 'se'); if (b.dataset.sub === 'se') SE.view.fit(); else RXM.view.fit(); });
+
+// ---------- M4b State elimination ----------
+const SE = App.se = {};
+SE.view = new FA.AutomatonView('se-canvas', { onStateClick: (id) => SE.eliminate(id) });
+SE.load = (A) => { SE.A = A; SE.g = new RX.GA(A); SE.render(); $('se-log').innerHTML = ''; $('se-result').textContent = '—'; $('se-check-out').textContent = ''; $('se-explain').innerHTML = `<b>Special form:</b> เพิ่ม s ใหม่ (e → ${esc(A.labelOf(A.start))}) และ f ใหม่ (e จากทุก final) — ตอนนี้ทุกเส้นเป็น regex ได้; <b>คลิก state</b> (ยกเว้น s, f) เพื่อลบ`; $('rk-table').innerHTML = ''; };
+SE.display = () => {
+  const g = SE.g; const D = new FA.Automaton({ alphabet: [] });
+  for (const id of g.alive()) D.states.push({ id, label: g.labels[id], x: g.pos[id].x, y: g.pos[id].y, isStart: id === g.S, isFinal: id === g.Fn });
+  for (const k in g.edges) { const [i, j] = k.split('|'); if (g.eliminated.includes(i) || g.eliminated.includes(j)) continue; D.transitions.push({ from: i, symbol: RX.print(g.edges[k]), to: j }); }
+  return D;
+};
+SE.render = (hl) => { SE.view.setAutomaton(SE.display()); SE.view.fit(); SE.view.highlight(hl || {}); if (SE.g.done()) $('se-result').textContent = RX.print(SE.g.result()); };
+SE.eliminate = (id) => {
+  const g = SE.g; if (!g || id === g.S || id === g.Fn) { UI.toast('ลบ s และ f ไม่ได้ — ต้องเหลือสองตัวนี้'); return; }
+  const step = g.eliminate(id); if (!step) return;
+  const A = SE.A;
+  const item = document.createElement('div'); item.className = 'item';
+  item.innerHTML = `<b>ลบ ${esc(g.labels[id])}</b>${step.gamma ? ` (loop γ = <span class="mono">${esc(RX.print(step.gamma))}</span>)` : ' (ไม่มี loop)'}<div class="mono note" style="white-space:pre-wrap">${step.pairs.length ? step.pairs.map(p => `${esc(g.labels[p.i])} → ${esc(g.labels[p.j])}:  ${esc(g.formula(p))}`).join('\n') : 'ไม่มีคู่เข้า-ออก → ลบทิ้งเฉย ๆ'}</div>`;
+  $('se-log').appendChild(item);
+  SE.render({ transitions: step.pairs.map(p => ({ from: p.i, to: p.j })) });
+  $('se-explain').innerHTML = `<b>ลบ ${esc(g.labels[id])}:</b> ทุกคู่ (qᵢ → ${esc(g.labels[id])} → qⱼ) ได้เส้นใหม่ฉลาก <span class="mono">δ ∪ αγ*β</span> (α = เข้า, γ = loop, β = ออก, δ = เส้น qᵢ→qⱼ เดิม)${g.done() ? `<br><b>เสร็จ!</b> เหลือ s → f เส้นเดียว: <span class="mono">${esc(RX.print(g.result()))}</span>` : ` — เหลืออีก ${g.alive().length - 2} state`}`;
+};
+$('se-auto').onclick = () => { if (!SE.g) return; for (const q of [...SE.g.alive()]) if (q !== SE.g.S && q !== SE.g.Fn) SE.eliminate(q); };
+$('se-reset').onclick = () => { if (SE.A) SE.load(SE.A); };
+$('se-from-editor').onclick = () => SE.load(App.current.clone());
+$('se-lib').onclick = () => UI.library(['M4', 'DFA', 'NFA'], (A) => SE.load(A));
+$('se-check').onclick = () => { if (!SE.g || !SE.g.done()) { $('se-check-out').textContent = 'ยังลบไม่ครบ'; return; } const rx = SE.g.result(); const N = RX.toNFA(rx, SE.A.alphabet).nfa; const d = FA.dfaEquivalent(SE.A, N); $('se-check-out').innerHTML = d.equivalent ? `<span class="ok-t">✔ L(${esc(RX.print(rx))}) = L(M) (ตรวจ exact)</span>` : `<span class="bad-t">✘ ต่างกันที่ "${esc(d.witness)}"</span>`; };
+$('rk-show').onclick = () => { if (!SE.A) return; const k = Math.max(0, Math.min(SE.A.states.length, parseInt($('rk-k').value) || 0)); const rk = RX.Rijk(SE.A); const ids = rk.ids; let h = `<tr><th>R(i,j,${k})</th>${ids.map(j => `<th>${esc(SE.A.labelOf(j))}</th>`).join('')}</tr>`; ids.forEach((qi, i) => { h += `<tr><td class="st">${esc(SE.A.labelOf(qi))}</td>${ids.map((qj, j) => `<td>${esc(RX.print(rk.R(i, j, k)))}</td>`).join('')}</tr>`; }); h += `<tr><td colspan="${ids.length + 1}" class="dim">state หมายเลข 1..n ตามลำดับ: ${ids.map((q, i) => `q${FA.sub(i + 1)}=${esc(SE.A.labelOf(q))}`).join(', ')} · L(M) = ⋃ R(start, f, n) = ${esc(RX.print(rk.language()))}</td></tr>`; $('rk-table').innerHTML = h; };
+
+// ---------- M5 Closure ----------
+const CL = App.closure = { op: 'union' };
+CL.va = new FA.AutomatonView('cl-ca'); CL.vb = new FA.AutomatonView('cl-cb'); CL.vo = new FA.AutomatonView('cl-out');
+fillSelect($('cl-a'), null, [{ v: '__editor', t: '(automaton ใน Editor)' }]); fillSelect($('cl-b'), null, [{ v: '__editor', t: '(automaton ใน Editor)' }]);
+$('cl-a').value = 'ex211'; $('cl-b').value = 'exA';
+$('cl-ops').addEventListener('click', (ev) => { const b = ev.target.closest('button[data-op]'); if (!b) return; CL.op = b.dataset.op; document.querySelectorAll('#cl-ops button').forEach(x => x.classList.toggle('on', x === b)); CL.run(); });
+$('cl-a').onchange = $('cl-b').onchange = () => CL.run();
+CL.run = () => {
+  const A = pick($('cl-a').value), B = pick($('cl-b').value); CL.A = A; CL.B = B;
+  CL.va.setAutomaton(A); CL.va.fit(); CL.vb.setAutomaton(B); CL.vb.fit();
+  let r, extra = '';
+  switch (CL.op) {
+    case 'union': r = FA.union(A, B); break;
+    case 'concat': r = FA.concat(A, B); break;
+    case 'star': r = FA.star(A); break;
+    case 'complement': r = FA.complement(A); break;
+    case 'product': r = FA.product(A, B, 'and'); break;
+    case 'demorgan': { const c1 = FA.complement(A), c2 = FA.complement(B); if (c1.error || c2.error) r = { error: c1.error || c2.error }; else { const u = FA.union(c1.M, c2.M).M; const D = FA.powerset(u).dfa; r = FA.complement(D); extra = `¬(¬L₁ ∪ ¬L₂): complement ทั้งคู่ → union (NFA) → แปลงเป็น DFA (${D.states.length} state) → complement อีกครั้ง`; } break; }
+  }
+  if (r.error) { $('cl-explain').innerHTML = `<span class="bad-t">${esc(r.error)}</span>`; CL.M = null; CL.vo.setAutomaton(new FA.Automaton()); return; }
+  CL.M = r.M; CL.vo.setAutomaton(r.M); CL.vo.fit();
+  const news = r.added || []; CL.vo.highlight({ states: news, transitions: r.M.transitions.filter(t => t.symbol === FA.E && (news.includes(t.from) || CL.op === 'concat' || CL.op === 'star')).map(t => ({ from: t.from, to: t.to })) });
+  $('cl-explain').innerHTML = `<b>${{ union: 'Union (Figure 2-11)', concat: 'Concatenation (Figure 2-12)', star: 'Kleene star (Figure 2-13)', complement: 'Complement', product: 'Intersection — product construction (Problem 2.3.3)', demorgan: 'Intersection — De Morgan' }[CL.op]}:</b> ${esc(r.note)}${extra ? '<br>' + esc(extra) : ''}<br><span class="note">M มี ${r.M.states.length} state · ${r.M.kind()}</span>`;
+};
+$('cl-test-run').onclick = () => {
+  if (!CL.M) return; const ws = $('cl-test').value.split(',').map(x => x.trim()).map(x => x === 'e' ? '' : x);
+  let h = `<tr><th>ω</th><th>M₁</th><th>M₂</th><th>M</th></tr>`;
+  for (const w of ws) { const f = (X) => { const ok = FA.accepts(X, w); return `<td class="${ok ? 'ok' : 'bad'}">${ok ? '✔' : '✘'}</td>`; }; h += `<tr><td>${w === '' ? 'e' : esc(w)}</td>${f(CL.A)}${f(CL.B)}${f(CL.M)}</tr>`; }
+  $('cl-test-out').innerHTML = h;
+};
+$('cl-to-editor').onclick = () => { if (CL.M) App.goto('editor', CL.M.clone()); };
+
+// ---------- M6 Pumping game ----------
+const PG = App.pumping = { role: 'prover' };
+const isPrime = (n) => { if (n < 2) return false; for (let i = 2; i * i <= n; i++) if (n % i === 0) return false; return true; };
+const cnt = (w, c) => [...w].filter(x => x === c).length;
+PG.langs = [
+  { id: 'anbn', name: '{ aⁱbⁱ | i ≥ 0 }', alphabet: ['a', 'b'], regular: false, member: w => /^a*b*$/.test(w) && cnt(w, 'a') === cnt(w, 'b'), sample: n => 'a'.repeat(n) + 'b'.repeat(n), hint: 'เลือก ω = aⁿbⁿ: เพราะ |xy| ≤ n ทำให้ y มีแต่ a — ปั๊มแล้วจำนวน a ≠ b' },
+  { id: 'eq', name: '{ ω | จำนวน a = จำนวน b }', alphabet: ['a', 'b'], regular: false, member: w => cnt(w, 'a') === cnt(w, 'b'), sample: n => 'a'.repeat(n) + 'b'.repeat(n), hint: 'ใช้ ω = aⁿbⁿ เหมือนเดิม (หรือใช้ closure: L ∩ a*b* = aⁿbⁿ ต้อง regular ถ้า L regular — Example 2.4.4)' },
+  { id: 'prime', name: '{ aⁿ | n เป็นจำนวนเฉพาะ }', alphabet: ['a'], regular: false, member: w => /^a*$/.test(w) && isPrime(w.length), sample: n => { let p = n; while (!isPrime(p)) p++; return 'a'.repeat(p); }, hint: 'Example 2.4.3: ถ้า |y| = q, |ω| = p แล้ว i = p+1 ทำให้ |xyⁱz| = p + pq = p(1+q) ไม่ใช่จำนวนเฉพาะ' },
+  { id: 'wwr', name: '{ wwᴿ | w ∈ {a,b}* }  (palindrome คู่)', alphabet: ['a', 'b'], regular: false, member: w => w.length % 2 === 0 && w === [...w].reverse().join(''), sample: n => 'a'.repeat(n) + 'bb' + 'a'.repeat(n), hint: 'ω = aⁿbbaⁿ — y อยู่ในกลุ่ม a หน้า ปั๊มแล้วไม่สมมาตร' },
+  { id: 'ww', name: '{ ww | w ∈ {a,b}* }', alphabet: ['a', 'b'], regular: false, member: w => w.length % 2 === 0 && w.slice(0, w.length / 2) === w.slice(w.length / 2), sample: n => 'a'.repeat(n) + 'b' + 'a'.repeat(n) + 'b', hint: 'ω = aⁿbaⁿb' },
+  { id: 'paren', name: 'วงเล็บสมดุล ( )  (Problem 2.4.6)', alphabet: ['(', ')'], regular: false, member: w => { let d = 0; for (const c of w) { d += c === '(' ? 1 : -1; if (d < 0) return false; } return d === 0; }, sample: n => '('.repeat(n) + ')'.repeat(n), hint: 'ω = (ⁿ)ⁿ' },
+  { id: 'abba', name: '(ab ∪ ba)*  — regular! (ลองแล้วจะแพ้)', alphabet: ['a', 'b'], regular: true, dfa: () => FA.minimize(FA.preset('fig219')).dfa, sample: n => 'ab'.repeat(Math.ceil(n / 2)), hint: 'L regular → คู่แข่งใช้ cycle ใน DFA จริง แบ่งให้ y ปั๊มได้เสมอ → คุณหา i ไม่ได้' },
+  { id: 'evenb', name: 'จำนวน b เป็นเลขคู่  — regular!', alphabet: ['a', 'b'], regular: true, dfa: () => FA.preset('ex211'), sample: n => 'a'.repeat(n), hint: 'L regular → คุณจะแพ้เสมอ' },
+];
+PG.langs.forEach(L => { if (L.regular) L.member = (w) => FA.runDFA(L.dfa(), w).accepted; });
+$('pg-lang').innerHTML = PG.langs.map(L => `<option value="${L.id}">${esc(L.name)}</option>`).join('');
+document.querySelectorAll('#m-pumping [data-role]').forEach(b => b.onclick = () => { PG.role = b.dataset.role; document.querySelectorAll('#m-pumping [data-role]').forEach(x => x.classList.toggle('on', x === b)); PG.start(); });
+$('pg-lang').onchange = () => PG.start();
+PG.lang = () => PG.langs.find(L => L.id === $('pg-lang').value);
+PG.quant = (phase) => {
+  const L = PG.lang(); const you = PG.role === 'prover';
+  const rows = [
+    ['∀ L regular', 'สมมติว่า L regular (เพื่อหาข้อขัดแย้ง)', ''],
+    ['∃ n ≥ 1', you ? 'คู่แข่งเลือก n' : 'คุณเลือก n', you ? 'adv' : 'you'],
+    ['∀ ω ∈ L, |ω| ≥ n', you ? 'คุณเลือก ω' : 'คู่แข่งเลือก ω', you ? 'you' : 'adv'],
+    ['∃ x, y, z: ω = xyz, y ≠ e, |xy| ≤ n', you ? 'คู่แข่งแบ่ง' : 'คุณแบ่ง', you ? 'adv' : 'you'],
+    ['∀ i ≥ 0: xyⁱz ∈ L', you ? 'คุณเลือก i ให้หลุด' : 'คู่แข่งเลือก i', you ? 'you' : 'adv'],
+  ];
+  $('pg-quant').innerHTML = rows.map((r, k) => `<div class="q ${r[2]} ${k === phase ? 'cur' : ''}">${esc(r[0])}<span class="who">${esc(r[1])}</span></div>`).join('');
+};
+PG.start = () => {
+  const L = PG.lang(); $('pg-lang-note').textContent = L.hint; PG.state = { phase: 1 };
+  PG.n = L.regular ? L.dfa().states.length : 3 + Math.floor(Math.random() * 3);
+  PG.quant(1);
+  const g = $('pg-game'); g.innerHTML = '';
+  PG.add(`<b>${PG.role === 'prover' ? 'คู่แข่ง' : 'คุณ'}</b>: n = <b>${PG.n}</b>${L.regular ? ' (= จำนวน state ของ DFA)' : ' (สุ่ม — วิธีพิสูจน์ต้องใช้ได้กับทุก n)'}`);
+  if (PG.role === 'prover') {
+    PG.add(`<b>คุณ</b>: เลือก ω ∈ L ที่ยาว ≥ ${PG.n} <div class="row" style="margin-top:6px"><input type="text" class="mono" id="pg-omega" value="${esc(L.sample(PG.n))}" style="flex:1"><button class="btn sm primary" id="pg-omega-ok">ยืนยัน ω</button></div>`);
+    $('pg-omega-ok').onclick = () => PG.chooseOmega($('pg-omega').value.trim());
+  } else {
+    PG.omega = L.sample(PG.n);
+    PG.add(`<b>คู่แข่ง</b>: ω = <span class="mono">${esc(PG.omega)}</span> (|ω| = ${PG.omega.length})`);
+    PG.askDecomp();
+  }
+};
+PG.add = (html, cls = '') => { const d = document.createElement('div'); d.className = 'item ' + cls; d.innerHTML = html; $('pg-game').appendChild(d); return d; };
+PG.decomps = (w, n) => { const out = []; for (let i = 0; i < w.length; i++) for (let j = i + 1; j <= Math.min(n, w.length); j++) out.push({ x: w.slice(0, i), y: w.slice(i, j), z: w.slice(j) }); return out; };
+PG.xyz = (d) => `<span class="xyz"><span class="x">${esc(d.x) || '·'}</span><span class="y">${esc(d.y)}</span><span class="z">${esc(d.z) || '·'}</span></span> <span class="note">x = "${esc(d.x)}", y = "${esc(d.y)}", z = "${esc(d.z)}"</span>`;
+PG.chooseOmega = (w) => {
+  const L = PG.lang();
+  if (!w || !L.member(w)) { UI.toast('ω ต้องอยู่ใน L'); return; } if (w.length < PG.n) { UI.toast(`ω ต้องยาว ≥ n = ${PG.n}`); return; }
+  PG.omega = w; PG.quant(3);
+  // adversary picks decomposition
+  let d;
+  if (L.regular) { const c = FA.findPumpingCycle(L.dfa(), w); d = c && !c.error ? { x: c.x, y: c.y, z: c.z, cyc: c } : PG.decomps(w, PG.n)[0]; }
+  else { const all = PG.decomps(w, PG.n); d = all[Math.floor(Math.random() * all.length)]; }
+  PG.d = d;
+  PG.add(`<b>คู่แข่ง</b> แบ่ง ω = xyz (กติกา: y ≠ e, |xy| ≤ ${PG.n})${d.cyc ? ' — ใช้ cycle จริงของ DFA: state ' + esc(d.cyc.dfa.labelOf(d.cyc.seq[d.cyc.i])) + ' ซ้ำ' : ''}<br>${PG.xyz(d)}`);
+  PG.quant(4);
+  PG.add(`<b>คุณ</b>: เลือก i แล้วดู xy<sup>i</sup>z <div class="row" style="margin-top:6px">${[0, 1, 2, 3].map(i => `<button class="btn sm" data-i="${i}">i = ${i}</button>`).join('')}</div>`).querySelectorAll('button').forEach(b => b.onclick = () => PG.pick(+b.dataset.i));
+};
+PG.pick = (i) => {
+  const L = PG.lang(); const d = PG.d; const s = d.x + d.y.repeat(i) + d.z; const inL = L.member(s);
+  const win = !inL;
+  PG.add(`i = ${i}: xy<sup>${i}</sup>z = <span class="mono">${esc(s) || 'e'}</span> → ${inL ? 'ยัง<b>อยู่ใน</b> L' : '<b>ไม่อยู่ใน</b> L'} ${win ? '— <b>คุณชนะรอบนี้</b> ✔' : '— ลอง i อื่น'}`, win ? 'win' : '');
+  if (win && !L.regular) {
+    const all = PG.decomps(PG.omega, PG.n);
+    const rows = all.map(dd => { const ii = [0, 2, 3].find(k => !L.member(dd.x + dd.y.repeat(k) + dd.z)); return { dd, ii }; });
+    const okAll = rows.every(r => r.ii !== undefined);
+    PG.add(`<b>แต่</b> การพิสูจน์ต้องชนะ<u>ทุก</u>วิธีแบ่งของคู่แข่ง (${all.length} แบบ) — ตรวจอัตโนมัติ:<div class="tblwrap" style="margin-top:6px"><table class="tt"><tr><th>x</th><th>y</th><th>z</th><th>i ที่ทำให้หลุด</th></tr>${rows.map(r => `<tr><td>${esc(r.dd.x) || 'e'}</td><td class="mk">${esc(r.dd.y)}</td><td>${esc(r.dd.z) || 'e'}</td><td class="${r.ii !== undefined ? 'ok' : 'bad'}">${r.ii !== undefined ? 'i = ' + r.ii : 'ไม่พบใน {0,2,3}'}</td></tr>`).join('')}</table></div>${okAll ? '<br><b>✔ ทุกวิธีแบ่งมี i ที่หลุด → ขัดแย้งกับ theorem → L ไม่ regular ∎</b>' : '<br>ยังมีวิธีแบ่งที่หาไม่เจอ — ω นี้อาจไม่ดีพอ ลอง ω อื่น'}`, okAll ? 'win' : 'lose');
+  }
+  if (!win && L.regular) PG.add(`ทุก i จะยังอยู่ใน L เสมอ เพราะ y พา DFA วนกลับ state เดิม — <b>คุณแพ้ตามคาด</b>: Pumping Theorem ใช้พิสูจน์ "ไม่ regular" เท่านั้น ใช้พิสูจน์ "regular" ไม่ได้`, 'lose');
+};
+PG.askDecomp = () => {
+  const w = PG.omega; PG.quant(3);
+  const d = PG.add(`<b>คุณ</b> แบ่ง ω = xyz (y ≠ e, |xy| ≤ ${PG.n}):<div class="row" style="margin-top:6px"><label class="note">|x| =</label><input type="text" class="mono" id="pg-i" value="0" style="width:60px"><label class="note">|xy| =</label><input type="text" class="mono" id="pg-j" value="1" style="width:60px"><button class="btn sm primary" id="pg-dec-ok">ยืนยัน</button></div><div id="pg-dec-prev" style="margin-top:6px"></div>`);
+  const prev = () => { const i = +$('pg-i').value, j = +$('pg-j').value; if (!(i >= 0 && j > i && j <= Math.min(PG.n, w.length))) { $('pg-dec-prev').innerHTML = '<span class="bad-t">ผิดกติกา</span>'; return null; } const dd = { x: w.slice(0, i), y: w.slice(i, j), z: w.slice(j) }; $('pg-dec-prev').innerHTML = PG.xyz(dd); return dd; };
+  $('pg-i').oninput = $('pg-j').oninput = prev; prev();
+  $('pg-dec-ok').onclick = () => { const dd = prev(); if (!dd) return; PG.quant(4); const L = PG.lang(); const ii = [0, 2, 3, 4].find(k => !L.member(dd.x + dd.y.repeat(k) + dd.z)); if (ii !== undefined) PG.add(`<b>คู่แข่ง</b> เลือก i = ${ii}: xy<sup>${ii}</sup>z = <span class="mono">${esc(dd.x + dd.y.repeat(ii) + dd.z) || 'e'}</span> ∉ L → คุณแพ้ (ทุกวิธีแบ่งของ ω นี้แพ้หมด เพราะ L ไม่ regular)`, 'lose'); else PG.add(`คู่แข่งหา i ใน {0,2,3,4} ไม่ได้ — การแบ่งนี้ปั๊มได้ ✔${L.regular ? ' (เพราะ L regular จริง)' : ''}`, 'win'); };
+};
+// pigeonhole
+PG.view = new FA.AutomatonView('pg-canvas');
+fillSelect($('pg-dfa'), ['DFA'], [{ v: '__editor', t: '(automaton ใน Editor)' }]);
+$('pg-find').onclick = () => {
+  const A = pick($('pg-dfa').value); const w = $('pg-w').value.trim() || 'a'.repeat(A.states.length);
+  const r = FA.findPumpingCycle(A, w);
+  if (!r || r.error) { $('pg-pigeon').innerHTML = `<div class="ln"><span class="why">${esc(r ? r.error : 'ไม่พบ')}</span></div>`; PG.view.setAutomaton(A); PG.view.fit(); return; }
+  const D = r.dfa; PG.view.setAutomaton(D); PG.view.fit();
+  const cyc = []; for (let k = r.i; k < r.j; k++) cyc.push({ from: r.seq[k], to: r.seq[k + 1] });
+  PG.view.highlight({ states: [r.seq[r.i]], transitions: cyc });
+  let h = `<div class="ln"><span class="why">n = |K| = ${r.n} → อ่าน ${r.n} ตัวแรกผ่าน ${r.n + 1} configuration แต่มีแค่ ${r.n} state → ต้องมี state ซ้ำ (pigeonhole)</span></div>`;
+  r.seq.forEach((q, k) => { h += `<div class="ln ${(k === r.i || k === r.j) ? 'cur' : ''}"><span class="cfg">${k ? '⊢' : '&nbsp;'} (${esc(D.labelOf(q))}, ${esc(w.slice(k)) || 'e'})</span><span class="why">${k === r.i ? 'q' + FA.sub(r.i) + ' ← ซ้ำ' : k === r.j ? 'q' + FA.sub(r.j) + ' = q' + FA.sub(r.i) + ' ← ซ้ำ' : ''}</span></div>`; });
+  h += `<div class="ln"><span class="why">x = "${esc(r.x)}", y = "${esc(r.y)}" (พา ${esc(D.labelOf(r.seq[r.i]))} กลับมา ${esc(D.labelOf(r.seq[r.i]))}), z = "${esc(r.z)}" → xyⁱz ${FA.runDFA(D, w).accepted ? 'ถูก accept ทุก i' : 'ถูก reject ทุก i (ω ∉ L แต่ cycle ยังจริง)'}: ${[0, 1, 2].map(i => `i=${i}: ${esc(r.x + r.y.repeat(i) + r.z) || 'e'} ${FA.runDFA(D, r.x + r.y.repeat(i) + r.z).accepted ? '✔' : '✘'}`).join(' · ')}</span></div>`;
+  $('pg-pigeon').innerHTML = h;
+};
+
+// ---------- M7 Reference ----------
+const EX = [
+  ['2.1.1', 'e ∈ L(M) เมื่อไหร่? พิสูจน์', 'slide4', 'ลอง ω = e กับ M ที่ s ∈ F และ s ∉ F'],
+  ['2.1.2', 'อธิบายภาษาของ DFA ที่ให้', 'ex212', 'ใช้ "ทดสอบหลาย string" + "ตรวจกับ RegEx"'],
+  ['2.1.3', 'สร้าง DFA สำหรับ 5 ภาษา (a)–(e)', null, 'วาดเองแล้วตรวจกับ regex เช่น (c) = (ab)*(a ∪ e) ∪ (ba)*(b ∪ e)'],
+  ['2.2.1(a)', 'string ไหนถูก NFA accept: a, aa, aab, e', 'fig25', 'ใช้ computation tree'],
+  ['2.2.2', 'เขียน regex ของ NFA ในข้อ 2.2.1', 'fig25', 'ใช้ state elimination'],
+  ['2.2.3', 'วาด NFA ของ (ab)*(ba)* ∪ aa*, ((ab ∪ aab)*a*)*, …', null, 'ใช้ RegEx → NFA แล้วดูว่าย่อได้ไหม'],
+  ['2.4.5', 'พิสูจน์ wwᴿ, ww, ww̄ ไม่ regular', null, 'เล่นเกม Pumping กับภาษา wwᴿ, ww'],
+  ['2.5.3', 'หา minimal DFA ของ automata ใน 2.1.2, 2.2.9', 'ex212', 'NFA → DFA → Minimize'],
+];
+$('ref-ex').innerHTML = EX.map(e => `<label><span style="min-width:64px;font-weight:600">${e[0]}</span><span style="flex:1;font-family:var(--font)">${esc(e[1])} <span class="note">— ${esc(e[3])}</span></span>${e[2] ? `<button class="btn sm" data-load="${e[2]}">โหลด</button>` : ''}</label>`).join('');
+$('ref-ex').addEventListener('click', (ev) => { const b = ev.target.closest('button[data-load]'); if (b) App.goto('editor', FA.preset(b.dataset.load)); });
+$('btn-tests').onclick = () => { const r = FA.runTests(); $('tests-out').innerHTML = r.text.split('\n').map(l => `<span class="${l.startsWith('✓') ? 'ok-t' : l.startsWith('✗') ? 'bad-t' : ''}">${esc(l)}</span>`).join('\n'); };
+})();
+</script>
+
+<script>
+// ===== [9] app — navigation, theme, persistence, boot =====
+(() => {
+const { $, esc } = FA.ui; const App = FA.App; const ED = App.editor;
+const mods = [...document.querySelectorAll('section.module')];
+const nav = $('sidenav'), chips = $('chips');
+mods.forEach((m, i) => {
+  const id = m.id.replace('m-', '');
+  const b = document.createElement('button'); b.className = 'navbtn'; b.dataset.m = id;
+  b.innerHTML = `<span class="n">${i + 1}</span><span><span class="t">${esc(m.dataset.title)}</span><span class="s">${esc(m.dataset.sub)}</span></span>`;
+  b.onclick = () => App.show(id); nav.appendChild(b);
+  const c = document.createElement('button'); c.className = 'chip'; c.dataset.m = id; c.textContent = `${i + 1} · ${m.dataset.title}`; c.onclick = () => App.show(id); chips.appendChild(c);
+});
+App.show = (id) => {
+  mods.forEach(m => m.classList.toggle('active', m.id === 'm-' + id));
+  document.querySelectorAll('[data-m]').forEach(b => b.classList.toggle('active', b.dataset.m === id));
+  try { localStorage.setItem('fa.tab', id); } catch (e) { }
+  if (location.hash !== '#' + id) history.replaceState(null, '', '#' + id);
+  for (const k in App.views) if (App.views[k].fit) App.views[k].fit();
+  ['powerset', 'minimize', 'regex', 'se', 'closure', 'pumping'].forEach(k => { const M = App[k]; if (!M) return; ['src', 'out', 'view', 'va', 'vb', 'vo'].forEach(v => M[v] && M[v].A && M[v].fit()); });
+  const chip = chips.querySelector(`[data-m="${id}"]`); if (chip && chip.scrollIntoView) chip.scrollIntoView({ inline: 'center', block: 'nearest' });
+};
+App.goto = (id, A) => {
+  App.show(id);
+  if (!A) return;
+  if (id === 'editor') ED.setCurrent(A);
+  else if (id === 'powerset') App.powerset.load(A);
+  else if (id === 'minimize') App.minimize.load(A);
+  else if (id === 'regex') { document.querySelector('#m-regex .tabs2 button[data-sub=se]').click(); App.se.load(A); }
+  else if (id === 'pumping') { $('pg-dfa').value = '__editor'; $('pg-w').value = ''; $('pg-find').click(); }
+  FA.ui.toast(`ส่ง ${A.name || 'M'} ไปที่ module แล้ว`);
+};
+// theme
+const root = document.documentElement;
+$('btn-theme').onclick = () => { const cur = root.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); const nx = cur === 'dark' ? 'light' : 'dark'; root.dataset.theme = nx; try { localStorage.setItem('fa.theme', nx); } catch (e) { } };
+try { const th = localStorage.getItem('fa.theme'); if (th) root.dataset.theme = th; } catch (e) { }
+// library / import / export
+$('btn-library').onclick = () => FA.ui.library(null, (A, p) => { ED.setCurrent(A, { sample: p.sample || '', run: !!p.sample }); App.show('editor'); if (p.regex) $('ed-cmp-in').value = p.regex; });
+$('btn-export').onclick = () => { const txt = JSON.stringify(App.current.toJSON(), null, 1); navigator.clipboard && navigator.clipboard.writeText(txt).then(() => FA.ui.toast('คัดลอก JSON ของ automaton ไปคลิปบอร์ดแล้ว')).catch(() => prompt('คัดลอก JSON:', txt)); };
+$('btn-import').onclick = () => { const txt = prompt('วาง JSON ของ automaton (จากปุ่มส่งออก):'); if (!txt) return; try { ED.setCurrent(FA.Automaton.fromJSON(txt)); App.show('editor'); } catch (e) { FA.ui.toast('JSON ไม่ถูกต้อง'); } };
+// persistence of current automaton
+App.save = () => { try { localStorage.setItem('fa.current', JSON.stringify(App.current.toJSON())); } catch (e) { } };
+let saved = null; try { const s = localStorage.getItem('fa.current'); if (s) saved = FA.Automaton.fromJSON(s); } catch (e) { saved = null; }
+// boot
+const first = FA.presets.find(p => p.id === 'slide4');
+ED.setMode('select');
+if (saved && saved.states.length) { ED.setCurrent(saved); const w = $('ed-input').value.trim(); if (saved.start && [...w].every(c => saved.alphabet.includes(c))) ED.runInput(); } else { ED.setCurrent(first.build(), { sample: first.sample, run: true }); $('ed-cmp-in').value = first.regex; }
+App.powerset.load(FA.preset('fig29'));
+App.minimize.load(FA.preset('fig219'));
+App.regex.build();
+App.se.load(FA.preset('fig215'));
+App.closure.run();
+App.pumping.start(); App.pumping.quant(1);
+$('pg-dfa').value = 'slide4'; $('pg-w').value = 'aababa'; $('pg-find').click();
+let tab = (location.hash || '').replace('#', ''); if (!tab) { try { tab = localStorage.getItem('fa.tab') || ''; } catch (e) { } }
+App.show(mods.some(m => m.id === 'm-' + tab) ? tab : 'editor');
+window.addEventListener('hashchange', () => { const t = location.hash.replace('#', ''); if (mods.some(m => m.id === 'm-' + t)) App.show(t); });
+window.addEventListener('resize', () => { for (const k in App.views) App.views[k].fit && App.views[k].fit(); });
+})();
+</script>
