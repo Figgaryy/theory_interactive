@@ -293,6 +293,17 @@ svg .tl.done{stroke:var(--green)}
 .rxexam .wstep .lang{margin-top:6px;font-size:.88rem;color:var(--ink-2)}
 .rxexam .tt td{font-family:var(--font)}.rxexam .tt td.mono{font-family:var(--mono)}
 .rxexam .read ol{margin:4px 0 0;padding-left:18px;display:grid;gap:3px}
+.rxstar .tape{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-end;margin:8px 0}
+.rxstar .pc{display:inline-flex;flex-direction:column;align-items:center;gap:2px}
+.rxstar .pc .t{font-family:var(--mono);font-size:1.15rem;padding:4px 10px;border:2px solid var(--blue);border-radius:8px;background:var(--blue-soft);min-width:2ch;text-align:center}
+.rxstar .pc.fixed .t{border-color:var(--ink-3);background:var(--paper-3)}
+.rxstar .pc.eps .t{border-style:dashed;color:var(--ink-3)}
+.rxstar .pc .l{font-size:.75rem;color:var(--ink-2);white-space:nowrap}
+.rxstar .grp{display:inline-flex;flex-direction:column;align-items:center;gap:2px;padding:6px 8px 4px;border:1.5px dashed var(--blue);border-radius:10px}
+.rxstar .grp>.rounds{display:flex;gap:4px;flex-wrap:wrap}
+.rxstar .grp>.gl{font-size:.78rem;color:var(--blue-ink);font-weight:600}
+.rxstar .stuck{font-family:var(--mono);font-size:1.15rem}
+.rxstar .stuck .okp{color:var(--green)}.rxstar .stuck .badp{color:var(--red);text-decoration:underline wavy}
 @media (max-width:900px){
   .rxexam .recipe{grid-template-columns:1fr 1fr}.rxexam .wstep{grid-template-columns:1fr}
   .rxguide .cols3{grid-template-columns:1fr}
@@ -499,6 +510,12 @@ svg .tl.done{stroke:var(--green)}
           <p class="note">จำนวน stage = จำนวน node ใน tree · เสร็จแล้ว<b>ทดสอบ string</b> 2–3 ตัว (ทั้งที่ควรรับและไม่ควรรับ) ในกล่องล่างสุดเสมอ</p>
         </div>
       </div>
+    </div>
+    <div class="card rxstar" id="rx-star" style="margin-bottom:12px">
+      <h3>เครื่องมือ: star วนกี่รอบ? — ตัด string เป็นก้อนตาม regex</h3>
+      <div class="def"><b>กฎ 2 ข้อ:</b> (1) <b>*</b> จับสิ่งที่อยู่ติดซ้ายมือของมันเท่านั้น — <span class="mono">ab*</span> จับแค่ b, <span class="mono">(ab)*</span> จับทั้งก้อน ab (2) <span class="mono">X*</span> = วาง "ก้อน X" ต่อกัน <b>0, 1, 2, … ก้อน</b> ทุกก้อนต้องเหมือน X เป๊ะ — 0 ก้อน = string ว่าง e จึงอยู่ใน X* เสมอ<br><b>วิธีเช็ค:</b> ตัด string จากซ้ายไปขวาตามลำดับของ regex ต้องตัดจน<b>หมดพอดี</b> ไม่เหลือเศษ</div>
+      <div class="row" style="margin-top:8px"><label>regex <input type="text" class="mono" id="rxs-rx" value="a(ab)*" style="width:160px" spellcheck="false"></label><label>string <input type="text" class="mono" id="rxs-w" value="aabab" style="width:200px" spellcheck="false" placeholder="e = ว่าง"></label><button class="btn sm primary" id="rxs-run">ตัดให้ดู</button><span class="note">ลอง:</span><span id="rxs-quick" class="row"></span></div>
+      <div id="rxs-out" style="margin-top:10px"></div>
     </div>
     <div class="card" style="margin-bottom:12px"><h3>Regular expression</h3>
       <div class="row"><input type="text" class="mono" id="rx-in" value="(ab ∪ aab)*" style="flex:1" spellcheck="false"><button class="btn primary" id="rx-build">สร้าง</button></div>

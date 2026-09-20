@@ -338,6 +338,46 @@ RXM.examShow = (id, rxOverride) => {
   body.scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
 RXM.examList();
+// ---- star tool: cut a string into pieces according to the regex ----
+const RXS_QUICK = [['a(ab)*', 'aabab'], ['a(ab)*', 'a'], ['a(ab)*', 'aaaaabbbbb'], ['a(ab)*', 'aabbbbb'], ['ab*', 'abbb'], ['(ab)*', 'abab'], ['a*b*', 'aaabb'], ['a*b*', 'ba'], ['(ab ∪ aab)*', 'abaabab']];
+RXM.starRender = () => {
+  const out = $('rxs-out'); let ast;
+  try { ast = RX.parse($('rxs-rx').value); } catch (e) { out.innerHTML = `<span class="bad-t">${esc(e.message)}</span>`; return; }
+  let w = $('rxs-w').value.replace(/\s+/g, ''); if (w === 'e' || w === 'ε') w = '';
+  if (w.length > 40) { out.innerHTML = '<span class="bad-t">string ยาวเกิน 40 ตัว</span>'; return; }
+  const rx = RX.print(ast); const r = RX.explain(ast, w);
+  const piece = (p, lbl) => {
+    if (p.kind === 'star') {
+      const n = p.rounds.length;
+      const rounds = p.rounds.map((rd, i) => `<div class="pc"><div class="t">${esc(rd.map(x => x.text).join('')) || 'e'}</div><div class="l">รอบ ${i + 1}</div></div>`).join('');
+      return `<div class="grp"><div class="rounds">${rounds || '<div class="pc eps"><div class="t">e</div><div class="l">0 รอบ</div></div>'}</div><div class="gl">${esc(p.regex)} → วน ${n} รอบ (ก้อนละ "${esc(RX.print(p.inner))}")</div></div>`;
+    }
+    if (p.kind === 'or') return `<div class="pc"><div class="t">${esc(p.text) || 'e'}</div><div class="l">เลือก ${esc(p.chosen)} จาก ${esc(p.regex)}</div></div>`;
+    if (p.kind === 'eps') return `<div class="pc eps"><div class="t">e</div><div class="l">string ว่าง</div></div>`;
+    return `<div class="pc fixed"><div class="t">${esc(p.text)}</div><div class="l">ส่วนบังคับ ${esc(p.regex)}</div></div>`;
+  };
+  const wl = w === '' ? 'e' : w;
+  if (r.ok) {
+    const stars = r.pieces.filter(p => p.kind === 'star');
+    const lines = r.pieces.map((p, i) => p.kind === 'star' ? `ก้อน ${i + 1}: <span class="mono">${esc(p.regex)}</span> → ตัดได้ <b>${p.rounds.length} รอบ</b>${p.rounds.length ? ': ' + p.rounds.map(rd => `<span class="mono">${esc(rd.map(x => x.text).join(''))}</span>`).join(' | ') : ' (ใช้สิทธิ์ 0 รอบ = ไม่กินตัวอักษรเลย)'}` : p.kind === 'or' ? `ก้อน ${i + 1}: <span class="mono">${esc(p.regex)}</span> → เลือกทาง <span class="mono">${esc(p.chosen)}</span> ได้ "<span class="mono">${esc(p.text) || 'e'}</span>"` : `ก้อน ${i + 1}: ส่วนบังคับ <span class="mono">${esc(p.regex)}</span> → ตัด "<span class="mono">${esc(p.text) || 'e'}</span>"`);
+    out.innerHTML = `<div class="verdict ok">✔ "${esc(wl)}" ∈ L(${esc(rx)}) — ตัดได้หมดพอดี</div><div class="tape">${r.pieces.map(piece).join('<span style="align-self:center;color:var(--ink-3)">+</span>')}</div><ol style="margin:0;padding-left:20px;display:grid;gap:4px">${lines.map(l => `<li>${l}</li>`).join('')}</ol>${stars.length ? `<p class="note" style="margin-top:6px">ถ้าอยากรู้ว่า "วนกี่รอบ" — ไม่ต้องรู้ล่วงหน้า แค่ตัดไปเรื่อย ๆ จนตัดไม่ได้หรือหมด string จำนวนที่ตัดได้คือจำนวนรอบ (ต้องหมดพอดีเท่านั้น)</p>` : ''}`;
+  } else {
+    const p = r.maxPos;
+    out.innerHTML = `<div class="verdict bad">✘ "${esc(wl)}" ∉ L(${esc(rx)}) — ตัดไม่ลงตัว</div><div class="stuck" style="margin:8px 0"><span class="okp">${esc(w.slice(0, p))}</span><span class="badp">${esc(w.slice(p)) || '(หมด string แต่ regex ยังต้องการตัวอักษรเพิ่ม)'}</span></div><p>ตัดตาม regex ได้ไกลสุดถึงตำแหน่ง ${p} (ส่วนสีเขียว) ${p < w.length ? `แล้วเจอ "<span class="mono">${esc(w[p])}</span>" ซึ่งไม่เข้ากับก้อนถัดไปที่ regex ต้องการ — ถอยไปลองตัดแบบอื่นทุกทางแล้วก็ไม่ลงตัว` : 'แต่ string หมดก่อนที่จะครบส่วนบังคับ'}</p><p class="note">เทคนิคดูเร็ว: ทุก string ใน ${esc(rx)} ต้องเขียนเป็น ${esc(RXM.starShape(ast))} — เทียบรูปร่างก่อนแล้วค่อยตัด</p>`;
+  }
+};
+RXM.starShape = (n) => { switch (n.t) { case 'sym': return n.c; case 'eps': return 'e'; case 'empty': return '∅'; case 'cat': return RXM.starShape(n.l) + ' ' + RXM.starShape(n.r); case 'or': return '(' + RXM.starShape(n.l) + ' หรือ ' + RXM.starShape(n.r) + ')'; case 'star': return '(' + RXM.starShape(n.x) + ')ⁿ, n ≥ 0'; } };
+RXM.starInit = () => {
+  if (!$('rxs-run')) return;
+  $('rxs-quick').innerHTML = RXS_QUICK.map(([r, w]) => `<button class="btn sm" data-rx="${esc(r)}" data-w="${esc(w)}"><span class="mono">${esc(r)}</span> ← ${esc(w)}</button>`).join('');
+  $('rxs-quick').addEventListener('click', (ev) => { const b = ev.target.closest('button[data-rx]'); if (!b) return; $('rxs-rx').value = b.dataset.rx; $('rxs-w').value = b.dataset.w; RXM.starRender(); });
+  $('rxs-run').onclick = RXM.starRender;
+  $('rxs-w').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') RXM.starRender(); });
+  $('rxs-rx').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') RXM.starRender(); });
+  RXM.starRender();
+};
+RXM.starInit();
+
 // ---- exam-notation problems solved by direct construction (what must the machine remember?) ----
 const RX_DIRECT = [
   { id: 'aba', title: 'ชุด 1 ข้อ 13(a)', lang: '{aba}', spec: 'D_ABA', rx: 'aba', read: '{aba} = ภาษาที่มี string เดียวคือ aba → เครื่องต้อง "ตรวจสะกด" ทีละตัวอักษร', remember: 'อ่านมาแล้วตรงกับ prefix ไหนของ aba (ยังไม่อ่าน / a / ab / aba) + กรณีผิดทาง', mean: { 'q0': 'อ่านมาแล้ว 0 ตัว (ตรงกับส่วนหัวว่างของ aba)', 'q1': 'ตรงกับส่วนหัว "a" ของ aba', 'q2': 'ตรงกับส่วนหัว "ab"', 'q3': 'ตรง "aba" ครบพอดี → final', 'd': 'ผิดทางแล้ว — ไม่มีทางเป็น aba (trap)' }, why: { 'q0:a': 'ตัวแรกของ aba คือ a → ตรงส่วนหัว "a"', 'q0:b': 'ตัวแรกต้องเป็น a แต่ได้ b → เป็น aba ไม่ได้แล้ว', 'q1:b': '"a" ต่อด้วย b = "ab" ตรงส่วนหัวถัดไป', 'q1:a': '"aa" ไม่ใช่ส่วนหัวของ aba', 'q2:a': '"ab" ต่อด้วย a = "aba" ครบ', 'q2:b': '"abb" ไม่ใช่ส่วนหัวของ aba', 'q3:a': '"abaa" ยาวกว่า aba — ภาษามีแค่ aba ตัวเดียว', 'q3:b': '"abab" ยาวกว่า aba', 'd:a': 'ผิดแล้วผิดเลย อ่านอะไรต่อก็แก้ไม่ได้', 'd:b': 'ผิดแล้วผิดเลย' } },

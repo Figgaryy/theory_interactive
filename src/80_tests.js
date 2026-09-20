@@ -66,6 +66,13 @@ FA.runTests = () => {
   { const RX = FA.RX; const r = RX.parse('(ab ∪ aab)*');
     t('regex: print roundtrip', RX.print(r) === '(ab ∪ aab)*', RX.print(r));
     t('regex: | and U accepted', RX.print(RX.parse('a|b')) === 'a ∪ b' && RX.print(RX.parse('aUb')) === 'a ∪ b');
+    { const ex = (r, w) => RX.explain(RX.parse(r), w);
+      const e1 = ex('a(ab)*', 'aabab');
+      t('regex: explain a(ab)* aabab = 2 rounds', e1.ok && e1.pieces.length === 2 && e1.pieces[1].kind === 'star' && e1.pieces[1].rounds.length === 2, JSON.stringify(e1.pieces.map(p => [p.kind, p.text])));
+      t('regex: explain a(ab)* a = 0 rounds', ex('a(ab)*', 'a').ok && ex('a(ab)*', 'a').pieces[1].rounds.length === 0);
+      t('regex: explain rejects aaaaabbbbb / aabbbbb', !ex('a(ab)*', 'aaaaabbbbb').ok && !ex('a(ab)*', 'aabbbbb').ok);
+      t('regex: explain a*b* aaabb', ex('a*b*', 'aaabb').ok && ex('a*b*', 'aaabb').pieces[0].rounds.length === 3);
+      t('regex: explain (a*)* terminates', ex('(a*)*', 'aaaa').ok && ex('(a*)*', 'aaab').ok === false); }
     t('regex: simplify e·a = a', RX.print(RX.simplify(RX.CAT(RX.EPS, RX.SYM('a')))) === 'a');
     t('regex: simplify ∅* = e', RX.print(RX.simplify(RX.STAR(RX.EMPTY))) === 'e');
     t('regex: (e ∪ a)* → a*', RX.print(RX.simplify(RX.parse('(e ∪ a)*'))) === 'a*', RX.print(RX.simplify(RX.parse('(e ∪ a)*'))));

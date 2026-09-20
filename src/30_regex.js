@@ -86,6 +86,34 @@ RX.simplify = (n) => {
     default: return n;
   }
 };
+// ---- explain: split a string into pieces according to the regex (backtracking, greedy star) ----
+// result: { ok, pieces: [piece], maxPos, steps }  piece = { kind:'sym'|'eps'|'or'|'star', regex, text, rounds?:[pieces[]] , chosen?:string, inner?:pieces }
+RX.explain = (ast, w, limit = 20000) => {
+  let steps = 0, maxPos = 0; const budget = () => { if (++steps > limit) throw new Error('budget'); };
+  const m = (n, i, k) => {
+    budget(); if (i > maxPos) maxPos = i;
+    switch (n.t) {
+      case 'sym': if (w[i] === n.c) { if (i + 1 > maxPos) maxPos = i + 1; return k(i + 1, [{ kind: 'sym', regex: n.c, text: n.c }]); } return false;
+      case 'eps': return k(i, [{ kind: 'eps', regex: 'e', text: '' }]);
+      case 'empty': return false;
+      case 'cat': return m(n.l, i, (j, a) => m(n.r, j, (j2, b) => k(j2, a.concat(b))));
+      case 'or': return m(n.l, i, (j, a) => k(j, [{ kind: 'or', regex: RX.print(n), chosen: RX.print(n.l), text: a.map(x => x.text).join(''), inner: a }])) || m(n.r, i, (j, a) => k(j, [{ kind: 'or', regex: RX.print(n), chosen: RX.print(n.r), text: a.map(x => x.text).join(''), inner: a }]));
+      case 'star': {
+        const rx = RX.print(n);
+        const go = (pos, rounds) => (
+          // greedy: try one more round first (must consume ≥1 char), then stop
+          m(n.x, pos, (j, a) => j > pos && go(j, rounds.concat([a]))) ||
+          k(pos, [{ kind: 'star', regex: rx, inner: n.x, text: rounds.map(r => r.map(x => x.text).join('')).join(''), rounds }]));
+        return go(i, []);
+      }
+    }
+    return false;
+  };
+  let out = null;
+  try { m(ast, 0, (j, pieces) => { if (j === w.length) { out = pieces; return true; } return false; }); }
+  catch (e) { if (e.message !== 'budget') throw e; return { ok: false, pieces: [], maxPos, steps, tooLong: true }; }
+  return { ok: !!out, pieces: out || [], maxPos: Math.min(maxPos, w.length), steps };
+};
 RX.alts = (n) => n.t === 'or' ? [...RX.alts(n.l), ...RX.alts(n.r)] : [n];
 RX.astTree = (n, depth = 0) => {
   const pad = '  '.repeat(depth);
