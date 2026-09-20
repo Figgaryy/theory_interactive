@@ -270,7 +270,7 @@ RXM.show = (i) => {
 
 // exam guide: top-down reading of the regex + rule gallery
 const RX_KIND = { star: 'star (*)', or: 'union (∪)', cat: 'concat (ต่อกัน)', sym: 'สัญลักษณ์เดี่ยว', eps: 'string ว่าง e', empty: '∅' };
-RXM.readOut = (ast) => {
+RXM.readLines = (ast) => {
   const lines = [];
   const walk = (n, depth) => {
     const me = esc(RX.print(n));
@@ -281,8 +281,63 @@ RXM.readOut = (ast) => {
     if (n.t === 'star') walk(n.x, depth + 1); else if (n.t === 'cat' || n.t === 'or') { walk(n.l, depth + 1); walk(n.r, depth + 1); }
   };
   walk(ast, 0);
+  return lines;
+};
+RXM.readOut = (ast) => {
+  const lines = RXM.readLines(ast);
   $('rx-readout').innerHTML = `<b>อ่าน ${esc(RX.print(ast))} ทีละชั้น (บน → ล่าง):</b><ol>${lines.map(([d, t]) => `<li style="margin-left:${d * 14}px">${t}</li>`).join('')}</ol><span class="note">ลำดับวาดจริงคือกลับกัน: ใบก่อน แล้วไล่ขึ้นไปหาบรรทัดแรก (ดู stage ด้านล่าง)</span>`;
 };
+// ---- exam-style problems with full written solutions ----
+const RX_EXAM = [
+  { id: 'warm', title: 'อุ่นเครื่อง', rx: 'ab ∪ a*', src: 'มีครบ 3 กฎในข้อเดียว', text: 'Construct a finite automaton accepting L(ab ∪ a*).' },
+  { id: 'f214', title: 'Figure 2-14', rx: '(ab ∪ aab)*', src: 'textbook §2.3 worked example', text: 'Using the construction in the proof of Theorem 2.3.1, construct a finite automaton accepting L((ab ∪ aab)*).' },
+  { id: 'p234a', title: 'Problem 2.3.4(a)', rx: 'a*(ab ∪ ba ∪ e)b*', src: 'textbook', text: 'Using the construction in the proofs of Theorem 2.3.1, construct a finite automaton accepting a*(ab ∪ ba ∪ e)b*.' },
+  { id: 'p234c', title: 'Problem 2.3.4(c)', rx: '((ab)* ∪ (bc)*)ab', src: 'textbook · Σ = {a,b,c}', text: 'Construct a finite automaton accepting ((ab)* ∪ (bc)*)ab.' },
+  { id: 'p235', title: 'Problem 2.3.5', rx: '(ab ∪ aba)*a', src: 'textbook', text: 'Construct a nondeterministic finite automaton accepting (ab ∪ aba)*a. (ข้อเต็มให้ทำ star ต่ออีกชั้น: ((ab ∪ aba)*a)* — กดปุ่ม "ทำ star ต่อ" ท้ายเฉลย)' , next: '((ab ∪ aba)*a)*' },
+  { id: 'lang', title: 'โจทย์ให้เป็นภาษา', rx: '(a ∪ b)*bb', src: 'แนวชุดฝึก: {ω | ω ends with bb}', text: 'Construct a finite automaton accepting {ω ∈ {a,b}* | ω ends with bb}.', pre: 'โจทย์ให้ภาษา ไม่ได้ให้ regex → ต้องเขียน regex ก่อน: "อะไรก็ได้ แล้วตามด้วย bb" = <b>(a ∪ b)*bb</b> จากนั้นทำเหมือนข้ออื่น' },
+  { id: 'p234b', title: 'Problem 2.3.4(b)', rx: '((a ∪ b)*(e ∪ c)*)*', src: 'textbook · มี e และ star ซ้อน', text: 'Construct a finite automaton accepting ((a ∪ b)*(e ∪ c)*)*.' },
+];
+RXM.examList = () => {
+  const box = $('rx-exam-list'); if (!box) return;
+  box.innerHTML = RX_EXAM.map(p => `<button class="btn sm" data-ex="${p.id}"><b>${esc(p.title)}</b>&nbsp;<span class="mono">${esc(p.rx)}</span></button>`).join('');
+  box.addEventListener('click', (ev) => { const b = ev.target.closest('button[data-ex]'); if (!b) return; RXM.examShow(b.dataset.ex); });
+};
+RXM.examViews = [];
+RXM.examShow = (id, rxOverride) => {
+  const p = RX_EXAM.find(x => x.id === id); if (!p) return;
+  const rx = rxOverride || p.rx;
+  $('rx-in').value = rx; RXM.build();
+  const res = RXM.res, S = res.stages, ast = RXM.ast; const byId = RXM.byId;
+  const final = S[S.length - 1].automaton;
+  const samples = (A, n = 6) => { const acc = [], rej = []; for (const w of FA.stringsUpTo(A.alphabet, 4)) { (FA.runNFA(A, w).accepted ? acc : rej).push(w === '' ? 'e' : w); if (acc.length >= n && rej.length >= n) break; } return { acc: acc.slice(0, n), rej: rej.slice(0, n) }; };
+  const fs = samples(final);
+  let h = `<div class="prob"><div class="src">${esc(p.title)} · ${esc(p.src)}</div><div style="font-size:1.05rem;margin:4px 0"><b>โจทย์:</b> ${esc(p.text)}</div>${p.pre ? `<div class="def" style="margin-top:6px">${p.pre}</div>` : ''}
+    <div class="row" style="margin-top:8px"><button class="btn sm primary" id="rx-ex-draw">ลองวาดเองใน Editor ก่อน</button><button class="btn sm" id="rx-ex-check">ตรวจที่วาด</button><span class="note" id="rx-ex-verdict"></span></div></div>`;
+  h += `<div class="recipe"><div><b>① อ่านโจทย์</b>หา operator นอกสุด → แตกเป็นชิ้น → ได้ parse tree</div><div><b>② วาดใบ</b>ทุกสัญลักษณ์เดี่ยว = 2 state + 1 เส้น (e = 1 state final)</div><div><b>③ ประกอบขึ้นบน</b>concat: เส้น e เชื่อม · union: start ใหม่ + e 2 เส้น · star: start ใหม่ (final) + e เข้า + e กลับ</div><div><b>④ ตรวจ</b>ลอง string ที่ควรรับ/ไม่รับ 2–3 ตัว แล้วเขียนรูปสุดท้ายลงกระดาษ</div></div>`;
+  const lines = RXM.readLines(ast);
+  h += `<div class="wstep"><div><h4>ขั้นที่ 0 · อ่านโจทย์ (นอกสุด → ใน)</h4><div class="read"><ol>${lines.map(([d, t]) => `<li style="margin-left:${d * 12}px">${t}</li>`).join('')}</ol></div><p class="note" style="margin-top:6px">ได้ parse tree ที่มี ${S.length} node → ต้องทำ ${S.length} stage โดยเริ่มจากใบ (บรรทัดล่างสุด) ย้อนขึ้นไปถึงบรรทัดแรก</p></div><div><h4>สิ่งที่จะได้ตอนจบ</h4><div class="canvas" data-exv="final"></div><div class="lang">รับ: <span class="mono">${esc(fs.acc.join(', ') || '—')}</span> · ไม่รับ: <span class="mono">${esc(fs.rej.join(', ') || '—')}</span></div></div></div>`;
+  S.forEach((st, i) => {
+    const kids = st.children.map(id => byId[id]);
+    const howto = RXM.howto(st, kids);
+    const sm = samples(st.automaton, 4);
+    const why = ({ sym: () => 'ใบของ tree — ภาษา {' + esc(st.regex) + '} ต้องมีเครื่องของตัวเองก่อน', eps: () => 'ใบของ tree — string ว่าง', empty: () => 'ใบของ tree — ภาษาว่าง', cat: () => `ใน tree node นี้คือ "·" ที่มีลูก ${esc(kids[0].regex)} และ ${esc(kids[1].regex)} — ทั้งสองลูกสร้างเสร็จแล้วใน stage ก่อนหน้า จึงเอามาต่อกันได้`, or: () => `node "∪" ลูกคือ ${esc(kids[0].regex)} กับ ${esc(kids[1].regex)} — เครื่องใหม่ต้องรับได้ทั้งสองภาษา`, star: () => `node "*" ลูกคือ ${esc(kids[0].regex)} — เครื่องใหม่ต้องรับ e และวนซ้ำภาษาลูกกี่รอบก็ได้` })[st.kind]();
+    h += `<div class="wstep"><div><h4>Stage ${i + 1}/${S.length} · สร้าง <span class="mono">${esc(st.regex)}</span> <span class="badge blue">${esc({ sym: 'สัญลักษณ์', eps: 'e', empty: '∅', cat: 'concat', or: 'union', star: 'star' }[st.kind])}</span></h4><p class="note" style="margin:0 0 6px">ทำไมตอนนี้: ${why}</p><ol>${howto.map(x => `<li>${x}</li>`).join('')}</ol><div class="lang">หลัง stage นี้เครื่องรับ: <span class="mono">${esc(sm.acc.join(', ') || '—')}</span>${kids.length ? ` · state ที่มาจากชิ้นเดิมชื่อเดิม (ไม่ต้องเปลี่ยน) — เส้น/state <b>สีน้ำเงิน</b>คือของใหม่` : ''}</div></div><div><div class="canvas" data-exv="${i}"></div></div></div>`;
+  });
+  h += `<div class="wstep"><div><h4>สรุปคำตอบ (เขียนลงกระดาษ)</h4><ol><li>วาดรูป stage สุดท้าย (${final.states.length} state, ${final.transitions.length} เส้น) — ระบุ start ▷ และ final วงคู่ให้ชัด</li><li>ถ้าข้อสอบให้แสดงวิธีทำ: วาด stage ของ operator หลัก ๆ (concat/union/star) 2–3 รูป และเขียนว่าใช้กฎข้อไหน (Theorem 2.3.1 a/b/c)</li><li>ตรวจ: ${esc(fs.acc.slice(0, 3).join(', '))} ต้องรับ · ${esc(fs.rej.slice(0, 3).join(', '))} ต้องไม่รับ</li></ol>${p.next && !rxOverride ? `<div class="row" style="margin-top:8px"><button class="btn sm" id="rx-ex-next">ทำ star ต่อ → ${esc(p.next)}</button></div>` : ''}</div><div><div class="canvas" data-exv="final2"></div></div></div>`;
+  const body = $('rx-exam-body'); body.innerHTML = h;
+  RXM.examViews = [];
+  body.querySelectorAll('[data-exv]').forEach(el => {
+    const k = el.dataset.exv; const st = (k === 'final' || k === 'final2') ? S[S.length - 1] : S[+k];
+    const v = new FA.AutomatonView(el); v.setAutomaton(st.automaton); v.fit(36);
+    if (k !== 'final' && k !== 'final2') v.highlight({ transitions: st.added, states: st.addedStates });
+    RXM.examViews.push(v);
+  });
+  $('rx-ex-draw').onclick = () => { App.editor.setCurrent(new FA.Automaton({ alphabet: final.alphabet, name: p.title }), { sample: '' }); App.show('editor'); window.scrollTo(0, 0); UI.toast('วาดเสร็จแล้วกลับมา module 4 กด "ตรวจที่วาด"'); };
+  $('rx-ex-check').onclick = () => { const A = App.current; const out = $('rx-ex-verdict'); if (!A || !A.start || !A.transitions.length) { out.innerHTML = '<span class="bad-t">ยังไม่ได้วาด — กด "ลองวาดเองใน Editor ก่อน"</span>'; return; } const r = FA.dfaEquivalent(A, final); out.innerHTML = r.equivalent ? '<span class="verdict ok">✔ ภาษาเดียวกับเฉลย</span>' : `<span class="verdict bad">✘ ยังไม่ตรง</span> string <span class="mono">${esc(r.witness === '' ? 'e' : r.witness)}</span> ${r.inA ? 'เครื่องของคุณรับ แต่ไม่อยู่ในภาษา' : 'อยู่ในภาษา แต่เครื่องของคุณไม่รับ'}`; };
+  const nx = $('rx-ex-next'); if (nx) nx.onclick = () => RXM.examShow(id, p.next);
+  body.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+RXM.examList();
 RXM.gallery = () => {
   const items = [['rx-g-sym', 'a'], ['rx-g-cat', 'ab'], ['rx-g-or', 'a ∪ b'], ['rx-g-star', 'a*']];
   for (const [id, rx] of items) {

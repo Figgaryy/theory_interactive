@@ -281,7 +281,19 @@ svg .tl.done{stroke:var(--green)}
 #rx-readout{margin-top:8px}
 #rx-readout ol{padding-left:18px;display:grid;gap:3px}
 #rx-readout .lvl{display:inline-block;width:1.2em;color:var(--ink-3)}
+.rxexam .prob{border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;margin-top:10px;background:var(--paper)}
+.rxexam .prob .src{color:var(--ink-3);font-size:.85rem}
+.rxexam .recipe{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px}
+.rxexam .recipe div{border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:.9rem;background:var(--paper-2)}
+.rxexam .recipe b{display:block;margin-bottom:2px}
+.rxexam .wstep{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start;border-top:1px dashed var(--line);padding-top:12px;margin-top:12px}
+.rxexam .wstep .canvas{height:230px;border:1px solid var(--line);border-radius:8px}
+.rxexam .wstep h4{margin:0 0 6px}
+.rxexam .wstep ol{margin:0;padding-left:20px;display:grid;gap:5px}
+.rxexam .wstep .lang{margin-top:6px;font-size:.88rem;color:var(--ink-2)}
+.rxexam .read ol{margin:4px 0 0;padding-left:18px;display:grid;gap:3px}
 @media (max-width:900px){
+  .rxexam .recipe{grid-template-columns:1fr 1fr}.rxexam .wstep{grid-template-columns:1fr}
   .rxguide .cols3{grid-template-columns:1fr}
   .app{grid-template-columns:1fr}
   .side{display:none}
@@ -501,6 +513,11 @@ svg .tl.done{stroke:var(--green)}
     <div class="workspace" style="margin-top:12px">
       <div class="card"><h3>วิธีทำทีละขั้น <span class="note">ทำตามบนกระดาษได้</span></h3><ol id="rx-howto" style="margin:0;padding-left:20px;display:grid;gap:6px"></ol></div>
       <div class="card"><h3>ทดลองกับ automaton ของ stage นี้</h3><div class="row"><input type="text" class="mono" id="rx-try" placeholder="เช่น ab, aab, abaab, a (คั่นด้วย ,)" style="flex:1"><button class="btn sm" id="rx-try-run">ทดสอบ</button></div><div class="tblwrap" style="margin-top:8px"><table class="tt" id="rx-try-out"></table></div></div>
+    </div>
+    <div class="card rxexam" id="rx-exam" style="margin-top:12px">
+      <h3>โจทย์แบบข้อสอบ + เฉลยละเอียดทุกขั้น <span class="note">เลือกข้อ → ลองวาดเองก่อน → อ่านเฉลยที่เขียนเหมือนตอบข้อสอบ</span></h3>
+      <div class="row" id="rx-exam-list"></div>
+      <div id="rx-exam-body"><p class="note" style="margin-top:8px">เลือกโจทย์ด้านบน — เฉลยจะแสดงทุก stage เรียงจากบนลงล่าง พร้อมรูปและเหตุผลของแต่ละเส้นที่เพิ่ม</p></div>
     </div>
   </div>
   <div class="subpane" id="sub-se">
