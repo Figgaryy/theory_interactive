@@ -154,6 +154,7 @@ RXM.build = () => {
   try {
     const ast = RX.parse($('rx-in').value);
     RXM.ast = ast; RXM.res = RX.buildNFA(ast);
+    RXM.readOut(ast);
     RXM.byId = {}; RXM.indexOf = {};
     RXM.res.stages.forEach((s, k) => { RXM.byId[s.id] = s; RXM.indexOf[s.id] = k; });
     RXM.drawTree();
@@ -266,6 +267,32 @@ RXM.show = (i) => {
   $('rx-howto').innerHTML = RXM.howto(st, kids).map(li => `<li>${li}</li>`).join('');
   $('rx-try-out').innerHTML = '';
 };
+
+// exam guide: top-down reading of the regex + rule gallery
+const RX_KIND = { star: 'star (*)', or: 'union (∪)', cat: 'concat (ต่อกัน)', sym: 'สัญลักษณ์เดี่ยว', eps: 'string ว่าง e', empty: '∅' };
+RXM.readOut = (ast) => {
+  const lines = [];
+  const walk = (n, depth) => {
+    const me = esc(RX.print(n));
+    if (n.t === 'star') lines.push([depth, `<b>${me}</b> → ท้ายสุดมี * ⇒ <b>star</b> ของ ${esc(RX.print(n.x))}`]);
+    else if (n.t === 'or') lines.push([depth, `<b>${me}</b> → มี ∪ นอกสุด ⇒ <b>union</b> ของ ${esc(RX.print(n.l))} กับ ${esc(RX.print(n.r))}`]);
+    else if (n.t === 'cat') lines.push([depth, `<b>${me}</b> → ไม่มี * ท้าย ไม่มี ∪ นอกสุด ⇒ <b>concat</b> ของ ${esc(RX.print(n.l))} ต่อด้วย ${esc(RX.print(n.r))}`]);
+    else lines.push([depth, `<b>${me}</b> → ${RX_KIND[n.t]} = ใบ (วาดได้ทันที)`]);
+    if (n.t === 'star') walk(n.x, depth + 1); else if (n.t === 'cat' || n.t === 'or') { walk(n.l, depth + 1); walk(n.r, depth + 1); }
+  };
+  walk(ast, 0);
+  $('rx-readout').innerHTML = `<b>อ่าน ${esc(RX.print(ast))} ทีละชั้น (บน → ล่าง):</b><ol>${lines.map(([d, t]) => `<li style="margin-left:${d * 14}px">${t}</li>`).join('')}</ol><span class="note">ลำดับวาดจริงคือกลับกัน: ใบก่อน แล้วไล่ขึ้นไปหาบรรทัดแรก (ดู stage ด้านล่าง)</span>`;
+};
+RXM.gallery = () => {
+  const items = [['rx-g-sym', 'a'], ['rx-g-cat', 'ab'], ['rx-g-or', 'a ∪ b'], ['rx-g-star', 'a*']];
+  for (const [id, rx] of items) {
+    const el = $(id); if (!el) continue;
+    const res = RX.buildNFA(RX.parse(rx)); const st = res.stages[res.stages.length - 1];
+    const v = new FA.AutomatonView(el); v.setAutomaton(st.automaton); v.fit(28); v.highlight({ transitions: st.added, states: st.addedStates });
+  }
+  const ex = $('rx-examples'); if (ex) ex.addEventListener('click', (ev) => { const b = ev.target.closest('button[data-rx]'); if (!b) return; $('rx-in').value = b.dataset.rx; RXM.build(); });
+};
+RXM.gallery();
 RXM.runTry = () => {
   if (!RXM.res) return;
   const st = RXM.res.stages[RXM.step.i];

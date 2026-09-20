@@ -78,6 +78,24 @@ EX.scoreTrace = (q, A, resp) => {
   return { earned: r2(earned), max: q.marks, perPart };
 };
 EX.build = (spec) => typeof spec === 'string' ? FA.preset(spec) : FA.Automaton.fromTable(JSON.parse(JSON.stringify(spec)));
+EX.buildSteps = (spec) => {
+  if (typeof spec === 'string') return [{ A: EX.build(spec), added: [], edges: [], text: '' }];
+  const full = EX.build(spec);
+  const order = Object.keys(spec.rows);
+  const SEP = '␟';
+  const steps = []; let prev = new Set();
+  for (let k = 1; k <= order.length; k++) {
+    const shown = order.slice(0, k); const shownSet = new Set(shown);
+    const states = full.states.filter(s => shownSet.has(s.id)).map(s => ({ ...s }));
+    const transitions = full.transitions.filter(t => shownSet.has(t.from) && shownSet.has(t.to));
+    const A = new FA.Automaton({ alphabet: full.alphabet, states, transitions, start: shownSet.has(full.start) ? full.start : null });
+    const edgeKeys = [...new Set(transitions.map(t => t.from + SEP + t.to))];
+    const edges = edgeKeys.filter(k2 => !prev.has(k2));
+    prev = new Set(edgeKeys);
+    steps.push({ A, added: [order[k - 1]], edges, text: (spec.notes && spec.notes[order[k - 1]]) || '' });
+  }
+  return steps;
+};
 EX.scoreDraw = (q, A, part) => {
   const value = q.marks / (q.parts ? q.parts.length : 1);
   if (!A || !A.start) return { ok: false, earned: 0, value, noDrawing: true };
@@ -129,7 +147,13 @@ if (typeof document !== 'undefined') {
   };
 
   const solutionHTML = (q) => {
-    const s = q.solution || {}; let h = `<div class="sol"><h4>${esc(T('steps'))}</h4><ol>${(s.steps || []).map(x => `<li>${x}</li>`).join('')}</ol>`;
+    const s = q.solution || {};
+    let pre = '';
+    if (q.type === 'draw') {
+      const parts = q.parts || [{ label: '', answer: q.answer }];
+      pre = parts.map((p, i) => `<div class="drawsol" data-drawsol="${i}"><div class="note"><b>${p.label}</b> — ${esc(T('buildStepByStep'))}</div><div class="canvas short" data-drawcanvas></div><div class="stepper" data-drawstep></div><div class="explain" data-drawtext></div></div>`).join('');
+    }
+    let h = `<div class="sol">${pre}<h4>${esc(T('steps'))}</h4><ol>${(s.steps || []).map(x => `<li>${x}</li>`).join('')}</ol>`;
     if (s.write) h += `<h4>${esc(T('writeOnPaper'))}</h4><div class="write">${s.write}</div>`;
     if (s.pitfalls && s.pitfalls.length) h += `<h4>${esc(T('pitfalls'))}</h4><ul>${s.pitfalls.map(x => `<li>${x}</li>`).join('')}</ul>`;
     return h + '</div>';
@@ -152,13 +176,27 @@ if (typeof document !== 'undefined') {
     const checked = !!bucket('checked', set.id)[q.id];
     const open = isOpen(set, q, checked);
     const sc = checked ? EX.scoreQ(q, resp) : null;
+    const figSpec = (q.type === 'trace' || q.type === 'nfa2dfa') ? q.automaton : (q.type === 'short' || q.type === 'mc') ? (q.link && q.link.automaton) : null;
     el.className = 'exq'; el.dataset.q = q.id;
     el.innerHTML = `<div class="qh"><span class="n">ข้อ ${esc(q.id)}</span>${badge(`${q.marks} ${T('marks')}`, 'mark')}${badge(q.topic)}${sc ? `<span class="scorebar">${fmt(sc.earned)} / ${sc.max}</span>` : ''}</div>` +
-      `<div class="qtext">${q.text}</div>${widget(set, q, resp, checked)}` +
+      `<div class="qtext">${q.text}</div>` +
+      (figSpec ? `<div class="qfig"><div class="note">${esc(T('givenFigure'))}</div><div class="canvas short" data-fig></div></div>` : '') +
+      `${widget(set, q, resp, checked)}` +
       `<div class="actions">${q.type !== 'proof' ? `<button class="btn sm primary" data-act="check">${esc(T('check'))}</button>` : ''}<button class="btn sm" data-act="sol">${esc(open ? T('hideSolution') : T('showSolution'))}</button>` +
       (q.link ? `<button class="btn sm" data-act="link">${esc(T('openModule'))} ${q.link.module === 'editor' ? '1' : q.link.module === 'powerset' ? '2' : q.link.module === 'closure' ? '5' : q.link.module === 'pumping' ? '6' : ''}</button>` : '') +
       (q.type === 'nfa2dfa' ? `<button class="btn sm" data-act="powerset">${esc(T('openModule'))} 2</button>` : '') + `</div>` +
       (open ? solutionHTML(q) : '');
+    const fig = el.querySelector('[data-fig]');
+    if (fig && figSpec) { const v = new FA.AutomatonView(fig); v.setAutomaton(EX.build(figSpec)); v.fit(); }
+    el.querySelectorAll('[data-drawsol]').forEach((box) => {
+      const i = +box.dataset.drawsol;
+      const part = (q.parts || [{ label: '', answer: q.answer }])[i] || { label: '', answer: q.answer };
+      const canvasEl = box.querySelector('[data-drawcanvas]'); const stepEl = box.querySelector('[data-drawstep]'); const textEl = box.querySelector('[data-drawtext]');
+      const steps = EX.buildSteps(part.answer);
+      const v = new FA.AutomatonView(canvasEl);
+      const st = FA.ui.stepper(stepEl, (j) => { const s = steps[j]; v.setAutomaton(s.A); v.fit(); v.highlight({ states: s.added, transitions: s.edges }); textEl.innerHTML = s.text; });
+      st.setCount(steps.length, steps.length - 1);
+    });
   };
 
   const renderList = () => {

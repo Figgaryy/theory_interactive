@@ -269,7 +269,20 @@ svg .tl.done{stroke:var(--green)}
 .exq .actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;align-items:center}
 .exq .verdict{margin-top:6px}
 #ex8-summary .tt{margin-top:8px}
+.rxguide .cols3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.rxguide .col{min-width:0}
+.rxguide .hd{font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rxguide .num{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;font-size:.8rem}
+.rxguide ol{margin:0;padding-left:20px;display:grid;gap:4px}
+.rxguide p{margin:0 0 8px}
+.rxguide .gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:6px}
+.rxguide .cap{font-size:.82rem;color:var(--ink-2);margin-bottom:2px;line-height:1.3}
+.canvas.mini{height:165px;border:1px solid var(--line);border-radius:8px}
+#rx-readout{margin-top:8px}
+#rx-readout ol{padding-left:18px;display:grid;gap:3px}
+#rx-readout .lvl{display:inline-block;width:1.2em;color:var(--ink-3)}
 @media (max-width:900px){
+  .rxguide .cols3{grid-template-columns:1fr}
   .app{grid-template-columns:1fr}
   .side{display:none}
   .chips{display:flex}
@@ -439,6 +452,41 @@ svg .tl.done{stroke:var(--green)}
   </div></details>
   <div class="tabs2"><button class="on" data-sub="rx">RegEx → NFA</button><button data-sub="se">FA → RegEx (state elimination)</button></div>
   <div class="subpane on" id="sub-rx">
+    <div class="card rxguide" style="margin-bottom:12px">
+      <h3>แนวข้อสอบ: โจทย์ให้อะไรมา → ดูยังไง → ทำยังไง</h3>
+      <div class="cols3">
+        <div class="col"><div class="hd"><span class="num">1</span>โจทย์ให้อะไรมา</div>
+          <p>ให้ <b>regular expression 1 ตัว</b> แล้วสั่งว่า <i>"Construct a finite automaton accepting L(α)"</i> (แบบฝึกหัด 2.3.x / Figure 2-14) — หรือให้เป็น<b>ภาษา</b>ก่อน แล้วเราต้องแปลงเป็น regex เอง</p>
+          <p class="note">ลองโจทย์ตัวอย่าง (กดแล้วสร้างให้เลย):</p>
+          <div class="row" id="rx-examples">
+            <button class="btn sm" data-rx="(ab ∪ aab)*">(ab ∪ aab)*<span class="note"> Fig 2-14</span></button>
+            <button class="btn sm" data-rx="a*ba*b">a*ba*b<span class="note"> สไลด์ 7</span></button>
+            <button class="btn sm" data-rx="(a ∪ b)*abb">(a ∪ b)*abb</button>
+            <button class="btn sm" data-rx="(a ∪ b*a)*">(a ∪ b*a)*<span class="note"> สไลด์ 4</span></button>
+            <button class="btn sm" data-rx="b*(ab ∪ a)*">b*(ab ∪ a)*</button>
+          </div>
+        </div>
+        <div class="col"><div class="hd"><span class="num">2</span>ดูยังไง — อ่านจาก "นอกสุด" เข้าไป</div>
+          <ol>
+            <li>ลอกวงเล็บที่ครอบทั้งหมดออก (ถ้ามี) แล้วถาม: <b>ท้ายสุดมี * ไหม?</b> → ทั้งก้อนคือ <b>star</b> ของข้างใน</li>
+            <li>ไม่มี * → <b>มี ∪ ที่ระดับนอกสุดไหม?</b> (ไม่อยู่ในวงเล็บ) → <b>union</b> ของซ้าย ∪ ขวา</li>
+            <li>ไม่มีทั้งสอง → เป็น <b>concat</b> (ชิ้นซ้ายต่อชิ้นขวา)</li>
+            <li>ทำซ้ำกับแต่ละชิ้น จนเหลือสัญลักษณ์เดี่ยว (a, b, e, ∅) = ใบของ parse tree</li>
+          </ol>
+          <div class="def" id="rx-readout"><span class="note">กด "สร้าง" แล้วจะเห็นการอ่าน regex ปัจจุบันทีละชั้นตรงนี้</span></div>
+        </div>
+        <div class="col"><div class="hd"><span class="num">3</span>ทำยังไง — วาดจาก "ใบ" ขึ้นไปหา "ราก"</div>
+          <p>วาดชิ้นเล็กสุดก่อน (สัญลักษณ์เดี่ยว = 2 state, 1 เส้น) แล้วประกอบตามกฎ 3 ข้อทีละชั้นตาม tree — เส้น <b>e สีน้ำเงิน</b>คือสิ่งที่กฎเพิ่มเข้ามาในแต่ละขั้น</p>
+          <div class="gallery">
+            <div><div class="cap"><b>สัญลักษณ์</b> a: 2 state</div><div class="canvas mini" id="rx-g-sym"></div></div>
+            <div><div class="cap"><b>concat</b> ab: e จาก final ซ้าย → start ขวา</div><div class="canvas mini" id="rx-g-cat"></div></div>
+            <div><div class="cap"><b>union</b> a ∪ b: start ใหม่ + e 2 เส้น</div><div class="canvas mini" id="rx-g-or"></div></div>
+            <div><div class="cap"><b>star</b> a*: start ใหม่ (final) + e เข้า + e ย้อนกลับ</div><div class="canvas mini" id="rx-g-star"></div></div>
+          </div>
+          <p class="note">จำนวน stage = จำนวน node ใน tree · เสร็จแล้ว<b>ทดสอบ string</b> 2–3 ตัว (ทั้งที่ควรรับและไม่ควรรับ) ในกล่องล่างสุดเสมอ</p>
+        </div>
+      </div>
+    </div>
     <div class="card" style="margin-bottom:12px"><h3>Regular expression</h3>
       <div class="row"><input type="text" class="mono" id="rx-in" value="(ab ∪ aab)*" style="flex:1" spellcheck="false"><button class="btn primary" id="rx-build">สร้าง</button></div>
       <p class="note" style="margin-top:6px">ใช้ได้: สัญลักษณ์ตัวเดียว, <code>e</code> (empty string), <code>∅</code>, <code>∪</code> หรือ <code>|</code> หรือ <code>U</code>, <code>*</code>, วงเล็บ. ตัวอย่าง: <code>a*ba*b</code>, <code>(a ∪ b*a)*</code></p>

@@ -269,7 +269,20 @@ svg .tl.done{stroke:var(--green)}
 .exq .actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;align-items:center}
 .exq .verdict{margin-top:6px}
 #ex8-summary .tt{margin-top:8px}
+.rxguide .cols3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.rxguide .col{min-width:0}
+.rxguide .hd{font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rxguide .num{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;font-size:.8rem}
+.rxguide ol{margin:0;padding-left:20px;display:grid;gap:4px}
+.rxguide p{margin:0 0 8px}
+.rxguide .gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:6px}
+.rxguide .cap{font-size:.82rem;color:var(--ink-2);margin-bottom:2px;line-height:1.3}
+.canvas.mini{height:165px;border:1px solid var(--line);border-radius:8px}
+#rx-readout{margin-top:8px}
+#rx-readout ol{padding-left:18px;display:grid;gap:3px}
+#rx-readout .lvl{display:inline-block;width:1.2em;color:var(--ink-3)}
 @media (max-width:900px){
+  .rxguide .cols3{grid-template-columns:1fr}
   .app{grid-template-columns:1fr}
   .side{display:none}
   .chips{display:flex}
@@ -439,6 +452,41 @@ svg .tl.done{stroke:var(--green)}
   </div></details>
   <div class="tabs2"><button class="on" data-sub="rx">RegEx → NFA</button><button data-sub="se">FA → RegEx (state elimination)</button></div>
   <div class="subpane on" id="sub-rx">
+    <div class="card rxguide" style="margin-bottom:12px">
+      <h3>แนวข้อสอบ: โจทย์ให้อะไรมา → ดูยังไง → ทำยังไง</h3>
+      <div class="cols3">
+        <div class="col"><div class="hd"><span class="num">1</span>โจทย์ให้อะไรมา</div>
+          <p>ให้ <b>regular expression 1 ตัว</b> แล้วสั่งว่า <i>"Construct a finite automaton accepting L(α)"</i> (แบบฝึกหัด 2.3.x / Figure 2-14) — หรือให้เป็น<b>ภาษา</b>ก่อน แล้วเราต้องแปลงเป็น regex เอง</p>
+          <p class="note">ลองโจทย์ตัวอย่าง (กดแล้วสร้างให้เลย):</p>
+          <div class="row" id="rx-examples">
+            <button class="btn sm" data-rx="(ab ∪ aab)*">(ab ∪ aab)*<span class="note"> Fig 2-14</span></button>
+            <button class="btn sm" data-rx="a*ba*b">a*ba*b<span class="note"> สไลด์ 7</span></button>
+            <button class="btn sm" data-rx="(a ∪ b)*abb">(a ∪ b)*abb</button>
+            <button class="btn sm" data-rx="(a ∪ b*a)*">(a ∪ b*a)*<span class="note"> สไลด์ 4</span></button>
+            <button class="btn sm" data-rx="b*(ab ∪ a)*">b*(ab ∪ a)*</button>
+          </div>
+        </div>
+        <div class="col"><div class="hd"><span class="num">2</span>ดูยังไง — อ่านจาก "นอกสุด" เข้าไป</div>
+          <ol>
+            <li>ลอกวงเล็บที่ครอบทั้งหมดออก (ถ้ามี) แล้วถาม: <b>ท้ายสุดมี * ไหม?</b> → ทั้งก้อนคือ <b>star</b> ของข้างใน</li>
+            <li>ไม่มี * → <b>มี ∪ ที่ระดับนอกสุดไหม?</b> (ไม่อยู่ในวงเล็บ) → <b>union</b> ของซ้าย ∪ ขวา</li>
+            <li>ไม่มีทั้งสอง → เป็น <b>concat</b> (ชิ้นซ้ายต่อชิ้นขวา)</li>
+            <li>ทำซ้ำกับแต่ละชิ้น จนเหลือสัญลักษณ์เดี่ยว (a, b, e, ∅) = ใบของ parse tree</li>
+          </ol>
+          <div class="def" id="rx-readout"><span class="note">กด "สร้าง" แล้วจะเห็นการอ่าน regex ปัจจุบันทีละชั้นตรงนี้</span></div>
+        </div>
+        <div class="col"><div class="hd"><span class="num">3</span>ทำยังไง — วาดจาก "ใบ" ขึ้นไปหา "ราก"</div>
+          <p>วาดชิ้นเล็กสุดก่อน (สัญลักษณ์เดี่ยว = 2 state, 1 เส้น) แล้วประกอบตามกฎ 3 ข้อทีละชั้นตาม tree — เส้น <b>e สีน้ำเงิน</b>คือสิ่งที่กฎเพิ่มเข้ามาในแต่ละขั้น</p>
+          <div class="gallery">
+            <div><div class="cap"><b>สัญลักษณ์</b> a: 2 state</div><div class="canvas mini" id="rx-g-sym"></div></div>
+            <div><div class="cap"><b>concat</b> ab: e จาก final ซ้าย → start ขวา</div><div class="canvas mini" id="rx-g-cat"></div></div>
+            <div><div class="cap"><b>union</b> a ∪ b: start ใหม่ + e 2 เส้น</div><div class="canvas mini" id="rx-g-or"></div></div>
+            <div><div class="cap"><b>star</b> a*: start ใหม่ (final) + e เข้า + e ย้อนกลับ</div><div class="canvas mini" id="rx-g-star"></div></div>
+          </div>
+          <p class="note">จำนวน stage = จำนวน node ใน tree · เสร็จแล้ว<b>ทดสอบ string</b> 2–3 ตัว (ทั้งที่ควรรับและไม่ควรรับ) ในกล่องล่างสุดเสมอ</p>
+        </div>
+      </div>
+    </div>
     <div class="card" style="margin-bottom:12px"><h3>Regular expression</h3>
       <div class="row"><input type="text" class="mono" id="rx-in" value="(ab ∪ aab)*" style="flex:1" spellcheck="false"><button class="btn primary" id="rx-build">สร้าง</button></div>
       <p class="note" style="margin-top:6px">ใช้ได้: สัญลักษณ์ตัวเดียว, <code>e</code> (empty string), <code>∅</code>, <code>∪</code> หรือ <code>|</code> หรือ <code>U</code>, <code>*</code>, วงเล็บ. ตัวอย่าง: <code>a*ba*b</code>, <code>(a ∪ b*a)*</code></p>
@@ -1638,7 +1686,9 @@ FA.runTests = () => {
     t('exam: scoreMC', EX.scoreMC(qmc, 2).earned === 4 && EX.scoreMC(qmc, 0).earned === -4 && EX.scoreMC(qmc, null).earned === 0);
     const qtr = { marks: 4, inputs: ['aabb', 'bbbb'] };
     const st = EX.scoreTrace(qtr, A, ['(q0,aabb) ⊢ (q0,abb) ⊢ (q0,bb) ⊢ (q1,b) ⊢ (q2,e)', '']);
-    t('exam: scoreTrace half credit', st.earned === 2, JSON.stringify(st)); }
+    t('exam: scoreTrace half credit', st.earned === 2, JSON.stringify(st));
+    const bs = EX.buildSteps({ alphabet: ['a','b'], start: 'q0', finals: ['q1'], rows: { q0: { a: 'q1', b: 'q0' }, q1: { a: 'q1', b: 'q1' } }, notes: { q0: 'first', q1: 'second' } });
+    t('exam: buildSteps 2 steps', bs.length === 2 && bs[0].A.states.length === 1 && bs[1].A.states.length === 2 && bs[0].A.transitions.length === 1 && bs[1].A.transitions.length === 4 && bs[1].added[0] === 'q1' && bs[1].text === 'second', JSON.stringify(bs.map(s => [s.A.states.length, s.A.transitions.length, s.added, s.text]))); }
   // --- language tools
   { t('languageDiff finds witness', FA.languageDiff(P('ex211'), P('exA'), 5)?.w !== undefined);
     t('dfaEquivalent witness for slide4 vs exB', FA.dfaEquivalent(P('slide4'), P('exB')).equivalent === false); }
@@ -2173,6 +2223,7 @@ RXM.build = () => {
   try {
     const ast = RX.parse($('rx-in').value);
     RXM.ast = ast; RXM.res = RX.buildNFA(ast);
+    RXM.readOut(ast);
     RXM.byId = {}; RXM.indexOf = {};
     RXM.res.stages.forEach((s, k) => { RXM.byId[s.id] = s; RXM.indexOf[s.id] = k; });
     RXM.drawTree();
@@ -2285,6 +2336,32 @@ RXM.show = (i) => {
   $('rx-howto').innerHTML = RXM.howto(st, kids).map(li => `<li>${li}</li>`).join('');
   $('rx-try-out').innerHTML = '';
 };
+
+// exam guide: top-down reading of the regex + rule gallery
+const RX_KIND = { star: 'star (*)', or: 'union (∪)', cat: 'concat (ต่อกัน)', sym: 'สัญลักษณ์เดี่ยว', eps: 'string ว่าง e', empty: '∅' };
+RXM.readOut = (ast) => {
+  const lines = [];
+  const walk = (n, depth) => {
+    const me = esc(RX.print(n));
+    if (n.t === 'star') lines.push([depth, `<b>${me}</b> → ท้ายสุดมี * ⇒ <b>star</b> ของ ${esc(RX.print(n.x))}`]);
+    else if (n.t === 'or') lines.push([depth, `<b>${me}</b> → มี ∪ นอกสุด ⇒ <b>union</b> ของ ${esc(RX.print(n.l))} กับ ${esc(RX.print(n.r))}`]);
+    else if (n.t === 'cat') lines.push([depth, `<b>${me}</b> → ไม่มี * ท้าย ไม่มี ∪ นอกสุด ⇒ <b>concat</b> ของ ${esc(RX.print(n.l))} ต่อด้วย ${esc(RX.print(n.r))}`]);
+    else lines.push([depth, `<b>${me}</b> → ${RX_KIND[n.t]} = ใบ (วาดได้ทันที)`]);
+    if (n.t === 'star') walk(n.x, depth + 1); else if (n.t === 'cat' || n.t === 'or') { walk(n.l, depth + 1); walk(n.r, depth + 1); }
+  };
+  walk(ast, 0);
+  $('rx-readout').innerHTML = `<b>อ่าน ${esc(RX.print(ast))} ทีละชั้น (บน → ล่าง):</b><ol>${lines.map(([d, t]) => `<li style="margin-left:${d * 14}px">${t}</li>`).join('')}</ol><span class="note">ลำดับวาดจริงคือกลับกัน: ใบก่อน แล้วไล่ขึ้นไปหาบรรทัดแรก (ดู stage ด้านล่าง)</span>`;
+};
+RXM.gallery = () => {
+  const items = [['rx-g-sym', 'a'], ['rx-g-cat', 'ab'], ['rx-g-or', 'a ∪ b'], ['rx-g-star', 'a*']];
+  for (const [id, rx] of items) {
+    const el = $(id); if (!el) continue;
+    const res = RX.buildNFA(RX.parse(rx)); const st = res.stages[res.stages.length - 1];
+    const v = new FA.AutomatonView(el); v.setAutomaton(st.automaton); v.fit(28); v.highlight({ transitions: st.added, states: st.addedStates });
+  }
+  const ex = $('rx-examples'); if (ex) ex.addEventListener('click', (ev) => { const b = ev.target.closest('button[data-rx]'); if (!b) return; $('rx-in').value = b.dataset.rx; RXM.build(); });
+};
+RXM.gallery();
 RXM.runTry = () => {
   if (!RXM.res) return;
   const st = RXM.res.stages[RXM.step.i];
@@ -2756,16 +2833,17 @@ FA.EXAM_UI = {
   notDfa: 'ที่วาดยังไม่ใช่ DFA ที่สมบูรณ์', equivalent: '✔ ถูกต้อง — ภาษาเดียวกับเฉลยทุกประการ', notEquivalent: '✘ ยังไม่ตรง',
   witnessIn: 'string นี้ถูกเครื่องของคุณ accept แต่ไม่อยู่ในภาษา:', witnessOut: 'string นี้อยู่ในภาษา แต่เครื่องของคุณ reject:',
   drawFirst: 'กด "วาดใน Editor" แล้ววาดก่อน จึงกดตรวจ', expected: 'คำตอบที่ถูก', solutionLocked: 'ตรวจคำตอบก่อน หรือกด "ดูเฉลย"',
+  givenFigure: 'โจทย์ให้รูปนี้มา (ลากดูได้ · กด "ไปเล่นจริงใน module" เพื่อรัน string)', buildStepByStep: 'เฉลยเป็นรูป — กด ⏮ แล้ว ▶ ทีละ step เพื่อดูว่าวาดมายังไง (แต่ละ state จำอะไร)',
 };
 
 FA.EXAMS = [];
 (() => {
 const NFA_X = { name: 'NFA (ข้อสอบฝึก)', alphabet: ['a', 'b'], start: 'q0', finals: ['q3', 'q4'], rows: { q0: { a: 'q0', b: 'q0,q2' }, q1: { b: 'q2,q4' }, q2: { a: 'q3' }, q3: {}, q4: { a: 'q3' } }, eps: { q0: ['q1'], q3: ['q4'] }, pos: { q0: [90, 200], q1: [260, 110], q2: [260, 290], q4: [440, 110], q3: [440, 290] } };
 FA.EXAM_AUTOMATA = FA.EXAM_AUTOMATA || {}; FA.EXAM_AUTOMATA.NFA_X = NFA_X;
-const EX212_COMP = { name: '¬M (Q12)', alphabet: ['a', 'b'], start: 'q0', finals: ['q3'], rows: { q0: { a: 'q0', b: 'q1' }, q1: { a: 'q0', b: 'q2' }, q2: { a: 'q0', b: 'q3' }, q3: { a: 'q3', b: 'q3' } }, pos: { q0: [90, 200], q1: [250, 200], q2: [410, 200], q3: [570, 200] } };
-const D_ABA = { name: '{aba}', alphabet: ['a', 'b'], start: 'q0', finals: ['q3'], rows: { q0: { a: 'q1', b: 'd' }, q1: { b: 'q2', a: 'd' }, q2: { a: 'q3', b: 'd' }, q3: { a: 'd', b: 'd' }, d: { a: 'd', b: 'd' } }, pos: { q0: [80, 200], q1: [220, 200], q2: [360, 200], q3: [500, 200], d: [290, 330] } };
-const D_ASTAR = { name: 'aΣ*', alphabet: ['a', 'b'], start: 'q0', finals: ['q1'], rows: { q0: { a: 'q1', b: 'd' }, q1: { a: 'q1', b: 'q1' }, d: { a: 'd', b: 'd' } }, pos: { q0: [100, 200], q1: [300, 200], d: [300, 330] } };
-const D_MOD3 = { name: '|ω| mod 3 = 0', alphabet: ['a', 'b'], start: 'q0', finals: ['q0'], rows: { q0: { a: 'q1', b: 'q1' }, q1: { a: 'q2', b: 'q2' }, q2: { a: 'q0', b: 'q0' } }, pos: { q0: [120, 200], q1: [300, 110], q2: [300, 290] } };
+const EX212_COMP = { name: '¬M (Q12)', alphabet: ['a', 'b'], start: 'q0', finals: ['q3'], rows: { q0: { a: 'q0', b: 'q1' }, q1: { a: 'q0', b: 'q2' }, q2: { a: 'q0', b: 'q3' }, q3: { a: 'q3', b: 'q3' } }, notes: { q0: '<b>q0</b> = ยังไม่เห็น b ติดกันเลย — คัดลอกจาก M ทุกอย่าง แต่<b>เอาวงคู่ออก</b> (เดิม q0 เป็น final)', q1: '<b>q1</b> = เห็น b ติดกัน 1 ตัว (เอาวงคู่ออกเช่นกัน) — อ่าน a กลับไป q0 เหมือนเดิม', q2: '<b>q2</b> = เห็น b ติดกัน 2 ตัว (เอาวงคู่ออก) — อ่าน b อีกตัว = bbb', q3: '<b>q3</b> = เจอ bbb แล้ว — เดิมเป็น trap ตอนนี้กลายเป็น <b>final ตัวเดียว</b> วนตัวเองด้วย a,b (เจอ bbb แล้วรับตลอด)' }, pos: { q0: [90, 200], q1: [250, 200], q2: [410, 200], q3: [570, 200] } };
+const D_ABA = { name: '{aba}', alphabet: ['a', 'b'], start: 'q0', finals: ['q3'], rows: { q0: { a: 'q1', b: 'd' }, q1: { b: 'q2', a: 'd' }, q2: { a: 'q3', b: 'd' }, q3: { a: 'd', b: 'd' }, d: { a: 'd', b: 'd' } }, notes: { q0: '<b>q0</b> = ยังไม่ได้อ่านอะไร (start) — string ที่ต้องการคือ aba ตัวเดียว จึงวาด "ทางเดิน" ทีละตัวอักษร', q1: '<b>q1</b> = อ่านมาแล้ว "a" (ตรงกับ prefix ตัวแรกของ aba) — เส้น q0 ─a→ q1', q2: '<b>q2</b> = อ่านมาแล้ว "ab" — เส้น q1 ─b→ q2', q3: '<b>q3</b> = อ่านครบ "aba" → <b>final</b> (วงคู่) — ถ้าจบตรงนี้พอดี accept', d: '<b>d (trap)</b> = อ่านตัวอักษรที่ "ผิดทาง" (q0 อ่าน b, q1 อ่าน a, q2 อ่าน b) หรืออ่านเกินหลัง aba — ตกมาแล้ววนตัวเองตลอด ไม่มีทางกลับ. ในข้อสอบวาดแค่ 3 เส้นแบบ NFA ก็ถูก' }, pos: { q0: [80, 200], q1: [220, 200], q2: [360, 200], q3: [500, 200], d: [290, 330] } };
+const D_ASTAR = { name: 'aΣ*', alphabet: ['a', 'b'], start: 'q0', finals: ['q1'], rows: { q0: { a: 'q1', b: 'd' }, q1: { a: 'q1', b: 'q1' }, d: { a: 'd', b: 'd' } }, notes: { q0: '<b>q0</b> = ยังไม่ได้อ่านตัวแรก — สิ่งเดียวที่ต้องจำคือ "ตัวแรกเป็น a หรือเปล่า"', q1: '<b>q1</b> = ตัวแรกเป็น a แล้ว → หลังจากนี้อะไรก็ได้ (Σ*) จึงเป็น <b>final</b> และวนตัวเองด้วย a,b', d: '<b>d (trap)</b> = ตัวแรกเป็น b → ไม่มีทางอยู่ในภาษาแล้ว วนตัวเองตลอด' }, pos: { q0: [100, 200], q1: [300, 200], d: [300, 330] } };
+const D_MOD3 = { name: '|ω| mod 3 = 0', alphabet: ['a', 'b'], start: 'q0', finals: ['q0'], rows: { q0: { a: 'q1', b: 'q1' }, q1: { a: 'q2', b: 'q2' }, q2: { a: 'q0', b: 'q0' } }, notes: { q0: '<b>q0</b> = ความยาวที่อ่านมา หาร 3 เหลือเศษ 0 — เป็น start (ยังไม่อ่าน = ยาว 0) และเป็น <b>final</b> (เศษ 0 คือสิ่งที่ต้องการ)', q1: '<b>q1</b> = เศษ 1 — อ่านตัวอักษรใดก็ได้ (a หรือ b เหมือนกัน เพราะสนใจแค่ความยาว) จาก q0 มา q1', q2: '<b>q2</b> = เศษ 2 — อ่านอีกตัวกลับไป q0 (เศษ 0) ครบวง 3 state' }, pos: { q0: [120, 200], q1: [300, 110], q2: [300, 290] } };
 const mono = (s) => `<span class="mono">${s}</span>`;
 
 FA.EXAMS.push({ id: 'p1', title: 'ชุดที่ 1', questions: [
@@ -2892,9 +2970,9 @@ FA.EXAMS.push({ id: 'p1', title: 'ชุดที่ 1', questions: [
 (() => {
 const P2Q9 = { name: 'M (ชุด 2 ข้อ 9)', alphabet: ['a', 'b'], start: 'q0', finals: ['q0'], rows: { q0: { a: 'q0', b: 'q1' }, q1: { a: 'q0', b: 'q2' }, q2: { a: 'q0', b: 'q3' }, q3: { a: 'q3', b: 'q3' } }, pos: { q0: [90, 200], q1: [250, 200], q2: [410, 200], q3: [570, 200] } };
 FA.EXAM_AUTOMATA.P2Q9 = P2Q9;
-const D_ABA_STAR = { name: '{ab}{a}*', alphabet: ['a', 'b'], start: 'q0', finals: ['q2'], rows: { q0: { a: 'q1', b: 'd' }, q1: { b: 'q2', a: 'd' }, q2: { a: 'q2', b: 'd' }, d: { a: 'd', b: 'd' } }, pos: { q0: [80, 200], q1: [240, 200], q2: [400, 200], d: [240, 330] } };
-const D_A_BB = { name: '{a}{a,b}*bb', alphabet: ['a', 'b'], start: 'q0', finals: ['q3'], rows: { q0: { a: 'q1', b: 'd' }, q1: { a: 'q1', b: 'q2' }, q2: { a: 'q1', b: 'q3' }, q3: { a: 'q1', b: 'q3' }, d: { a: 'd', b: 'd' } }, pos: { q0: [80, 200], q1: [240, 200], q2: [400, 200], q3: [560, 200], d: [80, 330] } };
-const D_A_OR_B = { name: 'a* ∪ b*', alphabet: ['a', 'b'], start: 'q0', finals: ['q0', 'qa', 'qb'], rows: { q0: { a: 'qa', b: 'qb' }, qa: { a: 'qa', b: 'd' }, qb: { b: 'qb', a: 'd' }, d: { a: 'd', b: 'd' } }, pos: { q0: [100, 200], qa: [300, 100], qb: [300, 300], d: [500, 200] } };
+const D_ABA_STAR = { name: '{ab}{a}*', alphabet: ['a', 'b'], start: 'q0', finals: ['q2'], rows: { q0: { a: 'q1', b: 'd' }, q1: { b: 'q2', a: 'd' }, q2: { a: 'q2', b: 'd' }, d: { a: 'd', b: 'd' } }, notes: { q0: '<b>q0</b> = ยังไม่อ่าน — ภาษาคือ ab แล้วตามด้วย a กี่ตัวก็ได้ จึงเริ่มด้วยทางเดิน a, b', q1: '<b>q1</b> = อ่าน "a" แล้ว', q2: '<b>q2</b> = อ่าน "ab" ครบส่วนบังคับ → <b>final</b>; a เพิ่มกี่ตัวก็ยังอยู่ในภาษา จึงวนตัวเองด้วย a', d: '<b>d (trap)</b> = ผิดทาง (b ก่อน a, a สองตัวติดตอนต้น, หรือ b หลัง ab) — วาดแบบ NFA ไม่ต้องมี d ก็ได้' }, pos: { q0: [80, 200], q1: [240, 200], q2: [400, 200], d: [240, 330] } };
+const D_A_BB = { name: '{a}{a,b}*bb', alphabet: ['a', 'b'], start: 'q0', finals: ['q3'], rows: { q0: { a: 'q1', b: 'd' }, q1: { a: 'q1', b: 'q2' }, q2: { a: 'q1', b: 'q3' }, q3: { a: 'q1', b: 'q3' }, d: { a: 'd', b: 'd' } }, notes: { q0: '<b>q0</b> = ยังไม่อ่าน — ต้องจำ 2 อย่าง: (1) ตัวแรกเป็น a หรือยัง (2) ตอนนี้ลงท้ายด้วย b ติดกันกี่ตัว', q1: '<b>q1</b> = ขึ้นต้น a แล้ว และท้ายสุด<b>ไม่ใช่ b</b> (b ติดกัน 0 ตัว) — อ่าน a อยู่ที่เดิม', q2: '<b>q2</b> = ลงท้ายด้วย b <b>1 ตัว</b> — ถ้าอ่าน a จะกลับไป q1 (ล้าง b ท้าย)', q3: '<b>q3</b> = ลงท้ายด้วย bb (≥ 2) → <b>final</b>; อ่าน b ต่อยังลงท้าย bb (วนตัวเอง), อ่าน a กลับ q1', d: '<b>d (trap)</b> = ตัวแรกเป็น b — ไม่มีทางแก้แล้ว' }, pos: { q0: [80, 200], q1: [240, 200], q2: [400, 200], q3: [560, 200], d: [80, 330] } };
+const D_A_OR_B = { name: 'a* ∪ b*', alphabet: ['a', 'b'], start: 'q0', finals: ['q0', 'qa', 'qb'], rows: { q0: { a: 'qa', b: 'qb' }, qa: { a: 'qa', b: 'd' }, qb: { b: 'qb', a: 'd' }, d: { a: 'd', b: 'd' } }, notes: { q0: '<b>q0</b> = ยังไม่อ่าน — e ไม่มี a เงื่อนไข "ถ้ามี a แล้วห้ามมี b" จึงจริง → start เป็น <b>final</b> ด้วย', qa: '<b>qa</b> = เห็นแต่ a ล้วน → <b>final</b> วนตัวเองด้วย a', qb: '<b>qb</b> = เห็นแต่ b ล้วน → <b>final</b> วนตัวเองด้วย b', d: '<b>d (trap)</b> = มีทั้ง a และ b ปนกัน (qa อ่าน b หรือ qb อ่าน a) — ไม่มีทางกลับ' }, pos: { q0: [100, 200], qa: [300, 100], qb: [300, 300], d: [500, 200] } };
 
 FA.EXAMS.push({ id: 'p2', title: 'ชุดที่ 2', questions: [
 { id: '1', marks: 10, topic: 'เซต', type: 'tf', text: 'Indicate whether each of the following is true or false. <span class="note">(each = 2, wrong = −2)</span>',
@@ -2990,9 +3068,9 @@ FA.EXAMS.push({ id: 'p2', title: 'ชุดที่ 2', questions: [
 
 (() => {
 const NFA_X = FA.EXAM_AUTOMATA.NFA_X;
-const D_EMPTYSTR = { name: '{e}', alphabet: ['a', 'b'], start: 'q0', finals: ['q0'], rows: { q0: { a: 'd', b: 'd' }, d: { a: 'd', b: 'd' } }, pos: { q0: [120, 200], d: [320, 200] } };
-const D_EMPTY = { name: '{}', alphabet: ['a', 'b'], start: 'q0', finals: [], rows: { q0: { a: 'q0', b: 'q0' } }, pos: { q0: [200, 200] } };
-const D_DIV4 = { name: 'binary ÷ 4', alphabet: ['0', '1'], start: 'q0', finals: ['t'], rows: { q0: { 0: 't', 1: 'o' }, o: { 0: 'p', 1: 'o' }, p: { 0: 't', 1: 'o' }, t: { 0: 't', 1: 'o' } }, pos: { q0: [80, 200], o: [280, 110], p: [280, 290], t: [480, 200] } };
+const D_EMPTYSTR = { name: '{e}', alphabet: ['a', 'b'], start: 'q0', finals: ['q0'], rows: { q0: { a: 'd', b: 'd' }, d: { a: 'd', b: 'd' } }, notes: { q0: '<b>q0</b> = ยังไม่อ่านอะไร = string ว่าง e ซึ่งเป็นสมาชิกเดียวของภาษา → start เป็น <b>final</b>', d: '<b>d (trap)</b> = อ่านอะไรมาแล้วสัก 1 ตัว → ไม่ใช่ e อีกต่อไป — วาดแบบ NFA มีแค่ q0 ตัวเดียวก็ถูก' }, pos: { q0: [120, 200], d: [320, 200] } };
+const D_EMPTY = { name: '{}', alphabet: ['a', 'b'], start: 'q0', finals: [], rows: { q0: { a: 'q0', b: 'q0' } }, notes: { q0: '<b>q0</b> = start ที่<b>ไม่ใช่ final</b> วนตัวเองด้วย a,b — ไม่มี final เลย จึงไม่รับ string ใด ๆ แม้แต่ e (จะไม่วาดเส้นเลยก็ได้)' }, pos: { q0: [200, 200] } };
+const D_DIV4 = { name: 'binary ÷ 4', alphabet: ['0', '1'], start: 'q0', finals: ['t'], rows: { q0: { 0: 't', 1: 'o' }, o: { 0: 'p', 1: 'o' }, p: { 0: 't', 1: 'o' }, t: { 0: 't', 1: 'o' } }, notes: { q0: '<b>q0</b> = ยังไม่อ่าน — หาร 4 ลงตัว ⇔ เป็น "0" เดี่ยว หรือ<b>ลงท้ายด้วย 00</b> จึงต้องจำว่า "ท้ายสุดเป็นอะไร"', o: '<b>o</b> = บิตล่าสุดเป็น <b>1</b> — ยังไม่ลงตัวแน่ ๆ; อ่าน 1 อีกก็ยังอยู่ที่นี่', p: '<b>p</b> = ลงท้าย "10" (0 หนึ่งตัวหลัง 1) — เหลืออีก 0 เดียวจะลงตัว; อ่าน 1 กลับไป o', t: '<b>t</b> = ลงท้าย "00" หรือเป็น "0" เดี่ยว → <b>final</b>; อ่าน 0 ต่อยังลงท้าย 00 (วน), อ่าน 1 ไป o. q0 ─0→ t ทำให้ "0" ตัวเดียวถูกรับ' }, pos: { q0: [80, 200], o: [280, 110], p: [280, 290], t: [480, 200] } };
 
 FA.EXAMS.push({ id: 'p3', title: 'ชุดที่ 3', questions: [
 { id: '1abc', marks: 6, topic: 'เซต', type: 'tf', text: '1(a)–(c) Indicate whether each of the following is true or false. <span class="note">(each = 2, wrong = −2)</span>',
@@ -3394,6 +3472,24 @@ EX.scoreTrace = (q, A, resp) => {
   return { earned: r2(earned), max: q.marks, perPart };
 };
 EX.build = (spec) => typeof spec === 'string' ? FA.preset(spec) : FA.Automaton.fromTable(JSON.parse(JSON.stringify(spec)));
+EX.buildSteps = (spec) => {
+  if (typeof spec === 'string') return [{ A: EX.build(spec), added: [], edges: [], text: '' }];
+  const full = EX.build(spec);
+  const order = Object.keys(spec.rows);
+  const SEP = '␟';
+  const steps = []; let prev = new Set();
+  for (let k = 1; k <= order.length; k++) {
+    const shown = order.slice(0, k); const shownSet = new Set(shown);
+    const states = full.states.filter(s => shownSet.has(s.id)).map(s => ({ ...s }));
+    const transitions = full.transitions.filter(t => shownSet.has(t.from) && shownSet.has(t.to));
+    const A = new FA.Automaton({ alphabet: full.alphabet, states, transitions, start: shownSet.has(full.start) ? full.start : null });
+    const edgeKeys = [...new Set(transitions.map(t => t.from + SEP + t.to))];
+    const edges = edgeKeys.filter(k2 => !prev.has(k2));
+    prev = new Set(edgeKeys);
+    steps.push({ A, added: [order[k - 1]], edges, text: (spec.notes && spec.notes[order[k - 1]]) || '' });
+  }
+  return steps;
+};
 EX.scoreDraw = (q, A, part) => {
   const value = q.marks / (q.parts ? q.parts.length : 1);
   if (!A || !A.start) return { ok: false, earned: 0, value, noDrawing: true };
@@ -3445,7 +3541,13 @@ if (typeof document !== 'undefined') {
   };
 
   const solutionHTML = (q) => {
-    const s = q.solution || {}; let h = `<div class="sol"><h4>${esc(T('steps'))}</h4><ol>${(s.steps || []).map(x => `<li>${x}</li>`).join('')}</ol>`;
+    const s = q.solution || {};
+    let pre = '';
+    if (q.type === 'draw') {
+      const parts = q.parts || [{ label: '', answer: q.answer }];
+      pre = parts.map((p, i) => `<div class="drawsol" data-drawsol="${i}"><div class="note"><b>${p.label}</b> — ${esc(T('buildStepByStep'))}</div><div class="canvas short" data-drawcanvas></div><div class="stepper" data-drawstep></div><div class="explain" data-drawtext></div></div>`).join('');
+    }
+    let h = `<div class="sol">${pre}<h4>${esc(T('steps'))}</h4><ol>${(s.steps || []).map(x => `<li>${x}</li>`).join('')}</ol>`;
     if (s.write) h += `<h4>${esc(T('writeOnPaper'))}</h4><div class="write">${s.write}</div>`;
     if (s.pitfalls && s.pitfalls.length) h += `<h4>${esc(T('pitfalls'))}</h4><ul>${s.pitfalls.map(x => `<li>${x}</li>`).join('')}</ul>`;
     return h + '</div>';
@@ -3468,13 +3570,27 @@ if (typeof document !== 'undefined') {
     const checked = !!bucket('checked', set.id)[q.id];
     const open = isOpen(set, q, checked);
     const sc = checked ? EX.scoreQ(q, resp) : null;
+    const figSpec = (q.type === 'trace' || q.type === 'nfa2dfa') ? q.automaton : (q.type === 'short' || q.type === 'mc') ? (q.link && q.link.automaton) : null;
     el.className = 'exq'; el.dataset.q = q.id;
     el.innerHTML = `<div class="qh"><span class="n">ข้อ ${esc(q.id)}</span>${badge(`${q.marks} ${T('marks')}`, 'mark')}${badge(q.topic)}${sc ? `<span class="scorebar">${fmt(sc.earned)} / ${sc.max}</span>` : ''}</div>` +
-      `<div class="qtext">${q.text}</div>${widget(set, q, resp, checked)}` +
+      `<div class="qtext">${q.text}</div>` +
+      (figSpec ? `<div class="qfig"><div class="note">${esc(T('givenFigure'))}</div><div class="canvas short" data-fig></div></div>` : '') +
+      `${widget(set, q, resp, checked)}` +
       `<div class="actions">${q.type !== 'proof' ? `<button class="btn sm primary" data-act="check">${esc(T('check'))}</button>` : ''}<button class="btn sm" data-act="sol">${esc(open ? T('hideSolution') : T('showSolution'))}</button>` +
       (q.link ? `<button class="btn sm" data-act="link">${esc(T('openModule'))} ${q.link.module === 'editor' ? '1' : q.link.module === 'powerset' ? '2' : q.link.module === 'closure' ? '5' : q.link.module === 'pumping' ? '6' : ''}</button>` : '') +
       (q.type === 'nfa2dfa' ? `<button class="btn sm" data-act="powerset">${esc(T('openModule'))} 2</button>` : '') + `</div>` +
       (open ? solutionHTML(q) : '');
+    const fig = el.querySelector('[data-fig]');
+    if (fig && figSpec) { const v = new FA.AutomatonView(fig); v.setAutomaton(EX.build(figSpec)); v.fit(); }
+    el.querySelectorAll('[data-drawsol]').forEach((box) => {
+      const i = +box.dataset.drawsol;
+      const part = (q.parts || [{ label: '', answer: q.answer }])[i] || { label: '', answer: q.answer };
+      const canvasEl = box.querySelector('[data-drawcanvas]'); const stepEl = box.querySelector('[data-drawstep]'); const textEl = box.querySelector('[data-drawtext]');
+      const steps = EX.buildSteps(part.answer);
+      const v = new FA.AutomatonView(canvasEl);
+      const st = FA.ui.stepper(stepEl, (j) => { const s = steps[j]; v.setAutomaton(s.A); v.fit(); v.highlight({ states: s.added, transitions: s.edges }); textEl.innerHTML = s.text; });
+      st.setCount(steps.length, steps.length - 1);
+    });
   };
 
   const renderList = () => {

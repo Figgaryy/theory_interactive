@@ -141,7 +141,9 @@ FA.runTests = () => {
     t('exam: scoreMC', EX.scoreMC(qmc, 2).earned === 4 && EX.scoreMC(qmc, 0).earned === -4 && EX.scoreMC(qmc, null).earned === 0);
     const qtr = { marks: 4, inputs: ['aabb', 'bbbb'] };
     const st = EX.scoreTrace(qtr, A, ['(q0,aabb) ⊢ (q0,abb) ⊢ (q0,bb) ⊢ (q1,b) ⊢ (q2,e)', '']);
-    t('exam: scoreTrace half credit', st.earned === 2, JSON.stringify(st)); }
+    t('exam: scoreTrace half credit', st.earned === 2, JSON.stringify(st));
+    const bs = EX.buildSteps({ alphabet: ['a','b'], start: 'q0', finals: ['q1'], rows: { q0: { a: 'q1', b: 'q0' }, q1: { a: 'q1', b: 'q1' } }, notes: { q0: 'first', q1: 'second' } });
+    t('exam: buildSteps 2 steps', bs.length === 2 && bs[0].A.states.length === 1 && bs[1].A.states.length === 2 && bs[0].A.transitions.length === 1 && bs[1].A.transitions.length === 4 && bs[1].added[0] === 'q1' && bs[1].text === 'second', JSON.stringify(bs.map(s => [s.A.states.length, s.A.transitions.length, s.added, s.text]))); }
   // --- language tools
   { t('languageDiff finds witness', FA.languageDiff(P('ex211'), P('exA'), 5)?.w !== undefined);
     t('dfaEquivalent witness for slide4 vs exB', FA.dfaEquivalent(P('slide4'), P('exB')).equivalent === false); }
