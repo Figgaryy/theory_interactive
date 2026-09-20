@@ -338,6 +338,53 @@ RXM.examShow = (id, rxOverride) => {
   body.scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
 RXM.examList();
+// ---- exam-notation problems solved by direct construction (what must the machine remember?) ----
+const RX_DIRECT = [
+  { id: 'aba', title: 'ชุด 1 ข้อ 13(a)', lang: '{aba}', spec: 'D_ABA', rx: 'aba', read: '{aba} = ภาษาที่มี string เดียวคือ aba → เครื่องต้อง "ตรวจสะกด" ทีละตัวอักษร', remember: 'อ่านมาแล้วตรงกับ prefix ไหนของ aba (ยังไม่อ่าน / a / ab / aba) + กรณีผิดทาง' },
+  { id: 'astar', title: 'ชุด 1 ข้อ 13(b)', lang: 'aΣ*', spec: 'D_ASTAR', rx: 'a(a ∪ b)*', read: 'aΣ* = a หนึ่งตัว แล้วตามด้วยอะไรก็ได้ (Σ* = ทุก string) → สนใจแค่ตัวแรก', remember: 'ตัวแรกเป็น a หรือยัง (2 กรณี) + กรณีตัวแรกเป็น b' },
+  { id: 'mod3', title: 'ชุด 1 ข้อ 13(c)', lang: '{ω ∈ Σ* | len(ω) % 3 = 0}', spec: 'D_MOD3', rx: '((a ∪ b)(a ∪ b)(a ∪ b))*', read: 'ความยาวหาร 3 ลงตัว — ตัวอักษรเป็นอะไรไม่สำคัญ นับอย่างเดียว', remember: 'ความยาวที่อ่านมา mod 3 = 0, 1 หรือ 2 (3 กรณี) — ไม่ต้องมี trap เพราะไม่มีทางผิด' },
+  { id: 'comp', title: 'ชุด 1 ข้อ 12', lang: '{a,b}* − L(M)  (M = "ไม่มี bbb")', spec: 'EX212_COMP', rx: null, read: 'Σ* − L(M) คือ complement → ใช้เครื่องเดิมทั้งหมด แค่<b>สลับ final ↔ ไม่ final</b> (M ต้องเป็น DFA complete ก่อน)', remember: 'เหมือน M ทุกประการ: เห็น b ติดกัน 0/1/2 ตัว หรือเจอ bbb แล้ว — แต่ final กลายเป็น q3 ตัวเดียว' },
+  { id: 'abastar', title: 'ชุด 2 ข้อ 10(a)', lang: '{ab}{a}*', spec: 'D_ABA_STAR', rx: 'ab a*', read: '{ab}{a}* = เซตต่อกัน: ab ก่อน แล้ว a อีก 0 ตัวขึ้นไป', remember: 'ผ่านส่วนบังคับ ab มาแล้วแค่ไหน (ยังไม่อ่าน / a / ab) แล้ววน a ที่ final' },
+  { id: 'abb', title: 'ชุด 2 ข้อ 10(b)', lang: '{a}{a,b}*bb', spec: 'D_A_BB', rx: 'a(a ∪ b)*bb', read: 'ขึ้นต้น a · กลาง Σ* อะไรก็ได้ · ลงท้าย bb — ข้อนี้ยากสุดในชุด เพราะต้องจำ 2 อย่างพร้อมกัน', remember: '(1) ตัวแรกเป็น a หรือยัง (2) ตอนนี้ลงท้ายด้วย b ติดกัน 0 / 1 / ≥2 ตัว' },
+  { id: 'aorb', title: 'ชุด 2 ข้อ 10(c)', lang: '{ω | if ω contains a then it does not contain b}', spec: 'D_A_OR_B', rx: 'a* ∪ b*', read: '"ถ้ามี a แล้วห้ามมี b" = a ล้วน หรือ b ล้วน หรือว่างเปล่า (เงื่อนไข "ถ้า…" จริงเมื่อไม่มี a ด้วย)', remember: 'ยังไม่เห็นอะไร / เห็นแต่ a / เห็นแต่ b / ปนกันแล้ว (trap)' },
+  { id: 'eps', title: 'ชุด 3 ข้อ 8(a)', lang: '{e}', spec: 'D_EMPTYSTR', rx: '∅*', read: 'ภาษาที่มี string ว่างตัวเดียว → รับได้เฉพาะตอน "ยังไม่อ่านอะไร"', remember: 'อ่านมาแล้วหรือยัง (2 กรณี)' },
+  { id: 'empty', title: 'ชุด 3 ข้อ 8(b)', lang: '{}', spec: 'D_EMPTY', rx: '∅', read: 'ภาษาว่าง — ไม่รับอะไรเลย → ไม่มี final', remember: 'ไม่ต้องจำอะไร (1 state ไม่ final)' },
+  { id: 'div4', title: 'ชุด 3 ข้อ 8(c)', lang: '{ω ∈ {0,1}* | decimal value of ω divisible by 4}', spec: 'D_DIV4', rx: null, read: 'แปลงเงื่อนไขเลขคณิตเป็นเงื่อนไขบน string ก่อน: หาร 4 ลงตัว ⇔ เป็น "0" เดี่ยว หรือลงท้าย 00', remember: 'สองบิตท้ายสุดเป็นอะไร (…1 / …10 / …00 หรือ "0" เดี่ยว) + ยังไม่อ่าน' },
+];
+RXM.directList = () => {
+  const box = $('rx-direct-list'); if (!box) return;
+  box.innerHTML = RX_DIRECT.map(p => `<button class="btn sm" data-dx="${p.id}"><b>${esc(p.title)}</b>&nbsp;<span class="mono">${esc(p.lang)}</span></button>`).join('');
+  box.addEventListener('click', (ev) => { const b = ev.target.closest('button[data-dx]'); if (!b) return; RXM.directShow(b.dataset.dx); });
+};
+RXM.directShow = (id) => {
+  const p = RX_DIRECT.find(x => x.id === id); if (!p) return;
+  const spec = FA.EXAM_AUTOMATA && FA.EXAM_AUTOMATA[p.spec]; if (!spec || !FA.exam) { UI.toast('ข้อมูลเฉลยยังไม่พร้อม'); return; }
+  const steps = FA.exam.buildSteps(spec); const full = FA.exam.build(spec);
+  const acc = [], rej = []; for (const w of FA.stringsUpTo(full.alphabet, 4)) { (FA.runDFA(full, w).accepted ? acc : rej).push(w === '' ? 'e' : w); if (acc.length >= 6 && rej.length >= 6) break; }
+  const nF = [...full.finals()].map(q => full.labelOf(q)).join(', ');
+  let h = `<div class="prob"><div class="src">${esc(p.title)} · โจทย์แบบข้อสอบจริง (วาดตรง)</div><div style="font-size:1.05rem;margin:4px 0"><b>โจทย์:</b> Draw the state-transition diagram of a FA accepting <span class="mono">${esc(p.lang)}</span> (over Σ = {${esc(full.alphabet.join(', '))}}).</div>
+    <div class="row" style="margin-top:8px"><button class="btn sm primary" id="rx-dx-draw">ลองวาดเองใน Editor ก่อน</button><button class="btn sm" id="rx-dx-check">ตรวจที่วาด</button><span class="note" id="rx-dx-verdict"></span></div></div>`;
+  h += `<div class="recipe"><div><b>① แปลโจทย์</b>อ่านสัญกรณ์เซตให้เป็นภาษาคน: ต้องขึ้นต้น/ลงท้าย/มีอะไร</div><div><b>② ถาม "ต้องจำอะไร"</b>ระหว่างอ่าน string ทีละตัว เครื่องต้องรู้อะไรบ้างถึงจะตัดสินได้ — แต่ละคำตอบ = 1 state</div><div><b>③ วาดเส้น</b>จากทุก state อ่านทุกตัวอักษร ไปไหน? (DFA ต้องครบ) · ผิดทาง → trap</div><div><b>④ เลือก final + ตรวจ</b>state ไหน "ตรงเงื่อนไข" = วงคู่ · ลอง string 2–3 ตัว รวม e ด้วย</div></div>`;
+  h += `<div class="wstep"><div><h4>ขั้นที่ 1 · แปลโจทย์</h4><p>${p.read}</p><h4>ขั้นที่ 2 · เครื่องต้องจำอะไร</h4><p>${esc(p.remember)} → ได้ <b>${steps.length} state</b>:</p><ol>${steps.map(st => `<li>${st.text}</li>`).join('')}</ol></div><div><h4>สิ่งที่จะได้ตอนจบ</h4><div class="canvas" data-dxv="final"></div><div class="lang">รับ: <span class="mono">${esc(acc.join(', ') || '—')}</span> · ไม่รับ: <span class="mono">${esc(rej.join(', ') || '—')}</span></div></div></div>`;
+  steps.forEach((st, i) => {
+    const A = st.A; const q = st.added[0]; const outs = full.transitions.filter(t => t.from === q).map(t => `อ่าน <b>${esc(t.symbol)}</b> → ${esc(full.labelOf(t.to))}${A.state(t.to) ? '' : ' <span class="note">(state นี้จะวาดใน step ถัดไป — เส้นจะปรากฏตอนนั้น)</span>'}`);
+    const ins = full.transitions.filter(t => t.to === q && t.from !== q && A.state(t.from)).map(t => `${esc(full.labelOf(t.from))} ─${esc(t.symbol)}→ ${esc(full.labelOf(q))}`);
+    h += `<div class="wstep"><div><h4>ขั้นที่ 3.${i + 1} · วาด state <span class="mono">${esc(full.labelOf(q))}</span>${full.isFinal(q) ? ' <span class="badge green">final</span>' : ''}${q === full.start ? ' <span class="badge blue">start</span>' : ''}</h4><p>${st.text}</p><ol>${ins.length ? `<li>เส้นเข้าจาก state ที่วาดแล้ว: ${ins.join(' · ')}</li>` : ''}<li>เส้นออก (ต้องครบทุกตัวอักษร): ${outs.join(' · ') || 'ไม่มี (NFA)'}</li>${full.isFinal(q) ? '<li>วงคู่ — string ที่จบตรงนี้ตรงเงื่อนไขของภาษา</li>' : ''}</ol></div><div><div class="canvas" data-dxv="${i}"></div></div></div>`;
+  });
+  h += `<div class="wstep"><div><h4>ขั้นที่ 4 · สรุปคำตอบ (เขียนลงกระดาษ)</h4><ol><li>รูปสุดท้าย ${full.states.length} state · start = ${esc(full.labelOf(full.start))} · F = {${esc(nF)}}</li><li>ตรวจ: ${esc(acc.slice(0, 3).join(', '))} ต้องรับ · ${esc(rej.slice(0, 3).join(', '))} ต้องไม่รับ — <b>อย่าลืมเช็ค e</b> (start เป็น final ไหม?)</li><li>ถ้าวาดเป็น NFA (ไม่มี trap, เส้นไม่ครบ) ข้อสอบยอมรับ แต่ต้องเขียนกำกับให้ชัดว่า state ไหน final</li></ol>${p.rx ? `<div class="row" style="margin-top:8px"><button class="btn sm" id="rx-dx-thompson">เทียบกับ Thompson ของ ${esc(p.rx)} (ใหญ่กว่ามาก — ไม่แนะนำในข้อสอบ)</button></div>` : ''}</div><div><div class="canvas" data-dxv="final2"></div></div></div>`;
+  const body = $('rx-exam-body'); body.innerHTML = h;
+  body.querySelectorAll('[data-dxv]').forEach(el => {
+    const k = el.dataset.dxv; const v = new FA.AutomatonView(el);
+    if (k === 'final' || k === 'final2') { v.setAutomaton(full); v.fit(36); }
+    else { v.setAutomaton(steps[+k].A); v.fit(36); v.highlight({ states: steps[+k].added, transitions: steps[+k].edges }); }
+  });
+  $('rx-dx-draw').onclick = () => { App.editor.setCurrent(new FA.Automaton({ alphabet: full.alphabet, name: p.title }), { sample: '' }); App.show('editor'); window.scrollTo(0, 0); UI.toast('วาดเสร็จแล้วกลับมา module 4 กด "ตรวจที่วาด"'); };
+  $('rx-dx-check').onclick = () => { const A = App.current; const out = $('rx-dx-verdict'); if (!A || !A.start) { out.innerHTML = '<span class="bad-t">ยังไม่ได้วาด</span>'; return; } const r = FA.dfaEquivalent(A, full); out.innerHTML = r.equivalent ? '<span class="verdict ok">✔ ภาษาเดียวกับเฉลย</span>' : `<span class="verdict bad">✘ ยังไม่ตรง</span> string <span class="mono">${esc(r.witness === '' ? 'e' : r.witness)}</span> ${r.inA ? 'เครื่องของคุณรับ แต่ไม่อยู่ในภาษา' : 'อยู่ในภาษา แต่เครื่องของคุณไม่รับ'}`; };
+  const th = $('rx-dx-thompson'); if (th) th.onclick = () => { $('rx-in').value = p.rx; RXM.build(); $('rx-tree').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+  body.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+RXM.directList();
+
 RXM.gallery = () => {
   const items = [['rx-g-sym', 'a'], ['rx-g-cat', 'ab'], ['rx-g-or', 'a ∪ b'], ['rx-g-star', 'a*']];
   for (const [id, rx] of items) {

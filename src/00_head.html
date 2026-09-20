@@ -516,6 +516,17 @@ svg .tl.done{stroke:var(--green)}
     </div>
     <div class="card rxexam" id="rx-exam" style="margin-top:12px">
       <h3>โจทย์แบบข้อสอบ + เฉลยละเอียดทุกขั้น <span class="note">เลือกข้อ → ลองวาดเองก่อน → อ่านเฉลยที่เขียนเหมือนตอบข้อสอบ</span></h3>
+      <div class="def" style="margin-bottom:8px"><b>ข้อสอบจริงเขียนภาษาเป็น "เซต" ไม่ใช่ regex ที่มี ∪</b> — และคาดหวังเครื่องเล็ก ๆ ที่<b>วาดตรง</b> (ถามว่า "ต้องจำอะไร" แล้วให้ 1 state ต่อ 1 สิ่งที่จำ) ไม่ใช่ Thompson construction. ตารางแปลงสัญกรณ์:
+        <div class="tblwrap" style="margin-top:6px"><table class="tt"><thead><tr><th>ในข้อสอบ</th><th>ความหมาย</th><th>regex (ถ้าอยากเทียบ)</th></tr></thead><tbody>
+        <tr><td class="mono">{aba}</td><td>string เดียว aba</td><td class="mono">aba</td></tr>
+        <tr><td class="mono">{ab}{a}*</td><td>เซตต่อกัน = ab แล้วตามด้วย a กี่ตัวก็ได้</td><td class="mono">ab a*</td></tr>
+        <tr><td class="mono">aΣ* · {a}{a,b}*</td><td>Σ = {a,b} = "ตัวไหนก็ได้" — <b>∪ ซ่อนอยู่ตรงนี้</b></td><td class="mono">a(a ∪ b)*</td></tr>
+        <tr><td class="mono">{ω ∈ Σ* | เงื่อนไข}</td><td>ทุก string ที่เป็นจริงตามเงื่อนไข — คิดตรง ๆ ว่าต้องจำอะไร</td><td>มักไม่ต้องแปลง</td></tr>
+        <tr><td class="mono">{e} · {} (∅) · Σ* − L(M)</td><td>string ว่างตัวเดียว · ภาษาว่าง · complement (สลับ final)</td><td class="mono">∅* · ∅ · —</td></tr>
+        </tbody></table></div></div>
+      <div class="note"><b>กลุ่ม A — แบบที่ออกสอบจริง (วาดตรง ทีละ state):</b></div>
+      <div class="row" id="rx-direct-list" style="margin-bottom:6px"></div>
+      <div class="note"><b>กลุ่ม B — แบบ textbook (regex มี ∪ → Thompson construction ทีละ stage):</b></div>
       <div class="row" id="rx-exam-list"></div>
       <div id="rx-exam-body"><p class="note" style="margin-top:8px">เลือกโจทย์ด้านบน — เฉลยจะแสดงทุก stage เรียงจากบนลงล่าง พร้อมรูปและเหตุผลของแต่ละเส้นที่เพิ่ม</p></div>
     </div>
